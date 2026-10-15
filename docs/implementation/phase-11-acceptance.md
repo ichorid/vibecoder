@@ -79,6 +79,7 @@
 | Обе темы и reduced motion | Browser cases + mobile visual review |
 | Mobile performance/recovery | P10 recovery + P11.3 measurements |
 | Агентские quality gates | P00 rule fixtures + CI на финальном коде |
+| Звук в настройках и Music submenu/Lab в production | P03.6 menu tests + P10.6/S07 production browser flow |
 
 ## Выходной контроль P11
 

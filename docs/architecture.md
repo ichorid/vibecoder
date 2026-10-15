@@ -76,6 +76,8 @@ src/
     HistoryView.svelte
     CatView.svelte
     Header.svelte
+    SettingsMenu.svelte
+    AudioControls.svelte
     CatPlay.svelte
     CatOverlay.svelte
     UnlockAnnouncement.svelte
@@ -409,7 +411,7 @@ The supplied PNG references are composition guides, not production sprite sheets
 
 **Game:** persistent header, flexible world region, compact control region. Begin around the specified 12/53/35 proportions, but use CSS grid with content-sized header/controls and a `minmax(0, 1fr)` world. Use `100dvh` with a `100vh` fallback and safe-area padding. On short screens reduce world height, typography spacing, visible log lines, and optional cards before allowing minimal scroll. Avoid fixed proportions that clip the primary button. Use a viewport meta tag without disabling user zoom. Target 320×568 through contemporary portrait phones; landscape can use a compact variant. Browser toolbar changes and orientation must resize presentation without resetting a minigame, production, or camera progression.
 
-**Header:** CAT immediately beside HISTORY, theme toggle, and up to three current statistics. The CAT hit area is at least 44×44 CSS px. Inside it, two tracks sit directly below the icon button, each exactly constrained by the button's width, 3–4 CSS px tall, with 2–3 px gaps. They show health and mood; fullness appears in Cat only. Add accessible names without permanent visible labels or percentages. Do not continually announce numeric changes to assistive technology.
+**Header:** CAT immediately beside HISTORY, a Settings button, and up to three current statistics. Settings contains the theme control, a sound on/off switch, and a Music submenu with volume/audio controls and a Music Lab link. The submenu and settings are panels within the current view. The CAT hit area is at least 44×44 CSS px. Inside it, two tracks sit directly below the icon button, each exactly constrained by the button's width, 3–4 CSS px tall, with 2–3 px gaps. They show health and mood; fullness appears in Cat only. Add accessible names without permanent visible labels or percentages. Do not continually announce numeric changes to assistive technology.
 
 **Controls:** one primary action, at most three current upgrade/choice cards, and a short recent-event log. Upgrades and ending decisions use this same surface. The unlock panel stays in the world region. Focus remains predictable when a card disappears or a presentation finishes.
 
@@ -559,4 +561,4 @@ The largest uncertainties are content pacing, the amount of original pixel art, 
 
 The [sound architecture](sound_architecture.md) extends this design with Tone.js playback, JSON compositions, Tonal-based validation, and a Svelte developer Music Lab. It follows the [sound specification](sound_design.md). Music is presentation: it receives committed technology/lifecycle projections through app composition, uses an independent musical transport, and cannot mutate gameplay or consume gameplay randomness.
 
-The three-view rule applies to the player game. `/music-lab` is a separate developer entry excluded from the normal production game build. Audio failures never block gameplay. Cat needs and death do not alter the soundtrack. Only explicitly allowed care actions may emit occasional SFX. Extend boundary lints for the audio adapter; do not grant DOM/Tone access to the pure game modules. Audio preferences and Lab reviews have separate storage keys so the workbench cannot overwrite a run.
+The three-view rule applies to the incremental game. Settings and its Music submenu are local panels, and **Settings → Music → Music Lab** opens a separate workbench entry at `/music-lab/`, included in the normal production build by the user's explicit decision. Its code loads on navigation and does not run a game simulation. Audio failures never block gameplay. Cat needs and death do not alter the soundtrack. Only explicitly allowed care actions may emit occasional SFX. Extend boundary lints for the audio adapter; do not grant DOM/Tone access to the pure game modules. Audio preferences and Lab reviews/imports have separate storage keys so the workbench cannot overwrite a run.

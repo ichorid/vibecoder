@@ -8,7 +8,7 @@
 
 **RED:** на старте Game; HISTORY открывает только текущие записи; CAT открывает Cat; return/Back возвращает Game; переключение view не создаёт новый run и не останавливает экономику. Theme меняется независимо от progression и сохраняется в profile.
 
-**GREEN:** один view enum и простая same-page history integration. UI получает public API/projections через props/context. В Cat пока статус и пометка незавершённого dev-среза; не имитировать работающие FEED/PLAY/PET.
+**GREEN:** один view enum и простая same-page history integration. UI получает public API/projections через props/context. Theme доступна в Settings panel. В Cat пока статус и пометка незавершённого dev-среза; не имитировать работающие FEED/PLAY/PET.
 
 **REFACTOR:** не импортировать catalog/command handlers из компонентов. History scrollable, Game без обычной прокрутки где помещается.
 
@@ -67,9 +67,22 @@
 
 **Контроль:** весь существующий набор. Записать, какие визуальные элементы пока временные.
 
+## P03.6 — настройки, звук и подменю музыки
+
+**Файлы:** `ui/SettingsMenu.svelte`, music submenu/audio-control host, Header, component/browser tests.
+
+**RED:** из header открываются «Настройки», внутри есть theme, переключатель «Звук» и пункт «Музыка»; из него — audio controls и «Music Lab». Back в подменю возвращает настройки, close/Escape возвращает focus кнопке открытия. Menu/submenu не добавляют game view/route и не сбрасывают run.
+
+**GREEN:** локальные DOM panels и узкий injected audio-control contract. Theme работает сразу; реальный Tone backend/сохранение аудионастроек подключаются в музыкальном S07 после S02. До этого development-срез честно показывает недоступность аудио и не утверждает, что sound toggle уже создаёт звук. Ссылка ведёт на production entry `/music-lab/`, добавляемый S04; не скрывать её за developer flag.
+
+**REFACTOR:** не реализовывать второй audio preference store здесь. Component tests могут использовать явный fake public audio API, но доказательство слышимости обязательно позже в S07/P10.6.
+
+**Контроль:** menu geometry/focus/navigation browser test, check/build. Полная audio acceptance этой точки имеет отдельную зависимость S07, не блокирующую создание раннего shell.
+
 ## Выходной контроль P03
 
 - Ровно Game/History/Cat; reload и theme работают через настоящую persistence.
 - Один живой Pixi canvas и доступный DOM input.
+- Settings и Music submenu существуют как панели; sound/Lab wiring отмечено для S07 и production-проверки P10.6.
 - Header геометрия проверена браузером, не только по CSS-тексту.
 - Это ранний срез: завершённая механика кота и финальные картинки ещё не заявляются.

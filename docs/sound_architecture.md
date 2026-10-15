@@ -4,6 +4,8 @@
 
 Основание: [музыкальное ТЗ](sound_design.md), [архитектура игры](architecture.md), [основной TDD-план](implementation_plan.md). Здесь проектируется музыкальная инфраструктура и четыре временных демо, а не финальный саундтрек из 60 паттернов. Главный мотив и окончательные композиции утверждаются человеком позже.
 
+Порядок небольших TDD-задач и выходные проверки: [план реализации музыки](sound_implementation_plan.md).
+
 ## 1. Решение и границы
 
 Один клиентский музыкальный движок на **TypeScript + Tone.js**, музыкальные правила/проверки через **Tonal.js**, произведения и настройки — JSON. **Svelte 5** используется для Music Lab и аудиоконтролов. Vite, npm, TypeScript, ESLint и тестовые инструменты общие с игрой. Backend, аудиогенеративный API, второй игровой движок и редактор партитур не нужны.
@@ -56,7 +58,8 @@ src/music/
 src/app/
   musicBinding.ts            # Game projection -> director; audio lifecycle
 src/ui/
-  AudioControls.svelte       # Вкл/выкл и компактный volume popover
+  SettingsMenu.svelte        # Звук и вход в подменю «Музыка»
+  AudioControls.svelte       # Аудиоконтролы внутри settings/submenu
 src/music-lab/
   main.ts
   App.svelte
@@ -64,6 +67,7 @@ src/music-lab/
   reviewStore.ts
   feedback.ts
   previewTimeline.ts
+music-lab/index.html          # Второй HTML entry обычной production-сборки
 music/
   README.md
   COMPOSITION_GUIDE.md
@@ -92,7 +96,7 @@ tests/browser/music-*.spec.ts
 - `music/core/` не импортирует browser APIs, Svelte, Tone, game state или storage. Seed передаётся явно; RNG музыки отдельный от gameplay RNG.
 - `director` использует чистые контракты и небольшой внедряемый scheduler/backend. Конкретный Tone adapter подключает app composition.
 - Только `backend/` импортирует Tone и управляет его Transport/nodes. Одновременно существует один владелец аудиотранспорта в документе.
-- Game UI использует public audio API; не импортирует raw patterns, Tone или reviewStore.
+- Game UI использует public audio API; не импортирует raw patterns, Tone или reviewStore. Music Lab включён в production отдельным entry, но не входит в граф зависимостей первого игрового экрана.
 - Lab использует тот же director/player/selector, а не отдельную демонстрационную реализацию проигрывания.
 - CLI работает с теми же схемами/семантическими проверками; Node filesystem не попадает в browser bundle.
 
@@ -228,7 +232,9 @@ Preset JSON содержит разрешённый family, envelope, level, ran
 
 Создание/запуск AudioContext — после доверенного pointer/keyboard gesture через Tone.start/resume установленной версии. Lazy import Tone не задерживает запуск игры. API start/resume возвращает явный результат `playing | needsGesture | unavailable | error`, rejected Promise обработан.
 
-UI различает desired playback, mute, громкость и состояние context. Маленькая sound button + volume popover располагаются в существующем header; это не новый игровой экран. Default громкость0,35, звук не начинается без согласованного пользовательского действия. Настройка сохраняется, browser unlock — нет.
+Асинхронный `import()` может пережить transient user activation, особенно на iOS. Не обещать, что вызов Tone.start после долгого await всё ещё находится в gesture. Можно загрузить модуль при открытии музыкальных настроек, затем вызвать unlock из готовой кнопки; при холодном первом нажатии показать loading и, если нужно, запросить повторное явное нажатие. Никаких бесконечных автоматических retry или блокировки игры.
+
+UI различает desired playback, mute, громкость и состояние context. В header кнопка «Настройки» открывает меню с переключателем «Звук» и входом в подменю «Музыка». Подменю содержит громкость/состояние аудио и переход «Music Lab», доступный также в обычной production-сборке. Theme toggle остаётся доступен в настройках. Меню/подменю — локальные панели текущего view, не новые игровые экраны. Default громкость0,35, звук не начинается без согласованного пользовательского действия. Настройка сохраняется, browser unlock — нет.
 
 Audio preferences — отдельный versioned key `vibecoder.audio.v1`, общий для Game/Lab на одном origin. Lab не переписывает envelope игрового run ради громкости. Сами playing voices, Tone ticks, review drafts и музыкальный RNG не сохраняются в game save.
 
@@ -241,7 +247,7 @@ Audio preferences — отдельный versioned key `vibecoder.audio.v1`, о�
 
 Эти гарантии проверяются не только mock scheduler, но и реальным Tone offline/live rendering: stale lookahead note не должен внезапно прозвучать после pause.
 
-Background/blur/screen lock вызывают pause без catch-up. Видимость вернулась — попытка resume, а при запрете браузера доступна sound button; игра продолжает работать. Mute быстро гасит звук и приостанавливает scheduling для экономии батареи; latest desired era продолжает обновляться и применяется на допустимой границе после resume.
+Background/blur/screen lock вызывают pause без catch-up. Видимость вернулась — попытка resume, а при запрете браузера доступен переключатель/действие возобновления в настройках; игра продолжает работать. Mute быстро гасит звук и приостанавливает scheduling для экономии батареи; latest desired era продолжает обновляться и применяется на допустимой границе после resume.
 
 Game→History/Cat не ставит музыку на паузу. Окончание run завершает текущую фразу и останавливает музыку одинаково для обеих судеб кота; background всё равно гасит звук сразу. New run начинает с projection нового run, без старых pending transitions.
 
@@ -262,9 +268,11 @@ Director получает компактную проекцию уже откр�
 
 Binding **не получает health/mood/fullness/alive/death**. Успешные явные FEED/PLAY/PET могут дать отдельный редкий короткий SFX через allowlist, с rate limit; sound не влияет на scoring PLAY. Никаких голодных alerts, sad music, death stinger, ducking или изменения pattern из-за кота. Сравнительный тест одинаковой технологии при живом/мёртвом коте обязан дать тот же музыкальный план.
 
-## 8. Developer-only Music Lab
+## 8. Music Lab и доступ из настроек
 
-Lab — отдельный Svelte entry на `/music-lab` в dev server, не четвёртый `GameView` и не ссылка в player navigation. Vite dev-only rewrite обслуживает этот entry. Обычный production game build не содержит Lab entry, reviews, rejected drafts или composer prompts. Для review на отдельном статическом хосте допустим explicit `build:music-lab` в другой output directory; скрытый URL сам по себе не авторизация.
+Уточнение пользователя: Lab должен быть доступен и в основной production-сборке через **«Настройки → Музыка → Music Lab»**. Это заменяет developer-only ограничение исходного ТЗ. Lab — отдельный Svelte HTML entry `/music-lab/`, не четвёртый `GameView`; `/music-lab` открывается через стандартный directory redirect/fallback хоста. Обычный Vite multi-page build включает `index.html` и `music-lab/index.html`. Отдельный router/dev-only rewrite не нужен.
+
+Lab UI и его инструменты загружаются при переходе, Tone — после playback gesture. Первый экран игры не импортирует Lab. Production Lab получает демо и опубликованный музыкальный каталог; raw repository drafts, rejected source files и чужие review comments автоматически не копируются в public assets. В Lab можно импортировать валидные candidate JSON локально, слушать/review/export без записи на сервер. На dev server допустим полный source catalog для композитора. Installed eras доступны в workbench; скрытое будущее прогрессии по-прежнему не показывается в Game/History/Cat.
 
 При переходе Game→Lab документ Game сохраняет/приостанавливает run и освобождает playback ownership; обратно — нормальный load/resume. Lab не запускает игровую симуляцию в фоне. В одном документе режимы Lab используют один engine; смена режима отменяет старый план и не наслаивает второй player.
 
@@ -277,7 +285,7 @@ Lab — отдельный Svelte entry на `/music-lab` в dev server, не ч
 
 С четырьмя демо нет честной возможности доказать шесть законченных музыкальных стилей. Для intermediate stages Evolution использует **явно обозначенный demo fallback** к Discovery/Singularity bank с изменениями аранжировки; не переименовывает era исходных JSON и не утверждает, что Dorian/Minor material уже сочинён. В финальном контенте эти slots заполняются собственными approved banks без изменения player. Timeline duration считается из ticks/BPM, не независимым setTimeout.
 
-Lab показывает era/status filters, current pattern, revision/hash, rating1–5, feedback, actions APPROVE/REVISE/REJECT, A/B versions, import/export и copy/export prompt. BPM override — временный audition setting, явно не изменяющий approved file. Пользователь может сравнить исходное и override звучание; approval относится к каноническому payload, не к несохранённой настройке.
+Lab показывает era/status filters, current pattern, revision/hash, rating1–5, feedback, actions APPROVE/REVISE/REJECT, A/B versions, import/export patterns/reviews и copy/export prompt. Импортированные кандидаты хранятся отдельно от game save и published pack, с размерными лимитами и обработкой quota errors. BPM override — временный audition setting, явно не изменяющий approved file. Пользователь может сравнить исходное и override звучание; approval относится к каноническому payload, не к несохранённой настройке.
 
 ## 9. Review, импорт и publication
 
@@ -287,7 +295,7 @@ Review — отдельный JSON, не поле pattern. Ключ: `patternId 
 
 Browser reviews сохраняются в отдельном LocalStorage key; экспортируются JSON и импортируются после schema/range/hash проверки. Merge по тому же ключу: идентичные записи идемпотентны, конфликтующие решения показываются явно, локальное решение не затирается молча. Старые revisions остаются доступны для A/B.
 
-Game build не умеет читать LocalStorage reviewer. Человек экспортирует reviews в `music/reviews/`, затем CLI строит pack из **одной выбранной approved revision каждого ID**, пересчитывая hashes и проверки. Agent не может одобрить свой output, просто поставив `status` в pattern. Source JSON остаются редактируемыми, pack — generated artifact.
+Game player не использует LocalStorage reviewer как published catalog. Человек экспортирует reviews в `music/reviews/`, затем CLI строит pack из **одной выбранной approved revision каждого ID**, пересчитывая hashes и проверки. Одобрение в production Lab сохраняется локально, не переписывает размещённую игру или сервер. Agent не может одобрить свой output, просто поставив `status` в pattern. Source JSON остаются редактируемыми, pack — generated artifact.
 
 Untrusted import ограничен по размеру/количеству событий и полям, не исполняет JS и не загружает внешние URL. Начальные hard limits: pattern256 KiB, batch/reviews2 MiB, не более1 024 событий на pattern, bars≤16, feedback≤8 KiB. Показывать diagnostics по filename/path/event, feedback рендерить как текст.
 
@@ -301,7 +309,7 @@ Lead template: предложить кандидаты мотива и шест�
 
 В инфраструктурном deliverable — **ровно четыре demo patterns**: два Discovery, два Singularity и один общий временный motif. Простой motif можно представить scale degrees3–5–6–5: C major даёт E–G–A–G, C Phrygian — E♭–G–A♭–G, с разными register/rhythm/arrangement. Это демонстрационный пример, не утверждённая музыкальная идентичность. Демо помечены `demo: true`, review unreviewed, лицензия CC0; звучат в Lab сразу после user gesture, без API credentials.
 
-Dev game может явно подключить demo pack, production — только approved pack. Отсутствующий финальный саундтрек не блокирует игровой build на инфраструктурной стадии; missing-bank diagnostics и silent fallback обязательны. Полные шесть банков примерно по10 patterns — последующая композиционная работа.
+Dev game может явно подключить demo pack, production player — approved pack без подмены пустого банка демо. Production Music Lab при этом всегда содержит четыре демо для audition. Published approvals проверяются отдельно от флага `demo`: демо не становится финальным score только из-за локального рейтинга. Отсутствующий финальный саундтрек не блокирует игровой build на инфраструктурной стадии; missing-bank diagnostics и silent fallback обязательны. Полные шесть банков примерно по10 patterns — последующая композиционная работа.
 
 Code license — Apache-2.0 по ТЗ; composition license — CC0-1.0 или CC-BY-4.0 с attribution. Dependency notices сохраняются по установленным версиям. Миграция лицензии существующих материалов не подразумевается: origins/author/licensing записываются отдельно, сторонние примеры не выдаются за собственные демо.
 
@@ -329,4 +337,4 @@ Code license — Apache-2.0 по ТЗ; composition license — CC0-1.0 или CC
 
 Реализация должна доказать непрерывный player с ограниченными ресурсами, четыре услышанных демо, настоящий четырёхрежимный Lab, review→export→validated approved pack и самодостаточные composer prompts. Exact/near duplicate и musical warnings видны отдельно от hard errors. Добавление нового валидного JSON не требует изменения audio engine.
 
-Отдельные доказательства: phase timing/no-repeat tests, реальные tone renders и прослушивание границ, mobile gesture/lifecycle, A/B revision approval invalidation, отсутствие Lab в game build, одинаковая музыка при одинаковых технологиях независимо от кота. Факт отсутствия финальных четырёх промежуточных era banks явно показан в demo preview и не выдаётся за готовые60 композиций.
+Отдельные доказательства: phase timing/no-repeat tests, реальные tone renders и прослушивание границ, mobile gesture/lifecycle, A/B revision approval invalidation, settings→music→Lab в production build без загрузки Lab на первом экране игры, одинаковая музыка при одинаковых технологиях независимо от кота. Факт отсутствия финальных четырёх промежуточных era banks явно показан в demo preview и не выдаётся за готовые60 композиций.

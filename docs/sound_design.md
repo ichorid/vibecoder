@@ -1,5 +1,7 @@
 # Task: Implement the VIBE CODER Generative Music Engine & Music Lab
 
+> Product clarification: Settings must contain a sound on/off switch and a Music submenu. Settings → Music → Music Lab must also be available in the normal production build. The later “developer-only” wording describes the workbench's purpose and no longer requires excluding it from production. The workbench remains a separate entry from the three incremental-game views; reviews and imported compositions stay local unless explicitly exported.
+
 ## Context
 
 We are developing **VIBE CODER**, a 30-minute, mobile-first, retro pixel-art incremental game inspired by Universal Paperclips.

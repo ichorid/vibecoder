@@ -62,6 +62,18 @@
 
 **Контроль:** весь существующий набор + accessibility/manual checklist, check/release-content/build.
 
+## P10.6 — production-настройки и вход в Music Lab
+
+**Зависимость:** музыкальные S04 и S07; основная интеграция написана там. Переиспользовать её browser spec вместо второй реализации.
+
+**RED:** в обычном production preview пройти Settings→«Звук» on/off, Settings→«Музыка»→Music Lab→обратно. Toggle управляет реальным audio lifecycle, не только иконкой; preference переживает reload; до gesture нет неожиданного autoplay. Lab entry доступен без dev flag. Игра сохраняется/приостанавливается при переходе, в Lab её симуляция не работает; возврат восстанавливает тот же run без catch-up.
+
+**GREEN:** исправить недостающее menu/backend/multi-page wiring. Нет дополнительных GameView values, второго pref store или включения Lab UI в initial game chunk.
+
+**REFACTOR:** focus/hit areas/navigation согласованы с остальными настройками. Audio failure не мешает закрыть меню и продолжить игру.
+
+**Контроль:** production audio-settings/Lab-return spec, static checks/build. Это обязательный gate основной приёмки; полный звук/review workflow дополнительно принимается в S09.
+
 ## Выходной контроль P10
 
 - Save failure/conflict/corruption не обнуляют run незаметно.
