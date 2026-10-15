@@ -4,6 +4,8 @@ Status: proposed implementation architecture, revised for Svelte 5, PixiJS 8, mo
 
 Based on [the game specification](initial_design.md) and [the visual reference guidance](design_references/README.md). The specification defines the experience; this document defines how to build it. Numerical rules below are starting balance values, not claims that the game already meets its pacing targets.
 
+The detailed execution order, TDD protocol, and per-task acceptance gates are in the [phased implementation plan](implementation_plan.md).
+
 ## 1. Shape of the application
 
 Build one static browser application with three views, one simulation, and one save file. The main technical challenge is coordinating progression, cat care, narrative, and the expanding illustration within a short playthrough. Keep those rules visible in ordinary TypeScript functions and data.
