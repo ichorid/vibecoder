@@ -1,0 +1,7 @@
+node_modules
+dist
+.DS_Store
+*.local
+tools/acceptance/fixtures/types/tsconfig.stub.json
+
+.serena
