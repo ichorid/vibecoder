@@ -2,7 +2,8 @@
 
 Status: **proposal, not implemented** (2026-10-16). Owner decisions (2026-10-16): D1 — each
 ending's Experience counts **once**; D2 — Ship It gets its **own slot** outside the three offer
-cards. D3 (cat scaling) is still open. Every number below is a *starting value*;
+cards; D3 — cat demand does **not** scale with automation (requirement removed). Every
+number below is a *starting value*;
 the measurement harness (Phase E0) decides, and each phase records its measured result in
 docs/agent_journal.md. Follow AGENTS.md TDD: one behaviour RED → GREEN → refactor per step.
 
@@ -264,10 +265,6 @@ Keep both log lines. Verify: disaster costs 25–40 s of progress for spender an
 
 ### E9 — Could
 
-- **Cat demand rises with automation** (pillar: the cat as the last live loop). Pass
-  `CAT_INTENSITY × (1 + automationFraction)` into `updateCat` from `simulation.ts`
-  (economy → cat is the allowed direction; `cat.ts` stays economy-free). Verify the cat
-  survives baseline care at every stage; care actions/min ≈ 2 → 4.
 - **Ship card copy late**: "it costs you one second now" on cheap old releases — lean into
   the joke that shipping the original became free.
 - ~~Experience~~ — decided (D1), now phase EX.
@@ -312,7 +309,8 @@ pacing purposes, and lets the act-1 prices give the human act its intended ~3 mi
   current lesson endings. Implemented by phase EX.
 - **D2 Ship It — decided 2026-10-16: its own slot** (SHIP strip outside the three offer
   cards). Implemented in E1.1.
-- **D3 E9 cat scaling — open**: raises late-game care load; needs a mobile playtest first.
+- **D3 Cat scaling — decided 2026-10-16: removed.** Cat demand stays independent of
+  automation (`CAT_INTENSITY` only); not part of this redesign.
 
 ## 10. Risks
 

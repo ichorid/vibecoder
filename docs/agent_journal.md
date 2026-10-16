@@ -439,3 +439,6 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   E9 not done. tests/scenarios/economy-shape.test.ts holds the met targets and lists the rest
   as todos. Strategies: baseline 28–31 on five seeds, shipper ≤ 45 min (31.3), early-automation
   manager 11.5–14.5 min.
+- D32 (user, 2026-10-16): the "cat demand rises with automation" requirement (economy redesign
+  D3 / E9) is removed — cat demand stays independent of automation. docs/economy_redesign.md
+  updated (header, E9, §9); nothing in code depended on it.
