@@ -1,6 +1,7 @@
 /**
  * The orange cat, drawn procedurally from poses. One pose description per animation frame;
- * the overfed variant only widens the body, so every animation exists in both sizes.
+ * the overfed variant widens walking poses, curls lying ones into a ball and redraws sitting ones
+ * (see drawRoundSitting), so every animation exists in both sizes.
  */
 import { createCanvas, type PixelCanvas } from '../lib/canvas';
 import { ellipse, outline, stroke, triangle } from '../lib/shapes';
@@ -177,6 +178,8 @@ function drawCat(pose: Pose, pal: Palette, round: boolean, sick: boolean): Pixel
   const head = roundLying
     ? { cx: pose.head.cx + 1.2, cy: pose.head.cy - 0.6, r: pose.head.r + 0.3 }
     : pose.head;
+  // Sitting poses (two front legs) get their own overfed drawing; walking/lying ones widen.
+  if (round && pose.legs.length === 2) return drawRoundSitting(pose, pal, sick);
   const tail: readonly Point[] = roundLying
     ? [
         [3, 16.6],
@@ -272,4 +275,71 @@ export function catSprites(pal: Palette): SpriteFrames[] {
     });
   }
   return sprites;
+}
+
+/**
+ * The overfed cat sitting, standing or asking (chosen from five drawn variants): a pear-shaped
+ * belly that stays on the ground, front paws drawn over it so they remain visible, the head on
+ * top with a neck seam, and the tail wrapped around the base — upright and thin only when the
+ * pose asks for attention (a cat's excited tail, not a squirrel's bushy one).
+ */
+function drawRoundSitting(pose: Pose, pal: Palette, sick: boolean): PixelCanvas {
+  const c = createCanvas(CAT_FRAME.w, CAT_FRAME.h);
+  const fur = sick ? pal.catSick : pal.cat;
+  const upright = (pose.tail.at(-1)?.[1] ?? 10) < 6;
+  const head = { ...pose.head, r: pose.head.r + 0.3, cx: pose.head.cx + 0.6 };
+  const body = { cx: 10, cy: 12.8, rx: 6.4, ry: 3.8 };
+  const tail: Point[] = upright
+    ? [
+        [4.5, 14],
+        [2.5, 11],
+        [2.5, 8],
+        [4, 6],
+      ]
+    : [
+        [4, 16],
+        [8, 16.8],
+        [12, 16.8],
+      ];
+  const paws = [
+    { x: 12, top: 13 },
+    { x: 15, top: 13 },
+  ];
+  stroke(c, tail, 0.8, fur);
+  ellipse(c, body.cx, body.cy, body.rx, body.ry, fur);
+  for (let i = -1; i <= 1; i += 1) {
+    c.rect(Math.round(body.cx - 1 + i * 2.5), Math.round(body.cy - body.ry), 1, 2, pal.catDark);
+  }
+  ellipse(c, body.cx + body.rx * 0.35, body.cy + body.ry * 0.3, body.rx * 0.32, 1.5, pal.catWhite);
+  // Front paws drawn over the belly so they stay visible.
+  for (const paw of paws) {
+    c.rect(paw.x, paw.top, 2, GROUND - paw.top, fur);
+    c.rect(paw.x, GROUND - 1, 2, 1, pal.catWhite);
+    c.set(paw.x - 1, paw.top, pal.catDark);
+  }
+  if (pose.paw) c.rect(pose.paw[0] - 1, pose.paw[1], 2, 2, pal.catWhite);
+  const { cx, cy, r } = head;
+  c.disc(Math.round(cx), Math.round(cy), Math.round(r), fur);
+  // Neck seam: the head sits on the body instead of melting into it.
+  c.rect(Math.round(cx - r), Math.round(cy + r - 1), Math.round(r), 1, pal.catDark);
+  const earTop = cy - r - 2;
+  triangle(c, [cx - r, cy - r + 1], [cx - r + 2, cy - r], [cx - r + 0.5, earTop], fur);
+  triangle(c, [cx + r - 2, cy - r], [cx + r, cy - r + 1], [cx + r - 0.5, earTop], fur);
+  c.rect(Math.round(cx), Math.round(cy + 1), 2, 1, pal.catWhite);
+  const ex = Math.round(cx - 1);
+  const ey = Math.round(cy - 0.5);
+  if (pose.eyes === 'wide') {
+    c.rect(ex, ey - 1, 1, 2, pal.eye);
+    c.rect(ex + 3, ey - 1, 1, 2, pal.eye);
+  } else if (pose.eyes === 'closed') {
+    c.rect(ex - 1, ey, 2, 1, pal.catDark);
+    c.rect(ex + 2, ey, 2, 1, pal.catDark);
+  } else {
+    c.set(ex, ey, pal.eye);
+    c.set(ex + 3, ey, pal.eye);
+  }
+  c.set(Math.round(cx + 1), Math.round(cy + 1), pal.catNose);
+  if (pose.mouth === 'open') c.rect(Math.round(cx), Math.round(cy + 2), 2, 1, pal.eye);
+  outline(c, pal.outline);
+  return c;
 }
