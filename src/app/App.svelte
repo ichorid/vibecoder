@@ -280,6 +280,9 @@
 <style>
   .app {
     display: grid;
+    /* One column that never grows past the screen: wide content wraps instead of pushing the
+       right border off-screen. */
+    grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto minmax(0, 1fr);
     height: 100vh;
     height: 100dvh;

@@ -281,19 +281,24 @@
           data-affordable={affordable}
           aria-haspopup="dialog"
           aria-expanded={offersOpen}
+          aria-label="Upgrades: {game.offers
+            .length} cards, {affordable} affordable, {decisions} decisions"
           onclick={() => (offersOpen = true)}
         >
+          <!-- Compact chips on one line: their appearing never re-wraps the button. -->
           <span class="toggle-title">UPGRADES</span>
           <span class="toggle-count">{game.offers.length}</span>
           {#if affordable > 0}
-            <span class="toggle-ready" data-testid="offers-affordable"
+            <span class="toggle-ready" data-testid="offers-affordable" title="affordable now"
               ><span class="currency" aria-hidden="true"
                 ><PixelIcon map={CODE_ICON} scale={2} /></span
-              >{affordable} affordable</span
+              >{affordable}</span
             >
           {/if}
-          {#if decisions > 0}<span class="toggle-decision"
-              >{decisions} decision{decisions > 1 ? 's' : ''}</span
+          {#if decisions > 0}<span class="toggle-decision" title="decisions"
+              ><span class="currency" aria-hidden="true"
+                ><PixelIcon map={DECISION_ICON} scale={2} /></span
+              >{decisions}</span
             >{/if}
           <span class="toggle-open" aria-hidden="true">▲</span>
         </button>
@@ -356,6 +361,7 @@
   .game-view {
     position: relative;
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     grid-template-rows: minmax(0, 1fr) auto;
     height: 100%;
     min-height: 0;
@@ -371,6 +377,7 @@
     position: relative;
     display: flex;
     flex-direction: column;
+    min-width: 0;
     gap: 8px;
     padding: 10px 10px max(10px, env(safe-area-inset-bottom));
   }
@@ -397,8 +404,11 @@
   }
   .offers-toggle {
     display: flex;
+    flex-wrap: nowrap;
     align-items: center;
     gap: 8px;
+    min-width: 0;
+    white-space: nowrap;
     min-height: 48px;
     padding: 0 12px;
     border: 3px solid var(--border);
@@ -438,6 +448,9 @@
     font-size: 12px;
   }
   .toggle-decision {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
     padding: 1px 6px;
     border: 2px dashed var(--border);
     font-size: 12px;

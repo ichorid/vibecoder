@@ -147,3 +147,54 @@ test('a wide screen keeps the cards inline; a phone opens them in a popup and bu
   await expect(sheet).toHaveCount(0);
   await expect(page.getByTestId('primary-action')).toBeVisible();
 });
+
+for (const width of [320, 360]) {
+  test(`${width} px: a late, rich run keeps every element and the right border on screen`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 700 });
+    const run = progressedRun(28);
+    await loadSave(
+      page,
+      saveText({ ...run, economy: { ...run.economy, output: run.economy.output + 1e7 } }),
+    );
+    for (const open of [null, 'offers-toggle'] as const) {
+      if (open) await page.getByTestId(open).click();
+      const sticking = await page.evaluate(() => {
+        const vw = document.documentElement.clientWidth;
+        return [...document.querySelectorAll<HTMLElement>('body *')]
+          .filter((el) => {
+            const r = el.getBoundingClientRect();
+            // Cut by an edge (a helper parked fully off-screen, like Pixi's, cannot scroll).
+            const cut = (r.right > vw + 0.5 && r.left < vw) || (r.left < -0.5 && r.right > 0);
+            return r.width > 0 && r.height > 0 && cut;
+          })
+          .map(
+            (el) =>
+              `${el.tagName}.${el.className} ${Math.round(el.getBoundingClientRect().left)}..${Math.round(el.getBoundingClientRect().right)}`,
+          );
+      });
+      expect(sticking).toEqual([]);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+        width,
+      );
+    }
+  });
+}
+
+test('the stats panel and the upgrades button keep their height while numbers change', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 640 });
+  const run = progressedRun(9);
+  await loadSave(page, saveText({ ...run, economy: { ...run.economy, output: 990 } }));
+  const heights = new Set<string>();
+  for (let i = 0; i < 12; i += 1) {
+    await page.getByTestId('primary-action').click();
+    const stats = await page.getByTestId('stats').boundingBox();
+    const toggle = await page.getByTestId('offers-toggle').boundingBox();
+    heights.add(`${Math.round(stats?.height ?? 0)}/${Math.round(toggle?.height ?? 0)}`);
+    await page.waitForTimeout(250);
+  }
+  expect([...heights]).toHaveLength(1);
+});

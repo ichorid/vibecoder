@@ -87,6 +87,14 @@ const scenes: Record<string, Scene> = {
     save: () => saveText(progressedRun(9)),
     act: async (page) => page.getByTestId('offers-toggle').click(),
   },
+  late320: {
+    width: 320,
+    height: 640,
+    save: () => {
+      const run = progressedRun(28);
+      return saveText({ ...run, economy: { ...run.economy, output: run.economy.output + 1e7 } });
+    },
+  },
   history: {
     width: 390,
     height: 844,

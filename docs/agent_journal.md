@@ -279,3 +279,11 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   tokens card is hidden while v1 is owned until its first bug (then buying by hand dodges it).
   History entries get icons (tech thumbnail, event emoji, skull/sunset, trophy, flag, rocket,
   palm for the jackpot) chosen by the selector (`HistoryEntryViewModel.icon`).
+- 2026-10-16: F18 (user: "right border not visible, elements don't fit"). `.app` and
+  `.game-view` grids had no column limit, so the single auto column grew to its widest child
+  (the Upgrades button's nowrap chips, ~400 px) on every phone width. Fix: `grid-template-columns:
+  minmax(0, 1fr)` on both, `min-width: 0` on controls. Stats panel no longer re-wraps as numbers
+  grow: equal columns (one per stat), two-line cells (icon + label, value). The Upgrades button
+  is one line with compact chips (code icon + affordable count, decision icon + count; full text
+  in aria-label). Guards in mobile.spec: no element cut by an edge at 320/360 px (Pixi's
+  off-screen a11y hook ignored), stable heights while numbers change.
