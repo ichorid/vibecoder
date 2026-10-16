@@ -1,0 +1,8 @@
+{
+  "extends": "../../tsconfig.game.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": ["../acceptance/fixtures/types/valid-game-run-status.ts"],
+  "exclude": ["../../node_modules", "../../dist"]
+}

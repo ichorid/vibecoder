@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "lib": ["ES2022"],
+    "types": [],
+    "noEmit": true
+  },
+  "include": ["src/game/**/*.ts", "src/content/**/*.ts"],
+  "exclude": ["node_modules", "dist", "tools/acceptance/fixtures/types/**"]
+}

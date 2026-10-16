@@ -1,0 +1,39 @@
+{
+  "extends": "@tsconfig/svelte/tsconfig.json",
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "@game/*": ["src/game/*"],
+      "@ui/*": ["src/ui/*"],
+      "@content/*": ["src/content/*"],
+      "@app/*": ["src/app/*"],
+      "@world/*": ["src/world/*"],
+      "@persistence/*": ["src/persistence/*"]
+    }
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.svelte",
+    "tools/acceptance/fixtures/svelte/**/*.svelte",
+    "vite.config.ts"
+  ],
+  "exclude": [
+    "tools/acceptance/fixtures/types/invalid-command-union.ts",
+    "tools/acceptance/fixtures/types/game-uses-document.ts",
+    "node_modules",
+    "dist"
+  ]
+}

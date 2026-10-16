@@ -1,0 +1,7 @@
+node_modules
+dist
+package-lock.json
+docs
+docs/design_references
+.serena
+tools/acceptance
