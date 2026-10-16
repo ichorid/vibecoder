@@ -19,7 +19,21 @@ type Scene = {
   dark?: boolean;
 };
 
+/** At the Terminal Agent with code for a demo. */
+const demoSave = () => {
+  const run = progressedRun(4);
+  return saveText({ ...run, economy: { ...run.economy, output: run.economy.output + 5000 } });
+};
+const playDemo = async (page: Page) => {
+  await page.getByTestId('demo-strip').click();
+  await page.locator('[data-testid="demo-screen"][data-phase="play"]').waitFor();
+  await page.waitForTimeout(1500);
+};
+
 const scenes: Record<string, Scene> = {
+  demoStrip: { width: 390, height: 844, save: demoSave },
+  demoPhone: { width: 390, height: 844, save: demoSave, act: playDemo },
+  demoDesktop: { width: 1280, height: 800, save: demoSave, act: playDemo },
   start: { width: 390, height: 844 },
   tech1: { width: 390, height: 844, save: () => saveText(progressedRun(1)) },
   tech3: { width: 390, height: 844, save: () => saveText(progressedRun(3)) },

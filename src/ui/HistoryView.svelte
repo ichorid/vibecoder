@@ -10,9 +10,11 @@
     history: HistoryViewModel;
     onReturn: () => void;
     illustrationUrl?: (illustrationId: string) => string | null;
+    /** Replays a coded demo. */
+    onWatch?: (demo: number) => void;
   }
 
-  const { history, onReturn, illustrationUrl = () => null }: Props = $props();
+  const { history, onReturn, illustrationUrl = () => null, onWatch }: Props = $props();
 
   const SYMBOLS: Record<Extract<HistoryIconViewModel, { kind: 'symbol' }>['id'], PixelMap> = {
     'cat-died': catCandle,
@@ -68,6 +70,15 @@
           {@render icon(entry.icon)}
           <span class="time">{formatActiveTime(entry.activeMs)}</span>
           <span class="title">{entry.title}</span>
+          {#if entry.demo !== undefined && onWatch}
+            {@const number = entry.demo}
+            <button
+              type="button"
+              class="watch"
+              aria-label="Watch demo {number}"
+              onclick={() => onWatch(number)}>WATCH</button
+            >
+          {/if}
         </li>
       {/each}
     </ol>
@@ -75,6 +86,17 @@
 </section>
 
 <style>
+  .watch {
+    margin-left: auto;
+    padding: 1px 6px;
+    border: 2px solid var(--border);
+    background: var(--panel-strong);
+    color: var(--ink);
+    font: inherit;
+    font-size: 11px;
+    font-weight: 800;
+    cursor: pointer;
+  }
   .history {
     height: 100%;
     overflow-y: auto;
@@ -173,6 +195,9 @@
   }
   .entry.release::before {
     background: #59b7ff;
+  }
+  .entry.demo::before {
+    background: #7d6ff0;
   }
   .time {
     color: var(--ink-soft);

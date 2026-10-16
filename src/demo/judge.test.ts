@@ -9,6 +9,7 @@ import {
   lineage,
   MIN_CHANGE,
   nextDemo,
+  pickScore,
 } from './judge';
 
 describe('the demo judge', () => {
@@ -36,7 +37,8 @@ describe('the demo judge', () => {
       );
     }
     const next = nextDemo(parent, 1234);
-    expect(next.verdict.score).toBe(Math.max(...kids.map((k) => k.verdict.score)));
+    const best = kids.reduce((a, b) => (pickScore(parent, b) > pickScore(parent, a) ? b : a));
+    expect(next.verdict).toEqual(best.verdict);
     expect(change(parent.verdict, next.verdict)).toBeGreaterThanOrEqual(MIN_CHANGE);
   });
 

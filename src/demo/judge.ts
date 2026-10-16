@@ -227,6 +227,15 @@ export function candidates(
   return out;
 }
 
+/**
+ * How the judge ranks a child: its score, plus a little when the tree's shape changed (another
+ * family, an arrangement more or less, other copies) — lineages should wander, not polish one
+ * blob.
+ */
+export function pickScore(parent: Judged, child: Judged): number {
+  return child.verdict.score + (skeleton(child.genome) !== skeleton(parent.genome) ? 0.15 : 0);
+}
+
 /** The next demo after `parent` (the parent again, recoloured, if no child qualifies). */
 export function nextDemo(
   parent: Judged,
@@ -236,9 +245,7 @@ export function nextDemo(
   let best: Candidate | null = null;
   let bestScore = -Infinity;
   for (const c of candidates(parent, seed, ancestors)) {
-    // a new shape of tree (another family, an arrangement more or less, other copies) is worth
-    // a little: lineages should wander, not polish one blob
-    const score = c.verdict.score + (skeleton(c.genome) !== skeleton(parent.genome) ? 0.15 : 0);
+    const score = pickScore(parent, c);
     if (score > bestScore) {
       best = c;
       bestScore = score;

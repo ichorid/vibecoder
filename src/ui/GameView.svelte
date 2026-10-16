@@ -11,7 +11,14 @@
   import FloatingGains from './FloatingGains.svelte';
   import Stats from './Stats.svelte';
   import PixelIcon from './PixelIcon.svelte';
-  import { ACTION_ICONS, cardIcon, DECISION_ICON, RELEASE_ICON, STAT_ICONS } from './cardIcons';
+  import {
+    ACTION_ICONS,
+    cardIcon,
+    DECISION_ICON,
+    DEMO_ICON,
+    RELEASE_ICON,
+    STAT_ICONS,
+  } from './cardIcons';
   const CODE_ICON = STAT_ICONS.output;
   import { gainText, MAX_FLOATING, type FloatingGain } from './floatingGains';
   import type { AttentionLevel } from '../game/types';
@@ -30,6 +37,8 @@
     compactOffers?: boolean;
     /** Opens the Setup view (from the stats panel). */
     onSetup?: () => void;
+    /** Shows a coded demo (right after coding it). */
+    onDemo?: (number: number) => void;
   }
 
   const {
@@ -44,6 +53,7 @@
     onSound,
     compactOffers = false,
     onSetup,
+    onDemo,
   }: Props = $props();
   let offersOpen = $state(false);
   // An ending closes the cards popup; it does not come back open on the next run or a load.
@@ -139,6 +149,14 @@
     wheelWindow = game.lastRelease?.window ?? null;
   }
 
+  async function codeDemo() {
+    if (dispatch({ type: 'makeDemo' }) !== 'applied') return;
+    offersOpen = false;
+    await tick();
+    const made = game.demos.at(-1);
+    if (made) onDemo?.(made.number);
+  }
+
   async function closeWheel() {
     wheelWindow = null;
     await tick();
@@ -194,6 +212,30 @@
             )}%{:else}{formatAmount(r.shortfall)} to go{/if}</span
         >
         <span class="ship-go">SHIP</span>
+      </button>
+    {/if}
+  {/snippet}
+  {#snippet demoStrip()}
+    {#if game.demo && !game.ending}
+      {@const d = game.demo}
+      <!-- Code a demo: a cosmetic code sink next to Ship It (it never takes all your code). -->
+      <button
+        type="button"
+        class="ship-strip demo-strip"
+        class:ready={d.affordable}
+        data-demo={d.number}
+        data-testid="demo-strip"
+        disabled={!d.affordable}
+        aria-label="{d.title} number {d.number}: {formatAmount(d.price)} code"
+        onclick={codeDemo}
+      >
+        <span class="ship-icon" aria-hidden="true"><PixelIcon map={DEMO_ICON} scale={2} /></span>
+        <span class="ship-text"
+          >DEMO #{d.number} ·
+          <span class="currency" aria-hidden="true"><PixelIcon map={CODE_ICON} scale={2} /></span
+          >{#if d.affordable}{formatAmount(d.price)}{:else}{formatAmount(d.shortfall)} to go{/if}</span
+        >
+        <span class="ship-go">CODE IT</span>
       </button>
     {/if}
   {/snippet}
@@ -387,7 +429,12 @@
         {@render offerList()}
       {/if}
     {/if}
-    {@render shipStrip()}
+    {#if (game.release || game.demo) && !game.ending}
+      <div class="strips">
+        {@render shipStrip()}
+        {@render demoStrip()}
+      </div>
+    {/if}
     {#if game.log.length > 0}
       <ol class="log" aria-label="Recent events">
         {#each game.log as line, i (i)}
@@ -529,6 +576,22 @@
   .ship-text {
     flex: 1;
     min-width: 0;
+  }
+  .strips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .strips > .ship-strip {
+    flex: 1 1 210px;
+    min-width: 0;
+  }
+  .demo-strip {
+    border-color: #7d6ff0;
+    background: color-mix(in srgb, #7d6ff0 10%, var(--panel));
+  }
+  .demo-strip.ready {
+    background: color-mix(in srgb, #7d6ff0 28%, var(--panel));
   }
   .ship-go {
     padding: 2px 6px;

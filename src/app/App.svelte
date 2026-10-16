@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount, tick } from 'svelte';
   import CatView from '../ui/CatView.svelte';
+  import DemoScreen from '../ui/DemoScreen.svelte';
   import {
     unavailableAudio,
     type AudioControls,
@@ -144,6 +145,15 @@
     }
   }
 
+  /** The coded demo showing (right after coding it, or replayed from History). */
+  let watching = $state<number | null>(null);
+  const watched = $derived(
+    watching === null ? null : ($api.game.demos.find((d) => d.number === watching) ?? null),
+  );
+  /** Dev server only: the Demo lab (Vite drops the import from production builds). */
+  const loadDemoLab = import.meta.env.DEV ? () => import('../ui/DemoLab.svelte') : null;
+  let demoLabOpen = $state(false);
+
   let settingsOpen = $state(false);
   let settingsButton: HTMLElement | null = null;
 
@@ -261,6 +271,14 @@
         }}
         onTheme={setTheme}
         onClose={closeSettings}
+        {...loadDemoLab
+          ? {
+              onDemoLab: () => {
+                settingsOpen = false;
+                demoLabOpen = true;
+              },
+            }
+          : {}}
       />
     {/if}
     {#if $api.save.status === 'failed'}
@@ -295,6 +313,7 @@
         {compactOffers}
         onSetup={() => open('setup')}
         onSound={(id: WheelSound) => audio.effect?.(id)}
+        onDemo={(number: number) => (watching = number)}
       >
         {#snippet world()}
           <WorldCanvas
@@ -316,7 +335,12 @@
       </div>
     {:else if view === 'history'}
       <div class="view">
-        <HistoryView history={$api.history} onReturn={returnToGame} {illustrationUrl} />
+        <HistoryView
+          history={$api.history}
+          onReturn={returnToGame}
+          {illustrationUrl}
+          onWatch={(number: number) => (watching = number)}
+        />
       </div>
     {:else if view === 'cat'}
       <div class="view">
@@ -331,6 +355,16 @@
       </div>
     {/if}
   </main>
+  {#if watched}
+    {#key watched.number}
+      <DemoScreen demo={watched} {reducedMotion} onClose={() => (watching = null)} />
+    {/key}
+  {/if}
+  {#if demoLabOpen && loadDemoLab}
+    {#await loadDemoLab() then lab}
+      <lab.default demos={$api.game.demos} onClose={() => (demoLabOpen = false)} />
+    {/await}
+  {/if}
 </div>
 
 <style>

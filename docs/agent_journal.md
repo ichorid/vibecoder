@@ -442,3 +442,18 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
 - D32 (user, 2026-10-16): the "cat demand rises with automation" requirement (economy redesign
   D3 / E9) is removed — cat demand stays independent of automation. docs/economy_redesign.md
   updated (header, E9, §9); nothing in code depended on it.
+- 2026-10-16: Code a demo (user; docs/feature_demo.md). Cosmetic code sink: a strip next to
+  Ship It (from the Terminal Agent, 1,500 code ×2.2 each, never all the code) opens a popup that
+  "depacks" and plays a 160×100 demoscene picture of a horn-grammar form; each demo is the
+  judge's pick among mutations of the previous one. New pure layer `src/demo/` (lint-guarded
+  like game/: no other layer, no ambient time/random; in tsconfig.game.json): genome families
+  and house rules (no original Organic Art 4-rule structure is possible), fast expansion (rib
+  tables, typed arrays), judge on 80×50 masks, vector-bob rasterizer. Game: `makeDemo`,
+  `run.demos` (seed + cat), `rng.demo`, History entries with WATCH, save schema 8 (7→8 adds
+  `demos: []` + demo stream; v1–v7 fixtures kept, v8 + v8-demos added). Dev only: Settings →
+  Demo lab (absent from production builds; a browser spec checks). Measured: lineage 16–26 ms
+  per new demo in Node, frames ~0.1 ms. `tools/demoSheet.ts` renders contact sheets;
+  `tools/screens.ts` has demoStrip/demoPhone/demoDesktop scenes. NOTE: another session is
+  adding MIDI import (tools/music/midi*, music/sources/) at the same time; its unfinished
+  midiImport.test.ts fails svelte-check — left alone, not staged.
+

@@ -1,12 +1,13 @@
 import { catalog } from '../../src/content/catalog';
 import { createGame } from '../../src/app/createGame';
 import { createRun } from '../../src/game/createRun';
+import type { RunState } from '../../src/game/types';
 import { createProfile, createSaveAdapter } from '../../src/persistence/save';
 import { createFakeClock, createFakeScheduler } from './fakeClock';
 import { createMemoryStorage } from './memoryStorage';
 
 /** A real composed game on a fake clock and in-memory storage, for component tests. */
-export function createUiGame() {
+export function createUiGame(run: RunState = createRun(7, 'ui-run')) {
   const clock = createFakeClock();
   const scheduler = createFakeScheduler();
   const storage = createMemoryStorage();
@@ -14,7 +15,7 @@ export function createUiGame() {
     catalog,
     clock,
     scheduler,
-    run: createRun(7, 'ui-run'),
+    run,
     persistence: { adapter: createSaveAdapter(storage), profile: createProfile(), revision: 0 },
   });
   game.start();

@@ -15,6 +15,8 @@
     onLoadCheckpoint?: () => void;
     onTheme: (theme: ThemePreference) => void;
     onClose: () => void;
+    /** Dev server only: opens the Demo lab. */
+    onDemoLab?: () => void;
   }
 
   const {
@@ -27,6 +29,7 @@
     onLoadCheckpoint,
     onTheme,
     onClose,
+    onDemoLab,
   }: Props = $props();
   let confirmLoad = $state(false);
   let savedNote = $state(false);
@@ -113,6 +116,11 @@
       {/if}
     </p>
     <button type="button" class="item" onclick={() => (page = 'music')}>Music ›</button>
+    {#if onDemoLab}
+      <button type="button" class="item" data-testid="demo-lab-open" onclick={onDemoLab}
+        >Demo lab › <span class="dev">DEV</span></button
+      >
+    {/if}
     {#if onSaveCheckpoint}
       <div class="checkpoint" data-testid="checkpoint">
         <span class="credits-title">Checkpoint</span>
@@ -269,6 +277,11 @@
   .toggle:disabled {
     opacity: 0.55;
     cursor: not-allowed;
+  }
+  .dev {
+    padding: 0 4px;
+    border: 1px solid var(--focus);
+    font-size: 10px;
   }
   .item {
     display: flex;
