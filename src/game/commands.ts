@@ -1,3 +1,4 @@
+import { feedCat, noteMeaningfulAction, petCat } from './cat';
 import type { Catalog } from './catalog';
 import { deriveRates, roundAmount, upgradeLevel, upgradePrice } from './economy';
 import { findUpgrade, isUpgradeOffered, resolveDiscoveries } from './progression';
@@ -21,7 +22,7 @@ function reject(run: RunState, result: Exclude<CommandResult, 'applied'>): Comma
 export function applyCommand(
   run: RunState,
   command: GameCommand,
-  _activeTimestamp: number,
+  activeTimestamp: number,
   catalog: Catalog,
 ): CommandTransition {
   if (run.status !== 'playing') return reject(run, 'unavailable');
@@ -30,6 +31,7 @@ export function applyCommand(
       return {
         run: {
           ...run,
+          cat: noteMeaningfulAction(run.cat),
           economy: {
             ...run.economy,
             pendingManualWork:
@@ -48,6 +50,24 @@ export function applyCommand(
       };
     case 'buyUpgrade':
       return buyUpgrade(run, command.id, catalog);
+    case 'feedCat': {
+      const fed = feedCat(run.cat, run.rng.cat, activeTimestamp, catalog.balance.cat);
+      if (!fed.accepted) return reject(run, fed.reason);
+      return {
+        run: { ...run, cat: fed.cat, rng: { ...run.rng, cat: fed.rng } },
+        facts: [{ type: 'catCared', kind: 'feed' }],
+        result: 'applied',
+      };
+    }
+    case 'petCat': {
+      const petted = petCat(run.cat, activeTimestamp, catalog.balance.cat);
+      if (!petted.accepted) return reject(run, petted.reason);
+      return {
+        run: { ...run, cat: petted.cat },
+        facts: [{ type: 'catCared', kind: 'pet' }],
+        result: 'applied',
+      };
+    }
     default: {
       const unknownCommand: never = command;
       void unknownCommand;
@@ -64,6 +84,7 @@ function buyUpgrade(run: RunState, id: string, catalog: Catalog): CommandTransit
   if (run.economy.output < price) return reject(run, 'unaffordable');
   const bought: RunState = {
     ...run,
+    cat: noteMeaningfulAction(run.cat),
     economy: { ...run.economy, output: roundAmount(run.economy.output - price) },
     upgradeLevels: { ...run.upgradeLevels, [upgrade.id]: level + 1 },
   };

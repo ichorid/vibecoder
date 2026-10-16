@@ -1,15 +1,38 @@
 <script lang="ts">
   import type { CatViewModel } from '../game/selectors';
+  import type { Dispatch } from './contracts';
+  import Memorial from './Memorial.svelte';
   import PixelIcon from './PixelIcon.svelte';
-  import { catFace } from './pixelArt';
+  import { catRound, catSitting } from './pixelArt';
 
-  const { cat, onReturn }: { cat: CatViewModel; onReturn: () => void } = $props();
+  const {
+    cat,
+    dispatch,
+    onReturn,
+  }: { cat: CatViewModel; dispatch: Dispatch; onReturn: () => void } = $props();
+
+  /** Cosmetic reaction only (e.g. PET during cooldown); never a gameplay reward. */
+  let reaction = $state<'none' | 'eat' | 'purr' | 'wiggle'>('none');
+  let reactionKey = $state(0);
 
   const meters = $derived([
     { id: 'health', label: 'Health', value: cat.health },
     { id: 'mood', label: 'Mood', value: cat.mood },
     { id: 'fullness', label: 'Fullness', value: cat.fullness },
   ]);
+
+  function react(kind: typeof reaction) {
+    reaction = kind;
+    reactionKey += 1;
+  }
+
+  function feed() {
+    if (dispatch({ type: 'feedCat' }) === 'applied') react('eat');
+  }
+
+  function pet() {
+    react(dispatch({ type: 'petCat' }) === 'applied' ? 'purr' : 'wiggle');
+  }
 </script>
 
 <section class="cat-view" aria-labelledby="cat-title">
@@ -17,23 +40,42 @@
     <button type="button" class="return" onclick={onReturn}>← GAME</button>
     <h2 id="cat-title">CAT</h2>
   </div>
-  <div class="portrait" aria-hidden="true">
-    <PixelIcon map={catFace} scale={12} />
-  </div>
-  <dl class="status">
-    {#each meters as meter (meter.id)}
-      <div class="meter">
-        <dt>{meter.label}</dt>
-        <dd>
-          <span class="track"
-            ><span class="fill {meter.id}" style:width="{meter.value}%"></span></span
-          >
-          <span class="value">{Math.round(meter.value)}</span>
-        </dd>
-      </div>
-    {/each}
-  </dl>
-  <p class="dev-note">Care controls are not part of this development build yet.</p>
+  {#if cat.alive}
+    <div class="portrait {cat.presentation}" class:sick={cat.sick} aria-hidden="true">
+      {#key reactionKey}
+        <div class="sprite {reaction}">
+          <PixelIcon map={cat.overfed ? catRound : catSitting} scale={8} />
+        </div>
+      {/key}
+    </div>
+    <p class="condition" data-testid="cat-condition">
+      {cat.conditionText}{#if cat.overfedText}{' '}{cat.overfedText}{/if}
+    </p>
+    {#if cat.careMessage}
+      <p class="care-message">{cat.careMessage}</p>
+    {/if}
+    <dl class="status">
+      {#each meters as meter (meter.id)}
+        <div class="meter">
+          <dt>{meter.label}</dt>
+          <dd>
+            <span class="track"
+              ><span class="fill {meter.id}" style:width="{meter.value}%"></span></span
+            >
+            <span class="value">{Math.round(meter.value)}</span>
+          </dd>
+        </div>
+      {/each}
+    </dl>
+    <div class="care">
+      <button type="button" onclick={feed}>FEED</button>
+      <button type="button" disabled aria-describedby="play-note">PLAY</button>
+      <button type="button" onclick={pet}>PET</button>
+    </div>
+    <p class="dev-note" id="play-note">PLAY is not part of this development build yet.</p>
+  {:else}
+    <Memorial />
+  {/if}
 </section>
 
 <style>
@@ -43,7 +85,7 @@
     padding: 10px 12px max(16px, env(safe-area-inset-bottom));
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 10px;
   }
   .bar {
     display: flex;
@@ -66,9 +108,58 @@
   .portrait {
     display: grid;
     place-items: center;
-    padding: 16px;
+    min-height: 150px;
+    padding: 12px;
     border: 3px solid var(--border);
     background: var(--panel-strong);
+  }
+  .portrait.sick :global(svg) {
+    filter: saturate(0.5) hue-rotate(40deg);
+  }
+  .sprite {
+    animation: idle 2.4s steps(2) infinite;
+  }
+  .sprite.eat {
+    animation: eat 0.5s steps(2) 3;
+  }
+  .sprite.purr {
+    animation: purr 0.25s steps(2) 6;
+  }
+  .sprite.wiggle {
+    animation: wiggle 0.2s steps(2) 3;
+  }
+  .critical .sprite,
+  .sick .sprite {
+    animation-duration: 5s;
+  }
+  @keyframes idle {
+    50% {
+      transform: translateY(2px);
+    }
+  }
+  @keyframes eat {
+    50% {
+      transform: translateY(6px);
+    }
+  }
+  @keyframes purr {
+    50% {
+      transform: translateX(2px);
+    }
+  }
+  @keyframes wiggle {
+    50% {
+      transform: rotate(3deg);
+    }
+  }
+  .condition {
+    margin: 0;
+    font-weight: 700;
+  }
+  .care-message {
+    margin: 0;
+    font-style: italic;
+    color: var(--ink-soft);
   }
   .status {
     margin: 0;
@@ -100,6 +191,7 @@
   .fill {
     position: absolute;
     inset: 0 auto 0 0;
+    transition: width 0.6s linear;
   }
   .fill.health {
     background: var(--health);
@@ -114,8 +206,27 @@
     min-width: 3ch;
     text-align: right;
   }
+  .care {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .care button {
+    min-height: 52px;
+    border: 3px solid var(--border);
+    background: var(--accent);
+    color: var(--accent-ink);
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+  }
+  .care button:disabled {
+    background: var(--disabled);
+    cursor: not-allowed;
+  }
   .dev-note {
+    margin: 0;
     color: var(--ink-soft);
-    font-size: 13px;
+    font-size: 12px;
   }
 </style>

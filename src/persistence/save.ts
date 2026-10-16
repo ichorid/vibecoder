@@ -1,5 +1,11 @@
 import { TECHNOLOGY_IDS, UPGRADE_IDS, isUpgradeId, type UpgradeId } from '../game/ids';
-import type { CatState, HistoryEntry, LogEntry, RunState } from '../game/types';
+import {
+  CAT_HISTORY_IDS,
+  type CatState,
+  type HistoryEntry,
+  type LogEntry,
+  type RunState,
+} from '../game/types';
 import {
   DecodeError,
   bool,
@@ -17,6 +23,7 @@ import { CURRENT_SCHEMA_VERSION, migrate } from './migrations';
 export { CURRENT_SCHEMA_VERSION };
 export const SAVE_KEY = 'vibe-coder.save';
 export const CONTENT_VERSION = 1;
+const CARE_NOTES = ['nom', 'notHungry', 'tooMuch', 'spherical', 'purr'] as const;
 
 export const THEMES = ['light', 'dark'] as const;
 export type Theme = (typeof THEMES)[number];
@@ -65,6 +72,15 @@ export function encodeSave(save: SaveData): string {
 const percent = { min: 0, max: 100 };
 const nonNegative = { min: 0 };
 
+function decodeLastCare(value: unknown, path: string): CatState['lastCare'] {
+  if (value === null) return null;
+  const raw = record(value, path);
+  return {
+    note: oneOf(raw.note, `${path}.note`, CARE_NOTES),
+    atActiveMs: num(raw.atActiveMs, `${path}.atActiveMs`, nonNegative),
+  };
+}
+
 function decodeCat(value: unknown, path: string): CatState {
   const raw = record(value, path);
   const cat: CatState = {
@@ -74,17 +90,25 @@ function decodeCat(value: unknown, path: string): CatState {
     overfeeding: num(raw.overfeeding, `${path}.overfeeding`, nonNegative),
     alive: bool(raw.alive, `${path}.alive`),
     diedAtActiveMs: nullableNum(raw.diedAtActiveMs, `${path}.diedAtActiveMs`, nonNegative),
+    needsElapsedMs: num(raw.needsElapsedMs, `${path}.needsElapsedMs`, { min: 0, max: 60_000 }),
+    pendingActions: num(raw.pendingActions, `${path}.pendingActions`, { min: 0, integer: true }),
+    lastFedAtActiveMs: nullableNum(raw.lastFedAtActiveMs, `${path}.lastFedAtActiveMs`, nonNegative),
+    lastPetAtActiveMs: nullableNum(raw.lastPetAtActiveMs, `${path}.lastPetAtActiveMs`, nonNegative),
+    lastCare: decodeLastCare(raw.lastCare, `${path}.lastCare`),
   };
   if (!cat.alive && cat.diedAtActiveMs === null) fail(path, 'dead cat without a death time');
   if (cat.alive && cat.diedAtActiveMs !== null) fail(path, 'living cat with a death time');
+  if (!cat.alive && cat.health !== 0) fail(path, 'dead cat with nonzero health');
   return cat;
 }
 
 function decodeHistoryEntry(value: unknown, path: string): HistoryEntry {
   const raw = record(value, path);
   const activeMs = num(raw.activeMs, `${path}.activeMs`, nonNegative);
-  const kind = oneOf(raw.kind, `${path}.kind`, ['technology', 'event'] as const);
+  const kind = oneOf(raw.kind, `${path}.kind`, ['technology', 'cat', 'event'] as const);
   switch (kind) {
+    case 'cat':
+      return { kind, id: oneOf(raw.id, `${path}.id`, CAT_HISTORY_IDS), activeMs };
     case 'technology':
       return { kind, id: oneOf(raw.id, `${path}.id`, TECHNOLOGY_IDS), activeMs };
     case 'event':

@@ -23,6 +23,9 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   `nullRenderer`). Svelte props use `const { … } = $props()` (lint prefer-const).
 - D7 (P03) GameView stays mounted (hidden) while History/Cat are open so the single Pixi
   canvas is never recreated; WorldCanvas only toggles ticker activity.
+- D8 (P04) Cat state also stores `needsElapsedMs`, `pendingActions`, care timestamps and
+  `lastCare` (for contextual messages). Death time is stamped by `stepRun` (`recordDeath`),
+  not by `updateCat`, which has no clock.
 - D5 (P02) App-level commands (`retrySave`, `setTheme`) go through the same public
   `dispatch` as game commands, so UI still sees only `{subscribe, dispatch}`.
 
@@ -42,6 +45,10 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   `pkill -f "[v]ite preview"`. Playwright `reuseExistingServer` silently serves a *stale* build
   if a manual preview is still running; stop it before `npm run test:browser`.
 
+- F5 Browser fixtures: setting localStorage then `reload()` is overwritten by the old page's
+  pagehide save (correct game behavior). Use `loadSave()` in `tests/browser/helpers.ts`
+  (addInitScript before boot).
+
 ## Progress log
 
 - 2026-10-16: P00 verified + committed. Next: P01.
@@ -52,3 +59,5 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   81 tests. Next P03 (Svelte views, Playwright).
 - 2026-10-16: P03 done (Svelte shell, header bars, Pixi host, first-loop + settings specs).
   101 unit/component + 9 browser tests. Next P04 (cat needs, FEED/PET, death).
+- 2026-10-16: P04 done (needs, FEED/PET, starvation/sickness, death + memorial, independence
+  scenario). 143 unit + 11 browser. Next P05 (PLAY minigame, attention overlay).

@@ -66,7 +66,13 @@ export interface Game {
 
 /** Facts that make a write immediate instead of waiting for the periodic save. */
 function needsImmediateSave(facts: readonly GameFact[]): boolean {
-  return facts.some((fact) => fact.type === 'purchased' || fact.type === 'technologyDiscovered');
+  return facts.some(
+    (fact) =>
+      fact.type === 'purchased' ||
+      fact.type === 'technologyDiscovered' ||
+      fact.type === 'catCared' ||
+      fact.type === 'catDied',
+  );
 }
 
 export function createGame(options: GameOptions): Game {
@@ -82,7 +88,7 @@ export function createGame(options: GameOptions): Game {
     run,
     game: selectGame(run, catalog),
     history: selectHistory(run, catalog),
-    cat: selectCat(run),
+    cat: selectCat(run, catalog),
     world: selectWorld(run),
     profile,
     save: { status: saveStatus },
@@ -119,8 +125,14 @@ export function createGame(options: GameOptions): Game {
     clock: options.clock,
     scheduler: options.scheduler,
     onSteps(count) {
-      for (let i = 0; i < count; i += 1) run = stepRun(run, STEP_MS, catalog).run;
-      saveIfDue();
+      let urgent = false;
+      for (let i = 0; i < count; i += 1) {
+        const transition = stepRun(run, STEP_MS, catalog);
+        run = transition.run;
+        if (needsImmediateSave(transition.facts)) urgent = true;
+      }
+      if (urgent) write();
+      else saveIfDue();
       if (!dispatching) publish();
     },
   });

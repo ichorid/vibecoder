@@ -1,11 +1,46 @@
 import type { PrimaryActionId, TechnologyId, UpgradeId } from './ids';
-import type { ReadonlyRun } from './types';
+import type { CareNote, CatHistoryId, ReadonlyRun } from './types';
 
 /**
  * Content contract passed to the simulation by app composition. Values are authored in
  * content/; units are part of field names.
  */
+/** Cat rules. Rates are per needs tick unless the name says per minute. */
+export interface CatBalance {
+  readonly needsTickMs: number;
+  readonly fullnessDecayPerTick: number;
+  readonly moodDecayPerTick: number;
+  /** Extra decay fraction per meaningful action, capped per tick, reset after each tick. */
+  readonly accelerationPerAction: number;
+  readonly accelerationCap: number;
+  readonly hungryBelow: number;
+  readonly lonelyBelow: number;
+  readonly attentionBelow: number;
+  readonly overfedAt: number;
+  readonly sickAt: number;
+  readonly criticalBelow: number;
+  readonly starvationBelow: number;
+  readonly starvationHealthPerMinute: number;
+  readonly severeStarvationAtOrBelow: number;
+  readonly severeStarvationHealthPerMinute: number;
+  readonly recoveryAbove: number;
+  readonly recoveryHealthPerMinute: number;
+  readonly overfeedingDecayPerMinute: number;
+  readonly sicknessMoodPerMinute: number;
+  readonly sicknessHealthPerMinute: number;
+  readonly sicknessHealthFloor: number;
+  readonly feedMin: number;
+  readonly feedMax: number;
+  readonly feedLockMs: number;
+  readonly overfeedPressure: number;
+  readonly overfeedFullnessAt: number;
+  readonly overfeedOverflowAt: number;
+  readonly petMood: number;
+  readonly petCooldownMs: number;
+}
+
 export interface BalanceDefinition {
+  readonly cat: CatBalance;
   /** Output queued by one accepted WRITE CODE before technology bonuses. */
   readonly manualOutputPerAction: number;
   /** Recent ambient log lines kept in the run. */
@@ -67,7 +102,21 @@ export interface TechnologyDefinition {
   readonly effects: readonly Effect[];
 }
 
+export type CatPresentation =
+  'dead' | 'critical' | 'sick' | 'hungry' | 'attentionSeeking' | 'lonely' | 'normal';
+
+/** Cat view copy. Care notes come from the last accepted care action. */
+export interface CatText {
+  readonly conditions: Readonly<Record<CatPresentation, string>>;
+  readonly overfed: string;
+  readonly care: Readonly<Record<CareNote, string>>;
+  readonly history: Readonly<Record<CatHistoryId, string>>;
+  /** How long a care message stays relevant, in active ms. */
+  readonly careMessageMs: number;
+}
+
 export interface Catalog {
+  readonly catText: CatText;
   readonly balance: BalanceDefinition;
   readonly primaryActionLabels: Readonly<Record<PrimaryActionId, string>>;
   readonly technologies: readonly TechnologyDefinition[];

@@ -61,3 +61,107 @@ export const catFaceGone: PixelMap = {
   ],
   palette: { g: '#8f8a80', x: '#4a463f' },
 };
+
+const CAT_PALETTE = {
+  o: '#e8892f',
+  s: '#c96f1e',
+  d: '#2a2017',
+  p: '#f2a3a3',
+  w: '#fbe3c4',
+  g: '#9fb36a',
+};
+
+/** Large sitting cat for the Cat view (temporary until the P06 atlas). */
+export const catSitting: PixelMap = {
+  rows: [
+    '..o.......o.........',
+    '..oo.....oo.........',
+    '..ooooooooo.........',
+    '..odooooodo.........',
+    '..ooooppooo.........',
+    '..wooowwoow.........',
+    '...ooooooo..........',
+    '...ososooo......oo..',
+    '..ooooooooo.....o...',
+    '..oosoosoooo...oo...',
+    '.ooooooooooo..oo....',
+    '.ooososoooooooo.....',
+    '.oooooooooooo.......',
+    '.wwoooooooww........',
+    '.ww......ww.........',
+  ],
+  palette: CAT_PALETTE,
+};
+
+/** Overfed variant: visibly rounder body. */
+export const catRound: PixelMap = {
+  rows: [
+    '...o.......o........',
+    '...oo.....oo........',
+    '...ooooooooo........',
+    '...odooooodo........',
+    '...ooooppooo........',
+    '...wooowwoow........',
+    '..ooooooooooo.......',
+    '.ooososoooooooo..oo.',
+    'oooooooooooooooo.o..',
+    'oooosoosooooooooo...',
+    'oooooooooooooooo....',
+    'ooooososooooooo.....',
+    '.oooooooooooooo.....',
+    '..wwoooooooww.......',
+    '..ww.......ww.......',
+  ],
+  palette: CAT_PALETTE,
+};
+
+const PHOTO_PALETTE = {
+  ...CAT_PALETTE,
+  k: '#3b3f4a',
+  l: '#6c7486',
+  m: '#9bb7d4',
+  b: '#5a3a22',
+  h: '#46536b',
+  f: '#f1c69a',
+  y: '#e9d9b4',
+};
+
+/** Memorial photo 1 (temporary art): the cat asleep on the keyboard beside the programmer. */
+export const memorialKeyboard: PixelMap = {
+  rows: [
+    'yyyyyyyyyyyyyyyyyyyyyyyy',
+    'yyyyyyyyyykkkkkkkkkyyyyy',
+    'yyyyyyyyyykmmmmmmmkyyyyy',
+    'yybbbyyyyykmmmmmmmkyyyyy',
+    'ybfffbyyyykmmmmmmmkyyyyy',
+    'yyfffyyyyykkkkkkkkkyyyyy',
+    'yhhhhhyyyyyyyykyyyyyyyyy',
+    'hhhhhhhyyyyyyykyyyyyyyyy',
+    'hhhhhhhhllllllllllllllly',
+    'hhhhhhhhlooooooolllllly',
+    'hhhhhhhhooooooooooollly',
+    'hhhhhhhhlowoowoooolllly',
+    'hhhhhhhhllllllllllllllly',
+  ],
+  palette: PHOTO_PALETTE,
+};
+
+/** Memorial photo 2 (temporary art): the cat curled up on the programmer's lap. */
+export const memorialLap: PixelMap = {
+  rows: [
+    'yyyyyyyyyyyyyyyyyyyyyyyy',
+    'yyyyyyyybbbbbyyyyyyyyyyy',
+    'yyyyyyybfffffbyyyyyyyyyy',
+    'yyyyyyyyfdfdfyyyyyyyyyyy',
+    'yyyyyyyyfffffyyyyyyyyyyy',
+    'yyyyyhhhhhhhhhhhyyyyyyyy',
+    'yyyyhhhhhhhhhhhhhyyyyyyy',
+    'yyyhhhho.....ohhhhyyyyyy',
+    'yyyhhhoooooooooohhhyyyyy',
+    'yyyhhoodoooooooohhhyyyyy',
+    'yyyhhooooooooooohhhyyyyy',
+    'yyyyhhhoooooooohhhyyyyyy',
+    'yyyyyhhhhhhhhhhhhyyyyyyy',
+  ],
+  palette: PHOTO_PALETTE,
+};

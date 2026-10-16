@@ -27,6 +27,9 @@ export interface RunStats {
   lifetimeOutput: number;
 }
 
+/** Last accepted care, for contextual Cat messages; cosmetic responses are not stored. */
+export type CareNote = 'nom' | 'notHungry' | 'tooMuch' | 'spherical' | 'purr';
+
 export interface CatState {
   health: number;
   mood: number;
@@ -34,10 +37,21 @@ export interface CatState {
   overfeeding: number;
   alive: boolean;
   diedAtActiveMs: number | null;
+  /** Active time accumulated toward the next needs tick. */
+  needsElapsedMs: number;
+  /** Meaningful player actions since the last needs tick (capped decay modifier). */
+  pendingActions: number;
+  lastFedAtActiveMs: number | null;
+  lastPetAtActiveMs: number | null;
+  lastCare: { note: CareNote; atActiveMs: number } | null;
 }
+
+export const CAT_HISTORY_IDS = ['cat-died'] as const;
+export type CatHistoryId = (typeof CAT_HISTORY_IDS)[number];
 
 export type HistoryEntry =
   | { kind: 'technology'; id: TechnologyId; activeMs: number }
+  | { kind: 'cat'; id: CatHistoryId; activeMs: number }
   | { kind: 'event'; textId: string; activeMs: number };
 
 export interface LogEntry {
@@ -70,11 +84,16 @@ export type ReadonlyRun = DeepReadonly<RunState>;
 export type GameCommand =
   | { type: 'primaryAction' }
   | { type: 'buyUpgrade'; id: UpgradeId }
-  | { type: 'acknowledgeUnlock'; id: TechnologyId };
+  | { type: 'acknowledgeUnlock'; id: TechnologyId }
+  | { type: 'feedCat' }
+  | { type: 'petCat' };
 
 /** Typed facts returned with a transition for app wiring (saving, presentation). No event bus. */
 export type GameFact =
-  { type: 'purchased'; id: UpgradeId } | { type: 'technologyDiscovered'; id: TechnologyId };
+  | { type: 'catDied' }
+  | { type: 'catCared'; kind: 'feed' | 'pet' }
+  | { type: 'purchased'; id: UpgradeId }
+  | { type: 'technologyDiscovered'; id: TechnologyId };
 
 export function assertNever(value: never): never {
   throw new Error(`Unexpected value: ${String(value)}`);

@@ -1,4 +1,5 @@
-import type { Catalog } from './catalog';
+import { catConditions, type CatConditions } from './cat';
+import type { CatPresentation, Catalog } from './catalog';
 import { upgradeLevel, upgradePrice } from './economy';
 import type { PrimaryActionId, TechnologyId, UpgradeId } from './ids';
 import { currentPrimaryAction, findTechnology, isUpgradeOffered } from './progression';
@@ -42,7 +43,7 @@ export interface GameViewModel {
 }
 
 export interface HistoryEntryViewModel {
-  readonly kind: 'technology' | 'event';
+  readonly kind: 'technology' | 'cat' | 'event';
   readonly title: string;
   readonly activeMs: number;
 }
@@ -98,6 +99,12 @@ export function selectHistory(run: ReadonlyRun, catalog: Catalog): HistoryViewMo
             title: findTechnology(catalog, entry.id)?.title ?? entry.id,
             activeMs: entry.activeMs,
           };
+        case 'cat':
+          return {
+            kind: 'cat',
+            title: catalog.catText.history[entry.id],
+            activeMs: entry.activeMs,
+          };
         case 'event':
           return { kind: 'event', title: entry.textId, activeMs: entry.activeMs };
       }
@@ -110,15 +117,46 @@ export interface CatViewModel {
   readonly health: number;
   readonly mood: number;
   readonly fullness: number;
+  readonly presentation: CatPresentation;
+  readonly overfed: boolean;
+  readonly sick: boolean;
+  readonly conditionText: string;
+  readonly overfedText: string | null;
+  /** Message about the last accepted care action, while still relevant. */
+  readonly careMessage: string | null;
+}
+
+/** Presentation priority; independent flags stay available alongside. */
+export function catPresentation(conditions: CatConditions): CatPresentation {
+  if (conditions.dead) return 'dead';
+  if (conditions.critical) return 'critical';
+  if (conditions.sick) return 'sick';
+  if (conditions.hungry) return 'hungry';
+  if (conditions.attentionSeeking) return 'attentionSeeking';
+  if (conditions.lonely) return 'lonely';
+  return 'normal';
 }
 
 /** Cat status for the header bars and Cat view. Fullness is shown only in Cat. */
-export function selectCat(run: ReadonlyRun): CatViewModel {
+export function selectCat(run: ReadonlyRun, catalog: Catalog): CatViewModel {
+  const conditions = catConditions(run.cat, catalog.balance.cat);
+  const presentation = catPresentation(conditions);
+  const care = run.cat.lastCare;
+  const careFresh =
+    run.cat.alive &&
+    care !== null &&
+    run.activeMs - care.atActiveMs < catalog.catText.careMessageMs;
   return {
     alive: run.cat.alive,
     health: run.cat.health,
     mood: run.cat.mood,
     fullness: run.cat.fullness,
+    presentation,
+    overfed: conditions.overfed,
+    sick: conditions.sick,
+    conditionText: catalog.catText.conditions[presentation],
+    overfedText: conditions.overfed && run.cat.alive ? catalog.catText.overfed : null,
+    careMessage: careFresh ? catalog.catText.care[care.note] : null,
   };
 }
 

@@ -166,3 +166,36 @@ Room/programmer/cat are Pixi Graphics rectangles; header cat icon and Cat portra
 `npm run check` OK; `test:game` 101/101; `test:browser` 9/9 (mobile Chromium emulation only); build OK (initial JS ≈29 KiB gzip + lazy Pixi ≈76 KiB + renderer backend chunk).
 Not verified: real iOS/Android devices.
 Next: P04.1.
+
+## Task: P04 (cat life and irreversible death)
+
+Status: **done** (temporary cat/memorial art)
+
+### P04.1 needs and overlapping conditions
+
+Files: `src/game/cat.ts`, `cat.test.ts`, `content/balance.ts` (`catBalance`), `simulation.ts`, `src/app/catRuntime.test.ts`.
+RED: 11/14 failed against identity stubs. GREEN: 5 000 ms needs tick (−0.65 fullness, −0.45 mood), capped action modifier 1%/action ≤10% reset per tick, overlapping derived flags (hungry/lonely/attention/overfed/sick/critical/dead) with boundary tests both sides; primary/purchase count as meaningful, care/ack do not (RED: 1 failed before wiring); five hidden minutes leave the cat untouched via runtime.
+
+### P04.2 FEED and PET
+
+Files: `cat.ts` (`feedCat`, `petCat`), `commands.ts`, `care.test.ts`, `content/catText.ts`, `ui/CatView.svelte`, `tests/browser/cat.spec.ts`.
+RED: 8/9 failed with stubbed commands. GREEN: seeded integer 18–32 via the cat stream, cap 100, 1 000 ms eating lock without RNG use, PET +3 then 60 000 ms cooldown (`cooldown` result, cosmetic wiggle in UI), cooldown timestamps persisted, care messages from content, immediate save on care. PLAY shown disabled with an honest note.
+
+### P04.3 starvation, recovery, overfeeding
+
+RED: 6/10 new cases failed with decay-only tick. GREEN: explicit tick order (decay → pressure decay → sickness w/ floor 10 → starvation 8/min (<20) or 14/min (≤5) → recovery 4/min (>35 & not sick) → death). One excessive meal (+25) stays below 40; repeated meals reach overfed then sick; sickness costs +1 mood/min; zero mood never kills; sickness floor does not protect a starving cat. Total neglect kills between 8 and 30 active minutes (headless run). One test input corrected (35.5 decays below the recovery threshold; added explicit boundary case).
+
+### P04.4 death, record, memorial
+
+Files: `simulation.ts` (`recordDeath`), types/decoder (`kind: 'cat'` history), `createGame.ts` (immediate save from step facts), `ui/Memorial.svelte`, `pixelArt.ts`, `src/persistence/catSave.test.ts`.
+RED: 3/5 failed (no death record/time/history). GREEN: atomic death (alive=false, health 0, diedAtActiveMs, one History entry, one "The cat is gone." line, one `catDied` fact → immediate save), never repeated; economy continues; care rejected without RNG; decoder rejects dead cat with health≠0; reload keeps death and `catAlive=false` world projection. Browser: deceased header icon + empty gray bars, memorial with exactly two photos and no status/care, survives reload, History entry.
+Temporary: memorial photos and cat portraits are inline pixel maps (P06 replaces).
+
+### P04.5 independence from productivity
+
+`tests/scenarios/cat-independence.test.ts`, `tests/helpers/scenario.ts` (policy-based driver using read models only). Green from the start; mutation check (adding +0.001 output while the cat lives) makes it fail.
+
+### Exit gate
+
+`npm run check` OK; `test:game` 143/143; `test:browser` 11/11; build OK.
+Next: P05.1.
