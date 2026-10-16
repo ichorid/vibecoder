@@ -1,6 +1,6 @@
 /** The two happy memorial photographs (64×48), shown slightly faded as Polaroids in Cat. */
 import { createCanvas, type PixelCanvas } from '../lib/canvas';
-import { ellipse, outline } from '../lib/shapes';
+import { ellipse, outline, stroke } from '../lib/shapes';
 import { light } from '../palette';
 import { catSprites } from '../sprites/cat';
 import { blitScaled } from './common';
@@ -36,29 +36,55 @@ export function keyboardPhoto(): PixelCanvas {
   return c;
 }
 
-/** The cat curled up happily on the programmer's lap. */
+/**
+ * The cat curled up happily on the programmer's lap: side view in the desk chair, a hand
+ * resting on the cat, the monitor waiting on the desk (chosen from five drafts).
+ */
 export function lapPhoto(): PixelCanvas {
   const p = light;
   const c = createCanvas(PHOTO.w, PHOTO.h);
   c.rect(0, 0, 64, 48, p.wallLight);
-  c.rect(0, 38, 64, 10, p.floor);
-  // Programmer seated, front view: head, hoodie, lap.
-  c.disc(32, 9, 6, p.skin);
-  ellipse(c, 32, 5, 7, 4, p.hair);
-  c.set(30, 10, p.eye);
-  c.set(34, 10, p.eye);
-  c.rect(30, 13, 4, 1, p.skinShade);
-  ellipse(c, 32, 28, 16, 12, p.hoodie);
-  c.rect(14, 36, 36, 6, p.jeans);
-  // One cat, curled up asleep on the lap.
-  blitScaled(c, catFrame('cat-sleep'), 20, 20, 1);
-  c.rect(10, 26, 6, 4, p.skin);
-  c.rect(48, 26, 6, 4, p.skin);
+  c.rect(0, 40, 64, 8, p.floor);
+  // Desk and monitor on the right.
+  c.rect(44, 18, 20, 3, p.wood);
+  c.rect(60, 21, 3, 19, p.woodDark);
+  c.rect(48, 8, 14, 10, p.metalDark);
+  c.rect(49, 9, 12, 8, p.screen);
+  // Office chair.
+  c.rect(14, 10, 5, 22, p.chair);
+  c.rect(14, 30, 24, 4, p.chair);
+  c.rect(25, 34, 2, 6, p.chairDark);
+  c.rect(19, 40, 14, 2, p.chairDark);
+  // The programmer, seated, facing the desk.
+  const body = createCanvas(PHOTO.w, PHOTO.h);
+  ellipse(body, 23, 22, 6, 9, p.hoodie);
+  body.rect(20, 28, 18, 5, p.jeans);
+  body.rect(33, 28, 5, 12, p.jeans);
+  body.rect(33, 40, 7, 2, p.hoodieDark);
+  body.disc(24, 9, 5, p.skin);
+  ellipse(body, 22, 6, 5, 3, p.hair);
+  body.set(27, 9, p.eye);
+  body.rect(27, 12, 2, 1, p.skinShade);
+  outline(body, p.outline);
+  c.blit(body, 0, 0);
+  // One cat, curled up asleep on the lap, a hand resting on it.
+  c.blit(catFrame('cat-sleep'), 15, 14);
+  stroke(
+    c,
+    [
+      [25, 18],
+      [31, 20],
+      [34, 19],
+    ],
+    1,
+    p.hoodie,
+  );
+  c.rect(33, 18, 3, 2, p.skin);
   // Little heart above.
-  c.rect(44, 4, 2, 2, p.pink);
-  c.rect(47, 4, 2, 2, p.pink);
-  c.rect(44, 6, 5, 2, p.pink);
-  c.rect(45, 8, 3, 1, p.pink);
-  c.set(46, 9, p.pink);
+  c.rect(36, 3, 2, 2, p.pink);
+  c.rect(39, 3, 2, 2, p.pink);
+  c.rect(36, 5, 5, 2, p.pink);
+  c.rect(37, 7, 3, 1, p.pink);
+  c.set(38, 8, p.pink);
   return c;
 }

@@ -235,4 +235,28 @@ describe('PLAY session', () => {
     const dead = { ...base, cat: { ...base.cat, alive: false, health: 0, diedAtActiveMs: 0 } };
     expect(applyCommand(dead, { type: 'startCatPlay' }, 0, catalog).result).toBe('unavailable');
   });
+
+  it('each next attempt in a session is faster with a narrower band, and stays fair', () => {
+    for (let seed = 1; seed <= 30; seed += 1) {
+      let run = started(50, seed);
+      const attempts: CatPlayState[] = [play(run)];
+      while (attempts.length < balance.attempts) {
+        run = steps(run, 1, catalog);
+        const current = play(run);
+        if (current.attemptNumber > attempts.length) attempts.push(current);
+      }
+      for (let i = 1; i < attempts.length; i += 1) {
+        const before = attempts[i - 1];
+        const now = attempts[i];
+        if (!before || !now) throw new Error('missing attempt');
+        expect(now.speed).toBeGreaterThan(before.speed);
+        expect(now.target.width).toBeLessThan(before.target.width);
+      }
+      for (const attempt of attempts) {
+        const crossingMs = (attempt.target.width / attempt.speed) * 1000;
+        expect(crossingMs).toBeGreaterThanOrEqual(balance.minHitWindowMs - 1e-6);
+        expect(attempt.target.start + attempt.target.width).toBeLessThanOrEqual(1 + 1e-9);
+      }
+    }
+  });
 });

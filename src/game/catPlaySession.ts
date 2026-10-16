@@ -3,7 +3,13 @@
  * resume cue. Each attempt resolves once; mood gains commit per attempt; no completion bonus.
  */
 import type { CatPlayBalance } from './catalog';
-import { mousePosition, sampleAttempt, scoreAttempt } from './catPlay';
+import {
+  mousePosition,
+  nextAttempt,
+  sampleAttempt,
+  scoreAttempt,
+  type AttemptParameters,
+} from './catPlay';
 import { nextInt } from './random';
 import type { CatPlayState, CatState, DeepReadonly, RunState } from './types';
 
@@ -33,8 +39,10 @@ function newAttempt(
   previous: CatPlayState['previous'],
   rng: number,
   balance: CatPlayBalance,
+  /** The session's previous attempt; the next one escalates from it. */
+  before?: AttemptParameters,
 ): { play: CatPlayState; rng: number } {
-  const sample = sampleAttempt(rng, balance);
+  const sample = before ? nextAttempt(rng, before, balance) : sampleAttempt(rng, balance);
   const origin = startMs + balance.readyMs;
   return {
     rng: sample.rng,
@@ -85,7 +93,7 @@ function skipResult(
   const outcomes = [...play.previous, play.outcome?.kind ?? 'miss'];
   if (play.attemptNumber < balance.attempts) {
     const id = state.seq + 1;
-    const attempt = newAttempt(play.attemptNumber + 1, id, at, outcomes, state.rng, balance);
+    const attempt = newAttempt(play.attemptNumber + 1, id, at, outcomes, state.rng, balance, play);
     return { ...state, play: attempt.play, rng: attempt.rng, seq: id };
   }
   const hits = outcomes.filter((o) => o === 'hit').length;
@@ -182,6 +190,7 @@ export function advanceSession(
       outcomes,
       next.rng,
       balance,
+      play,
     );
     next = { ...next, play: attempt.play, rng: attempt.rng, seq: id };
   }

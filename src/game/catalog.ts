@@ -64,8 +64,11 @@ export interface CatPlayBalance {
   /** Normalized track lengths per second. */
   readonly speedMin: number;
   readonly speedMax: number;
-  /** Narrowest crossing of the target must last at least this long. */
+  /** Narrowest crossing of the target must last at least this long (every attempt). */
   readonly minHitWindowMs: number;
+  /** Each next attempt in a session: speed × this, band width × `attemptWidthFactor`. */
+  readonly attemptSpeedFactor: number;
+  readonly attemptWidthFactor: number;
   readonly nearMissDistance: number;
   readonly hitMoodMin: number;
   readonly hitMoodMax: number;

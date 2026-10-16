@@ -38,17 +38,43 @@ export function scoreAttempt(position: number, target: PlayTarget, near: number)
   return distance <= near + EPSILON ? 'near' : 'miss';
 }
 
-/** Sample a fresh target and a speed slow enough that one crossing lasts ≥ minHitWindowMs. */
+/**
+ * Sample a session's first target and speed. Later attempts are faster and narrower
+ * (`nextAttempt`), so the first is slow enough that even the last crossing lasts
+ * ≥ minHitWindowMs.
+ */
 export function sampleAttempt(
   rng: number,
   balance: CatPlayBalance,
 ): { attempt: AttemptParameters; rng: number } {
   const width = nextRange(rng, balance.targetWidthMin, balance.targetWidthMax);
   const start = nextRange(width.state, 0, 1 - width.value);
-  const fairMax = Math.min(balance.speedMax, (width.value * 1000) / balance.minHitWindowMs);
+  const tightening =
+    (balance.attemptSpeedFactor / balance.attemptWidthFactor) ** (balance.attempts - 1);
+  const fairMax = Math.min(
+    balance.speedMax,
+    (width.value * 1000) / (balance.minHitWindowMs * tightening),
+  );
   const speed = nextRange(start.state, balance.speedMin, Math.max(balance.speedMin, fairMax));
   return {
     attempt: { target: { start: start.value, width: width.value }, speed: speed.value },
     rng: speed.state,
+  };
+}
+
+/** The next attempt of a session: faster, with a narrower band at a fresh position. */
+export function nextAttempt(
+  rng: number,
+  previous: AttemptParameters,
+  balance: CatPlayBalance,
+): { attempt: AttemptParameters; rng: number } {
+  const width = previous.target.width * balance.attemptWidthFactor;
+  const start = nextRange(rng, 0, 1 - width);
+  return {
+    attempt: {
+      target: { start: start.value, width },
+      speed: previous.speed * balance.attemptSpeedFactor,
+    },
+    rng: start.state,
   };
 }

@@ -47,19 +47,36 @@ export const catFace: PixelMap = {
   palette: { o: '#e8892f', d: '#2a2017', p: '#f2a3a3', w: '#fbe3c4' },
 };
 
-export const catFaceGone: PixelMap = {
+/** The cat died: a small skull where the cat used to be. */
+export const catSkull: PixelMap = {
   rows: [
-    'g..........g',
-    'gg........gg',
-    'ggg......ggg',
-    'gggggggggggg',
-    'ggxgggggggxg',
-    'gggggggggggg',
-    'gggggxxggggg',
-    '.gggggggggg.',
-    '..gggggggg..',
+    '...kkkkkk...',
+    '..kbbbbbbk..',
+    '.kbbbbbbbbk.',
+    '.kbxxbbxxbk.',
+    '.kbxxbbxxbk.',
+    '.kbbbxxbbbk.',
+    '..kbbbbbbk..',
+    '...kbxbxk...',
+    '....kkkk....',
   ],
-  palette: { g: '#8f8a80', x: '#4a463f' },
+  palette: { b: '#ece6d6', x: '#2a2017', k: '#2a2017' },
+};
+
+/** The cat left as a stray: the sun going down over the horizon. */
+export const catSunset: PixelMap = {
+  rows: [
+    'pppppppppppp',
+    'ppppyyyypppp',
+    'ppyyyyyyyypp',
+    'pyyyyyyyyyyp',
+    'oooooooooooo',
+    'rrorrrrrorrr',
+    'vvvvrvvvvvvv',
+    'vvvvvvvvrvvv',
+    'vvvvvvvvvvvv',
+  ],
+  palette: { p: '#f5a3a0', y: '#f6c945', o: '#e8892f', r: '#f2b46a', v: '#7a68e6' },
 };
 
 const CAT_PALETTE = {

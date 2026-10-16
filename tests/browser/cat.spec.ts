@@ -41,6 +41,8 @@ test('a dead cat stays dead: gray bars, memorial with two photos, no care', asyn
   expect(dead.cat.alive).toBe(false);
   await loadSave(page, saveText(dead));
   await expect(page.getByTestId('cat-button')).toHaveAttribute('aria-label', 'Cat. Gone.');
+  // A dead cat's header icon is a skull.
+  await expect(page.getByTestId('cat-button')).toHaveAttribute('data-fate', 'dead');
   expect(await barWidth(page, 'health-bar')).toBe(0);
   expect(await barWidth(page, 'mood-bar')).toBe(0);
   await expect(page.getByRole('list', { name: 'Recent events' })).toContainText('The cat is gone.');
@@ -79,6 +81,8 @@ test('a stray cat left without a word: no log line, a missing poster, no care', 
   expect(stray.cat.leftAtActiveMs).not.toBeNull();
   await loadSave(page, saveText(stray));
   await expect(page.getByTestId('cat-button')).toHaveAttribute('aria-label', 'Cat. Gone.');
+  // A stray's header icon is a sunset.
+  await expect(page.getByTestId('cat-button')).toHaveAttribute('data-fate', 'stray');
   const log = page.getByRole('list', { name: 'Recent events' });
   await expect(log).not.toContainText(/left|gone|stray/i);
 

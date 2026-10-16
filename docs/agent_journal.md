@@ -260,3 +260,8 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   object re-rendering every DOM sprite (header, Cat view, intrusions). Fix: depend on a
   `$derived` theme, cache `loadDomSheet` per theme. Probe (3 min cycling views): 2027 → 4
   atlas requests; heap/nodes flat either way on desktop. Guard: tests/browser/atlas-loads.spec.ts.
+- 2026-10-16: user requests: PLAY escalates within a session (`attemptSpeedFactor` 1.15,
+  `attemptWidthFactor` 0.85 per attempt; the first attempt is sampled slow enough that the last
+  still crosses in ≥ minHitWindowMs — so first attempts are a bit slower than before). Memorial
+  lap photo redrawn (5 drafts; chose the side view in the desk chair, hand on the cat). Header
+  cat icon: skull when dead, sunset when stray (`data-fate`).

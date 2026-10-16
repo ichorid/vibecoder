@@ -64,6 +64,9 @@ export const catPlayBalance = {
   speedMin: 0.4,
   speedMax: 0.75,
   minHitWindowMs: 200,
+  // A session escalates: each next mouse is 15 % faster and its band 15 % narrower.
+  attemptSpeedFactor: 1.15,
+  attemptWidthFactor: 0.85,
   nearMissDistance: 0.03,
   hitMoodMin: 8,
   hitMoodMax: 12,

@@ -3,7 +3,7 @@
   import AtlasSprite from './AtlasSprite.svelte';
   import type { DomSpriteSheet } from './contracts';
   import PixelIcon from './PixelIcon.svelte';
-  import { catFace, catFaceGone } from './pixelArt';
+  import { catFace, catSkull, catSunset } from './pixelArt';
   import { describeLevel } from './format';
 
   interface Props {
@@ -33,6 +33,7 @@
         type="button"
         class="cat-button"
         class:gone={!cat.alive}
+        data-fate={cat.fate}
         aria-label={catLabel}
         data-testid="cat-button"
         onclick={onCat}
@@ -45,7 +46,10 @@
               scale={2}
             />
           {:else}
-            <PixelIcon map={cat.alive ? catFace : catFaceGone} scale={3} />
+            <PixelIcon
+              map={cat.fate === 'alive' ? catFace : cat.fate === 'stray' ? catSunset : catSkull}
+              scale={3}
+            />
           {/if}
         </span>
         <span class="bars" aria-hidden="true">
