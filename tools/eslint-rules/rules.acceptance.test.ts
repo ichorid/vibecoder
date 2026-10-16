@@ -39,12 +39,21 @@ test('local eslint rules match acceptance fixtures', () => {
         code: readFixture('layer-imports/valid-content-type-only.ts'),
         filename: fixturePath('layer-imports/valid-content-type-only.ts'),
       },
+      {
+        code: readFixture('layer-imports/valid-demo-internal.ts'),
+        filename: fixturePath('layer-imports/valid-demo-internal.ts'),
+      },
     ],
     invalid: [
       {
         code: readFixture('layer-imports/invalid-game-pixi.ts'),
         filename: fixturePath('layer-imports/invalid-game-pixi.ts'),
         errors: [{ message: /pixi/i }],
+      },
+      {
+        code: readFixture('layer-imports/invalid-demo-imports-game.ts'),
+        filename: fixturePath('layer-imports/invalid-demo-imports-game.ts'),
+        errors: [{ message: /demo\/ is a pure engine/ }],
       },
     ],
   });
@@ -61,6 +70,11 @@ test('local eslint rules match acceptance fixtures', () => {
         code: readFixture('ambient-time/invalid-game-date-now.ts'),
         filename: fixturePath('ambient-time/invalid-game-date-now.ts'),
         errors: [{ message: /time|Date|forbidden|ambient/i }],
+      },
+      {
+        code: readFixture('ambient-time/invalid-demo-math-random.ts'),
+        filename: fixturePath('ambient-time/invalid-demo-math-random.ts'),
+        errors: [{ message: /random/i }],
       },
     ],
   });

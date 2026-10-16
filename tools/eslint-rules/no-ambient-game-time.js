@@ -1,4 +1,4 @@
-/** @typedef {'game'|'content'|'app'|'unknown'} PureLayer */
+/** @typedef {'game'|'content'|'app'|'demo'|'unknown'} PureLayer */
 
 /**
  * @param {string} filename
@@ -10,6 +10,7 @@ function pureLayer(filename) {
   if (hasSrc('game') || /\/(valid|invalid)-game-/.test(path)) return 'game';
   if (hasSrc('content') || /\/(valid|invalid)-content-/.test(path)) return 'content';
   if (hasSrc('app') || /valid-app-/.test(path)) return 'app';
+  if (hasSrc('demo') || /\/(valid|invalid)-demo-/.test(path)) return 'demo';
   return 'unknown';
 }
 
@@ -39,7 +40,7 @@ const rule = {
   },
   create(context) {
     const layer = pureLayer(context.filename ?? '');
-    if (layer !== 'game' && layer !== 'content') {
+    if (layer !== 'game' && layer !== 'content' && layer !== 'demo') {
       return {};
     }
 

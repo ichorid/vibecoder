@@ -1,4 +1,4 @@
-/** @typedef {'game'|'content'|'ui'|'world'|'app'|'persistence'|'unknown'} Layer */
+/** @typedef {'game'|'content'|'ui'|'world'|'app'|'persistence'|'demo'|'unknown'} Layer */
 
 /**
  * @param {string} filename
@@ -26,6 +26,9 @@ export function layerFromFilename(filename) {
   }
   if (hasSrc('persistence')) {
     return 'persistence';
+  }
+  if (hasSrc('demo') || /\/(valid|invalid)-demo-/.test(path)) {
+    return 'demo';
   }
   return 'unknown';
 }
@@ -77,6 +80,20 @@ function layerViolationMessage(specifier, fromLayer) {
     }
     if (/pixi\.js/.test(spec)) {
       return 'ui must not import Pixi; use world renderer';
+    }
+    return null;
+  }
+
+  if (fromLayer === 'demo') {
+    // The demo engine is pure presentation maths: seeds in, pictures out. It knows no game.
+    if (
+      /^(\.\.\/|@)(game|content|ui|world|app|persistence)\b/.test(spec) ||
+      /\.\.\/(game|content|ui|world|app|persistence)\//.test(spec)
+    ) {
+      return 'demo/ is a pure engine: it must not import other layers';
+    }
+    if (/pixi\.js/.test(spec) || /^svelte/.test(spec)) {
+      return 'demo/ is a pure engine: no Pixi or Svelte';
     }
     return null;
   }

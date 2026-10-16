@@ -1,0 +1,107 @@
+# Feature: Code a demo
+
+Status: implemented 2026-10-16 (user request). A purely cosmetic code sink: the player spends
+code on a "demo" — a popup that plays a pixelated, demoscene-style animation of an organic form
+grown from a horn grammar. Each demo is a mutation of the previous one, so a run grows a lineage.
+
+Decisions (user, 2026-10-16): cosmetic only (no economic effect; it is there to amuse and to eat
+code); its own strip like Ship It; every demo mutates the previous one; a dev-only "Demo lab"
+page in Settings.
+
+## Origins and copyright
+
+The form grammar follows William Latham and Stephen Todd's FormSynth "horn" grammar as published
+(Todd & Latham, *Evolutionary Art and Computers*, 1992) and as documented by the Organic Art
+preservation port: a horn is a tube of ribs; each rib's transform is the chain of the horn's
+rules at u = i / ribs; a rib can itself be a horn. The rule definitions are mathematics:
+
+| rule | transform at u |
+|---|---|
+| `stack(h)` | translate (0, u·h, 0) |
+| `bend(a)` | rotate about Z by u·a |
+| `twist(a, off)` | rotate about Y by u·a around x = −off |
+| `grow(g)` | scale g^u (negative g keeps the sign) |
+| `branch(a, k)` | tilt down a sphere cap of a° and turn k·137.5°·u·n (phyllotaxis) |
+
+Nothing else is taken from Organic Art: no meshes, textures, scenes, lighting, oscillator
+constants, generator code or form. The 72 original forms were analysed for their *principles*
+only (two-level "tube inside a fan" skeletons, rule order meaning, waves summed from unrelated
+rates, radial/mirror symmetry). This game's generator was then written from those principles,
+and checked (outside the repo) against the 72 original scripts: 0 runs of 4 consecutive
+instructions match exactly; with names and numbers erased only boilerplate ("declare a tube,
+nest a child, set ribs, stack") matches.
+
+**House rules** (`structureOk` in `src/demo/genome.ts`): `stack` and `tilt` may only open a
+horn, and `bend` and `twist` are never neighbours. Every 4-rule sequence that occurs in any
+original form breaks at least one of these, so no genome can repeat an original 4-rule
+structure — guaranteed by construction, without storing any original data here.
+
+## Generator (`src/demo/genome.ts`)
+
+- **Tendrils** (innermost tubes): *taper* (stack, slow spin, shrink, curl), *spring* (offset
+  twist → helix that swells or thins), *shell* (stack, more than a turn of bend, shrink → log
+  spiral), *cone* (phyllotaxis `branch` inside a tube — new, the original only fans with it).
+- **Arrangements** (wrap the level below): *fan* (branch over a 150–340° cap), *ring* (tilted
+  copies on a circle via a full-turn offset twist), *tower* (stacked, twisted, shrinking tiers),
+  *whorl* (copies along a shrinking spiral). Up to two levels.
+- Radial copies 1–6, optional mirror, a slow tumble, an optional bulb at tendril tips.
+- Parameters are `base + amp·wave (+ amp2·wave2)` over seven waves of this game's own periods
+  (1.45–13.7 s) with per-genome phases.
+- Budget: at most 900 balls per frame (`instanceBound`).
+- **Mutation**: 1–3 weighted operators (tweak a parameter, change a wave, ribs, add/drop a
+  rule, wrap/unwrap an arrangement, copies/mirror, bulb, swap the tendril, palette, backdrop,
+  trails); a child that breaks the house rules or the budget is redrawn.
+
+## Judge (`src/demo/judge.ts`)
+
+Each new demo: up to 60 mutations of the previous genome; up to 12 that are *viable* (at 3, 6
+and 9 s the form covers 5–55 % of the screen and touches ≥ 22 of 16×10 cells), *visibly
+different* (≥ 30 % of the shape's mask pixels change) and *not only recoloured* are scored, and
+the best wins. Scoring works on 80×50 occupancy masks splatted from projected rib centres (no
+rendering):
+
+```
+−3·|coverage − 0.28| + cells/160 + 1.2·min(detail, 0.5)
+−12·max(0, ribSize/radius − 0.06) − 6·max(0, biggestBall/radius − 0.22)
+−0.4·min(1, |ln(motion/0.25)|) + 0.6·novelty (+0.15 if the tree's skeleton changed)
+```
+
+`detail` = edge pixels per covered pixel (blobs are low); `motion` = mask change over 0.4 s
+(calibrated: first demos 0.11 / 0.27 / 0.62 at p10/p50/p90); `novelty` = smallest mask
+difference to the last three ancestors. Style (20 % vector lines), palette (re-rolled 40 %) and
+backdrop (30 %) come from each demo's own seed, because the judge cannot see them.
+
+Lineages are reproducible from the run's demo seeds and memoised by prefix; the popup replays
+uncached demos one per animation frame behind a "depacking" bar.
+
+## Speed (demoscene tricks)
+
+Measured in the prototype against the straightforward version: one frame 7.0 → 0.11 ms (median
+of 24 genomes), the judge 1,025 → 15 ms per demo, identical rib positions (float32 rounding).
+
+- Typed-array transforms (13 floats), composed in place: no allocation per frame.
+- **Rib tables**: each horn's transforms are computed once per frame and only composed with each
+  parent rib (an inner tendril is not re-evaluated per parent rib).
+- Leaf ribs keep only centre and scale (a ball looks the same from every side).
+- **Vector bobs**: pre-shaded ball sprites at half-pixel radii with a 1-px dark outline instead
+  of polygons; a 256-slot counting sort by depth; a screen-space 4×4 Bayer dither; depth fog.
+- **Trails** by palette index: old pixels step one shade darker every n frames.
+- Copper bars or a parallax starfield; a 160×100 indexed buffer mapped through a palette LUT
+  into `ImageData`, scaled up with `image-rendering: pixelated`.
+
+## Game rule
+
+See `src/game/demos.ts` and `src/content/demos.ts`: available from the Terminal Agent (with Ship
+It); the first demo costs 1,500 code and each next one ×2.2; it never spends more than its price.
+The run records each demo's seed (from its own `rng.demo` stream) and whether the cat was there;
+titles, groups and greetings are derived from the seed. A demo adds a log line and a History
+entry from which it can be watched again. Save schema 8 adds `demos` and `rng.demo`.
+
+## Dev tools
+
+- Settings → **Demo lab ›** (dev server only): seed, RANDOM / MUTATE / BACK, a 3×3 grid of
+  judged children with their scores (pick one to continue; agreement with the judge is counted
+  for tuning), family/palette/style/backdrop overrides, pause and a time slider, the genome as
+  horn-script text, and frame statistics.
+- `npx vite-node tools/demoSheet.ts -- --mode seeds|lineage|anim --seed N --count 24 --out x.png`
+  renders contact sheets.
