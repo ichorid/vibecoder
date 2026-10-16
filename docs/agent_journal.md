@@ -499,3 +499,26 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   fixtures kept, v9 + v9-demos added). Lineage ≈ 50 ms per demo in Node. Generator changes mean
   existing saves' demos now look different (cosmetic, seeds unchanged).
 
+- 2026-10-16: cyber / demoscene import (user: "look for more cyber or demoscene-like free
+  chiptunes … to remix and use", then "yes" to building a tracker importer). Search: The Mod
+  Archive's public-domain listing (886 modules, crawled at 1 request/s) crossed with its
+  Chiptune / Demo Style / Techno / Industrial / IDM genres → 83; shortlisted by rating and style,
+  each licence checked on its module page; covers (Loituma, Spelunker, Pac-Man) excluded. Plus
+  two CC0 OpenGameArt modules with source (Subterrain, Midnight Drive). 16 modules (3.6 MB) in
+  music/sources/cyber/ with plan.json and README (titles, authors, links, MD5).
+  New: tools/music/trackerFile.ts (XM + MOD readers; a player following orders, breaks, jumps,
+  note-offs, cuts, volume; 0xy arpeggio → sixteenth runs; drums = non-looping samples at ≤ 3
+  pitches, kick/snare/hat by zero crossings, pitched one-shots 0.017–0.04 excluded; tempo = the
+  speed/bpm heard longest, 8 rows per beat when 4 would exceed 180 bpm), songFile.ts (dispatch by
+  extension). Importer: per-song `source` credit, `site`; plan options `windows: "busiest"` and
+  `minMelodicNotes` (cyber: busiest, 24 — the earliest windows were intros); centred leads are
+  confined to an octave around the centre and the octave search spans ±5 octaves (tracker samples
+  carry big relative notes). `npm run music:import` (renamed from music:import-midi) runs every
+  source set. Result: 40 `cy-*` candidates — discovery 5, acceleration 5, orchestration 8,
+  self-improvement 13, singularity 9; none added to Recursion (liked as is). Fluxchip skipped (no
+  fitting window with melody). RPG patterns unchanged except 4 non-Recursion leads now ≤ C6;
+  Recursion files byte-identical. Checks: 205 music tests, 19 real-audio tests (all 85 imports
+  audible, no drops, no clipping), music:validate 0 errors. IT modules (TIXO, The panic area,
+  Electron City, 1KB) not yet supported.
+- NOTE: `npm run check` currently fails only on Prettier for src/demo/genome.ts and
+  src/demo/horn.ts — files of the other session; left untouched.

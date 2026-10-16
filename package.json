@@ -25,7 +25,7 @@
     "music:check-types": "vite-node tools/music/generateTypes.ts -- --check && tsc -p tsconfig.music.json",
     "music:validate": "vite-node tools/music/validate.ts",
     "music:pack": "vite-node tools/music/buildPack.ts",
-    "music:import-midi": "vite-node tools/music/importMidi.ts && prettier --write \"music/patterns/**/rpg-*.json\"",
+    "music:import": "vite-node tools/music/importMidi.ts && prettier --log-level warn --write \"music/patterns/**/*.json\"",
     "notices": "vite-node tools/notices.ts",
     "music:prompt": "vite-node tools/music/generatePrompt.ts",
     "music:check-pack": "vite-node tools/music/buildPack.ts -- --mode approved --check && vite-node tools/music/buildPack.ts -- --mode demo --check",

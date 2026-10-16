@@ -17,6 +17,10 @@ Current material:
   (<https://opengameart.org/content/15-melodic-rpg-chiptunes>), dedicated under `CC0-1.0`; the
   source MIDI files are kept in `sources/rpgchip/`. CC0 needs no credit; each file still names
   the author in `attribution`, and the material is never presented as original work.
+- `patterns/*/cy-*.v1.json` are adapted from public-domain / CC0 tracker modules (The Mod Archive
+  "Public Domain" licence, and OpenGameArt CC0); author, title and link for each are in
+  `sources/cyber/README.md` and in every file's `attribution`. The modules are kept unmodified
+  in `sources/cyber/`.
 - Era, preset, arrangement and schema files are configuration and are covered by Apache-2.0
   with the code.
 

@@ -1,0 +1,207 @@
+{
+  "source": {
+    "title": "Cyber and demoscene modules (public domain / CC0)",
+    "author": "various",
+    "url": "https://modarchive.org/index.php?request=view_by_license&query=publicdomain",
+    "site": "The Mod Archive",
+    "license": "CC0-1.0"
+  },
+  "maxPerSong": 3,
+  "windows": "busiest",
+  "minMelodicNotes": 24,
+  "lead": {
+    "maxSteps": 6,
+    "centre": "C5"
+  },
+  "songs": [
+    {
+      "file": "m0d-the-red-one.mod",
+      "id": "cy-red-one",
+      "era": "discovery",
+      "mood": "C major Amiga demo tune at 125 bpm, moderate density: bright and adventurous.",
+      "source": {
+        "title": "the-red-one",
+        "author": "m0d",
+        "url": "https://modarchive.org/index.php?request=view_by_moduleid&query=53326",
+        "site": "The Mod Archive"
+      }
+    },
+    {
+      "file": "m0n50n-l3v3l-33.xm",
+      "id": "cy-level33",
+      "era": "discovery",
+      "mood": "A major chiptune at 120 bpm with busy drums and a ♯4 lift: cheerful.",
+      "source": {
+        "title": "L3V3L_33",
+        "author": "M0n50n",
+        "url": "https://modarchive.org/index.php?request=view_by_moduleid&query=172183",
+        "site": "The Mod Archive"
+      }
+    },
+    {
+      "file": "drozerix-digital-rendezvous.xm",
+      "id": "cy-rendezvous",
+      "era": "acceleration",
+      "mood": "G major, the densest module (26 notes per beat) with a ♭7 colour: soaring, mixolydian.",
+      "source": {
+        "title": "Digital Rendezvous",
+        "author": "Drozerix",
+        "url": "https://modarchive.org/index.php?request=view_by_moduleid&query=180821",
+        "site": "The Mod Archive"
+      },
+      "mode": "mixolydian"
+    },
+    {
+      "file": "drozerix-keygen-9000.xm",
+      "id": "cy-keygen",
+      "era": "acceleration",
+      "mood": "Crack-intro keygen style, major, 120 bpm, arpeggio runs: excited, optimistic.",
+      "source": {
+        "title": "Keygen 9000",
+        "author": "Drozerix",
+        "url": "https://modarchive.org/index.php?request=view_by_moduleid&query=173938",
+        "site": "The Mod Archive"
+      }
+    },
+    {
+      "file": "congusbongus-subterrain.xm",
+      "id": "cy-subterrain",
+      "era": "orchestration",
+      "mood": "Dark synth / drum and bass at 160 bpm; its minor uses the dorian 6 (14 % of the time).",
+      "source": {
+        "title": "Subterrain",
+        "author": "congusbongus",
+        "url": "https://opengameart.org/node/125360",
+        "site": "OpenGameArt"
+      }
+    },
+    {
+      "file": "drozerix-crush.xm",
+      "id": "cy-crush",
+      "era": "orchestration",
+      "mood": "18 channels at 180 bpm, 16 notes per beat, A minor: obsessive, layered.",
+      "source": {
+        "title": "Crush",
+        "author": "Drozerix",
+        "url": "https://modarchive.org/index.php?request=view_by_moduleid&query=179581",
+        "site": "The Mod Archive"
+      }
+    },
+    {
+      "file": "m0n50n-augmented-emotions.xm",
+      "id": "cy-augmented",
+      "era": "orchestration",
+      "mood": "F minor leaning dorian (6 above ♭6), 23 notes per beat: intense.",
+      "source": {
+        "title": "Augmented_Emotions",
+        "author": "M0n50n",
+        "url": "https://modarchive.org/index.php?request=view_by_moduleid&query=172184",
+        "site": "The Mod Archive"
+      }
+    },
+    {
+      "file": "drozerix-cyber-spider.xm",
+      "id": "cy-spider",
+      "era": "self-improvement",
+      "mood": "D minor with a strong ♭2 (12 %), no drums, 144 bpm: unstable — phrygian.",
+      "source": {
+        "title": "Cyber Spider",
+        "author": "Drozerix",
+        "url": "https://modarchive.org/index.php?request=view_by_moduleid&query=192354",
+        "site": "The Mod Archive"
+      },
+      "mode": "phrygian"
+    },
+    {
+      "file": "m0d-absolute-xtc.mod",
+      "id": "cy-xtc",
+      "era": "self-improvement",
+      "mood": "Sparse Amiga techno in D minor with ♭2: ominous, phrygian.",
+      "source": {
+        "title": "absolute xtc",
+        "author": "m0d",
+        "url": "https://modarchive.org/index.php?request=view_by_moduleid&query=32703",
+        "site": "The Mod Archive"
+      },
+      "mode": "phrygian"
+    },
+    {
+      "file": "drozerix-computer.xm",
+      "id": "cy-computer",
+      "era": "self-improvement",
+      "mood": "Gritty four-channel keygen tune in D minor with a heavy ♭7: aggressive.",
+      "source": {
+        "title": "Computer F***!",
+        "author": "Drozerix",
+        "url": "https://modarchive.org/index.php?request=view_by_moduleid&query=175021",
+        "site": "The Mod Archive"
+      }
+    },
+    {
+      "file": "drozerix-neon-techno.mod",
+      "id": "cy-neon",
+      "era": "self-improvement",
+      "mood": "A minor techno, four channels, steady drums: industrial.",
+      "source": {
+        "title": "Neon Techno",
+        "author": "Drozerix",
+        "url": "https://modarchive.org/index.php?request=view_by_moduleid&query=178172",
+        "site": "The Mod Archive"
+      }
+    },
+    {
+      "file": "katiecadet-bassline-techno.xm",
+      "id": "cy-bassline",
+      "era": "self-improvement",
+      "mood": "C minor techno at 125 bpm, drum-heavy (6 hits per beat), sparse notes: industrial.",
+      "source": {
+        "title": "Bassline Techno",
+        "author": "Katie Cadet",
+        "url": "https://modarchive.org/index.php?request=view_by_moduleid&query=175335",
+        "site": "The Mod Archive"
+      }
+    },
+    {
+      "file": "congusbongus-midnight-drive.xm",
+      "id": "cy-midnight",
+      "era": "singularity",
+      "mood": "G minor synthwave at 80 bpm with a TB-303 bass: cold, nocturnal.",
+      "source": {
+        "title": "Midnight Drive",
+        "author": "congusbongus",
+        "url": "https://opengameart.org/content/midnight-drive",
+        "site": "OpenGameArt"
+      }
+    },
+    {
+      "file": "m0d-retrospective.mod",
+      "id": "cy-retrospective",
+      "era": "singularity",
+      "mood": "A minor Amiga demo tune, sparse and reflective.",
+      "source": {
+        "title": "retrospective",
+        "author": "m0d",
+        "url": "https://modarchive.org/index.php?request=view_by_moduleid&query=65133",
+        "site": "The Mod Archive"
+      }
+    },
+    {
+      "file": "drozerix-key-generators.xm",
+      "id": "cy-keygens",
+      "era": "singularity",
+      "mood": "Minimal four-channel keygen tune in A minor at 125 bpm: cold, mechanical.",
+      "source": {
+        "title": "Key Generators",
+        "author": "Drozerix",
+        "url": "https://modarchive.org/index.php?request=view_by_moduleid&query=173939",
+        "site": "The Mod Archive"
+      }
+    }
+  ],
+  "skipped": [
+    {
+      "file": "drozerix-fluxchip.xm",
+      "reason": "Only three four-bar windows start on its tonic chord, and all three are near-empty intro bars."
+    }
+  ]
+}

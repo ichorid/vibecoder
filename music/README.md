@@ -16,7 +16,7 @@ published as a **pack** the game plays. Code: `src/music/` (engine), `src/music-
 | `patterns/<era>/<id>.v<revision>.json` | compositions; a change is a new revision file                                     |
 | `reviews/`                             | review files exported from the Lab (input to the pack)                            |
 | `composer-prompts/`                    | lead/era composer templates for `music:prompt`                                    |
-| `sources/<set>/`                       | third-party CC0 MIDI + `plan.json` for `music:import-midi`                        |
+| `sources/<set>/`                       | third-party CC0 songs (MIDI, XM, MOD) + `plan.json` for `music:import`            |
 
 ## Workflow
 
@@ -44,10 +44,15 @@ npm run test:music                       # engine/tool tests
 6. **Feedback to a composer** — _COPY FEEDBACK PROMPT_ in the Lab, or
    `npm run music:prompt -- --era <id> [--template era|lead] [--out task.md]`.
 
-## Imported CC0 MIDI (candidates)
+## Imported CC0 songs: MIDI and tracker modules (candidates)
 
-`npm run music:import-midi` turns the songs listed in `sources/rpgchip/plan.json` (Aureolus_Omicron,
-"15 Melodic RPG Chiptunes", CC0) into **unreviewed** patterns `patterns/<era>/rpg-*.v1.json`.
+`npm run music:import` turns the songs listed in every `sources/<set>/plan.json` into
+**unreviewed** patterns `patterns/<era>/<id>-<a…>.v1.json`: `rpgchip/` (Aureolus_Omicron, "15
+Melodic RPG Chiptunes", MIDI, CC0) → `rpg-*`, `cyber/` (public-domain demoscene/cyber XM and MOD
+modules from The Mod Archive and OpenGameArt, each credited in its plan entry) → `cy-*`. Tracker
+modules are played row by row (pattern breaks, jumps, note-offs, cuts); the `0xy` arpeggio
+becomes sixteenth-note runs; drums are found from the samples (non-looping, few pitches; zero
+crossings tell kick, snare, hat).
 Per song it reads the key and the chords, maps channels to lead / bass / arp / percussion,
 transposes into the era key and recolours scale degrees into the era mode (e.g. minor ♭6 → dorian
 6), quantizes onto the era clock (slow songs half-time), then cuts four-bar windows that start on

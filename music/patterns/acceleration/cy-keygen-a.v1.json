@@ -1,0 +1,414 @@
+{
+  "schemaVersion": 1,
+  "id": "cy-keygen-a",
+  "revision": 1,
+  "eraId": "acceleration",
+  "bars": 4,
+  "key": {
+    "tonic": "G",
+    "mode": "major"
+  },
+  "harmony": [
+    {
+      "step": 0,
+      "length": 16,
+      "chord": "G"
+    },
+    {
+      "step": 16,
+      "length": 16,
+      "chord": "D"
+    },
+    {
+      "step": 32,
+      "length": 16,
+      "chord": "G"
+    },
+    {
+      "step": 48,
+      "length": 16,
+      "chord": "G"
+    }
+  ],
+  "energy": 0.5,
+  "tracks": {
+    "lead": [
+      {
+        "type": "note",
+        "step": 10,
+        "length": 1,
+        "pitch": "G4",
+        "velocity": 0.13
+      },
+      {
+        "type": "note",
+        "step": 11,
+        "length": 1,
+        "pitch": "G4",
+        "velocity": 0.13
+      },
+      {
+        "type": "note",
+        "step": 12,
+        "length": 1,
+        "pitch": "G4",
+        "velocity": 0.38
+      },
+      {
+        "type": "note",
+        "step": 13,
+        "length": 1,
+        "pitch": "G4",
+        "velocity": 0.5
+      },
+      {
+        "type": "note",
+        "step": 14,
+        "length": 1,
+        "pitch": "G4",
+        "velocity": 0.62
+      },
+      {
+        "type": "note",
+        "step": 15,
+        "length": 1,
+        "pitch": "G4",
+        "velocity": 0.75
+      },
+      {
+        "type": "note",
+        "step": 16,
+        "length": 1,
+        "pitch": "D5",
+        "velocity": 0.91
+      },
+      {
+        "type": "note",
+        "step": 20,
+        "length": 1,
+        "pitch": "D5",
+        "velocity": 0.5
+      },
+      {
+        "type": "note",
+        "step": 24,
+        "length": 1,
+        "pitch": "D5",
+        "velocity": 0.25
+      },
+      {
+        "type": "note",
+        "step": 28,
+        "length": 1,
+        "pitch": "D5",
+        "velocity": 0.13
+      },
+      {
+        "type": "note",
+        "step": 32,
+        "length": 1,
+        "pitch": "G4",
+        "velocity": 0.91
+      },
+      {
+        "type": "note",
+        "step": 36,
+        "length": 1,
+        "pitch": "G4",
+        "velocity": 0.5
+      },
+      {
+        "type": "note",
+        "step": 40,
+        "length": 1,
+        "pitch": "G4",
+        "velocity": 0.25
+      },
+      {
+        "type": "note",
+        "step": 48,
+        "length": 1,
+        "pitch": "D5",
+        "velocity": 0.91
+      },
+      {
+        "type": "note",
+        "step": 52,
+        "length": 1,
+        "pitch": "D5",
+        "velocity": 0.5
+      },
+      {
+        "type": "note",
+        "step": 56,
+        "length": 1,
+        "pitch": "D5",
+        "velocity": 0.25
+      },
+      {
+        "type": "note",
+        "step": 60,
+        "length": 1,
+        "pitch": "D5",
+        "velocity": 0.13
+      }
+    ],
+    "arp": [
+      {
+        "type": "note",
+        "step": 0,
+        "length": 1,
+        "pitch": "G5",
+        "velocity": 0.91
+      },
+      {
+        "type": "note",
+        "step": 16,
+        "length": 1,
+        "pitch": "D6",
+        "velocity": 0.91
+      },
+      {
+        "type": "note",
+        "step": 24,
+        "length": 1,
+        "pitch": "D6",
+        "velocity": 0.91
+      },
+      {
+        "type": "note",
+        "step": 30,
+        "length": 1,
+        "pitch": "A5",
+        "velocity": 0.91
+      },
+      {
+        "type": "note",
+        "step": 32,
+        "length": 1,
+        "pitch": "D6",
+        "velocity": 0.91
+      },
+      {
+        "type": "note",
+        "step": 36,
+        "length": 1,
+        "pitch": "G6",
+        "velocity": 0.91
+      },
+      {
+        "type": "note",
+        "step": 42,
+        "length": 1,
+        "pitch": "D6",
+        "velocity": 0.91
+      },
+      {
+        "type": "note",
+        "step": 46,
+        "length": 2,
+        "pitch": "A5",
+        "velocity": 0.91
+      },
+      {
+        "type": "note",
+        "step": 48,
+        "length": 1,
+        "pitch": "G5",
+        "velocity": 0.91
+      },
+      {
+        "type": "note",
+        "step": 54,
+        "length": 1,
+        "pitch": "G6",
+        "velocity": 0.91
+      },
+      {
+        "type": "note",
+        "step": 60,
+        "length": 1,
+        "pitch": "A6",
+        "velocity": 0.91
+      }
+    ],
+    "percussion": [
+      {
+        "type": "drum",
+        "step": 16,
+        "length": 1,
+        "sound": "snare",
+        "velocity": 0.9
+      },
+      {
+        "type": "drum",
+        "step": 18,
+        "length": 1,
+        "sound": "snare",
+        "velocity": 0.9
+      },
+      {
+        "type": "drum",
+        "step": 19,
+        "length": 1,
+        "sound": "snare",
+        "velocity": 0.9
+      },
+      {
+        "type": "drum",
+        "step": 20,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.9
+      },
+      {
+        "type": "drum",
+        "step": 24,
+        "length": 1,
+        "sound": "snare",
+        "velocity": 0.9
+      },
+      {
+        "type": "drum",
+        "step": 26,
+        "length": 1,
+        "sound": "snare",
+        "velocity": 0.9
+      },
+      {
+        "type": "drum",
+        "step": 28,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.9
+      },
+      {
+        "type": "drum",
+        "step": 32,
+        "length": 1,
+        "sound": "snare",
+        "velocity": 0.9
+      },
+      {
+        "type": "drum",
+        "step": 34,
+        "length": 1,
+        "sound": "snare",
+        "velocity": 0.9
+      },
+      {
+        "type": "drum",
+        "step": 35,
+        "length": 1,
+        "sound": "snare",
+        "velocity": 0.9
+      },
+      {
+        "type": "drum",
+        "step": 36,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.9
+      },
+      {
+        "type": "drum",
+        "step": 40,
+        "length": 1,
+        "sound": "snare",
+        "velocity": 0.9
+      },
+      {
+        "type": "drum",
+        "step": 42,
+        "length": 1,
+        "sound": "snare",
+        "velocity": 0.9
+      },
+      {
+        "type": "drum",
+        "step": 44,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.9
+      },
+      {
+        "type": "drum",
+        "step": 46,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.9
+      },
+      {
+        "type": "drum",
+        "step": 47,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.9
+      },
+      {
+        "type": "drum",
+        "step": 48,
+        "length": 1,
+        "sound": "snare",
+        "velocity": 0.9
+      },
+      {
+        "type": "drum",
+        "step": 50,
+        "length": 1,
+        "sound": "snare",
+        "velocity": 0.9
+      },
+      {
+        "type": "drum",
+        "step": 51,
+        "length": 1,
+        "sound": "snare",
+        "velocity": 0.9
+      },
+      {
+        "type": "drum",
+        "step": 52,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.9
+      },
+      {
+        "type": "drum",
+        "step": 56,
+        "length": 1,
+        "sound": "snare",
+        "velocity": 0.9
+      },
+      {
+        "type": "drum",
+        "step": 58,
+        "length": 1,
+        "sound": "snare",
+        "velocity": 0.9
+      },
+      {
+        "type": "drum",
+        "step": 60,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.9
+      }
+    ]
+  },
+  "boundary": {
+    "entryGroup": "tonic",
+    "exitGroup": "tonic"
+  },
+  "motifRef": {
+    "id": "demo-main",
+    "revision": 1
+  },
+  "license": "CC0-1.0",
+  "attribution": "Drozerix — \"Keygen 9000\" (https://modarchive.org/index.php?request=view_by_moduleid&query=173938)",
+  "demo": false,
+  "metadata": {
+    "description": "From drozerix-keygen-9000.xm, source bars 4–7. Db major → G major; one source bar = one bar at the era tempo (source 120 bpm). Roles: lead = ch6, bass = ch7, arp = ch1. Mood: Crack-intro keygen style, major, 120 bpm, arpeggio runs: excited, optimistic. Does not quote the motif (imported material).",
+    "composer": "Drozerix (The Mod Archive, CC0); adapted by tools/music/importMidi.ts"
+  }
+}

@@ -7,7 +7,7 @@ import { checkBankCompatibility, DEFAULT_BOUNDARY_RULES } from '../../src/music/
 import { compilePhrase } from '../../src/music/core/phrasePlanner';
 import { compareBank } from '../../src/music/core/similarity';
 import { analyzePattern, type NormalizedPattern } from '../../src/music/core/validation';
-import { parseMidi } from './midiFile';
+import { parseMidi, type MidiFile } from './midiFile';
 import {
   chooseReading,
   chordName,
@@ -17,13 +17,26 @@ import {
   patternFile,
   type ImportPlan,
 } from './midiImportLib';
+import { readSong, SONG_EXTENSIONS } from './songFile';
 import { readRepository } from './sources';
 
 const SOURCE = 'music/sources/rpgchip';
-const plan = JSON.parse(readFileSync(path.join(SOURCE, 'plan.json'), 'utf8')) as ImportPlan;
+const planOf = (dir: string) =>
+  JSON.parse(readFileSync(path.join(dir, 'plan.json'), 'utf8')) as ImportPlan;
+const plan = planOf(SOURCE);
 const repository = readRepository('music');
 const { catalog } = buildCatalog(repository);
 const readMidi = (file: string) => parseMidi(readFileSync(path.join(SOURCE, file)));
+const reader =
+  (dir: string) =>
+  (file: string): MidiFile =>
+    readSong(file, readFileSync(path.join(dir, file)));
+
+/** Every source set: the RPG MIDI pack and the cyber/demoscene tracker modules. */
+const SETS = [
+  { dir: 'music/sources/rpgchip', keptLeadEras: ['recursion'] },
+  { dir: 'music/sources/cyber', keptLeadEras: [] },
+] as const;
 
 describe('mode recolouring (scale degree to scale degree)', () => {
   it('keeps a major tune major, and moves minor ♭6 to the dorian 6', () => {
@@ -67,115 +80,128 @@ describe('key and chords', () => {
   });
 });
 
-describe('importing the CC0 RPG chiptunes', () => {
-  const result = importAll(plan, readMidi, catalog);
-  const byEra = new Map<string, NormalizedPattern[]>();
-  for (const pattern of result.patterns) {
-    const analysis = analyzePattern(pattern, catalog);
-    if (analysis.normalized) {
-      byEra.set(pattern.eraId, [...(byEra.get(pattern.eraId) ?? []), analysis.normalized]);
-    }
-  }
+for (const set of SETS) {
+  const plan = planOf(set.dir);
+  const readMidi = reader(set.dir);
+  const creditOf = (id: string) =>
+    (plan.songs.find((song) => id.startsWith(`${song.id}-`))?.source ?? plan.source).author;
 
-  it('accounts for every source file: imported or skipped with a reason', () => {
-    const files = new Set([...plan.songs.map((s) => s.file), ...plan.skipped.map((s) => s.file)]);
-    const sources = repositoryFiles();
-    expect([...files].sort()).toEqual(sources);
-    for (const skipped of plan.skipped) expect(skipped.reason.length).toBeGreaterThan(10);
-  });
-
-  it('every pattern is playable: no validation errors, the era clock, CC0 with credit', () => {
-    expect(result.patterns.length).toBeGreaterThan(0);
+  describe(`importing ${set.dir}`, () => {
+    const result = importAll(plan, readMidi, catalog);
+    const byEra = new Map<string, NormalizedPattern[]>();
     for (const pattern of result.patterns) {
-      const errors = analyzePattern(pattern, catalog).diagnostics.filter(
-        (d) => d.level === 'error',
-      );
-      expect(errors, pattern.id).toEqual([]);
-      expect(pattern.bpm, pattern.id).toBeUndefined();
-      expect(pattern.license).toBe('CC0-1.0');
-      expect(pattern.attribution).toContain('Aureolus_Omicron');
-      expect(pattern.demo).toBe(false);
+      const analysis = analyzePattern(pattern, catalog);
+      if (analysis.normalized) {
+        byEra.set(pattern.eraId, [...(byEra.get(pattern.eraId) ?? []), analysis.normalized]);
+      }
     }
-  });
 
-  it('gives every era at least two patterns, and each song a fair share', () => {
-    for (const era of catalog.eras.keys()) {
-      expect(byEra.get(era)?.length ?? 0, era).toBeGreaterThanOrEqual(2);
-    }
-    for (const song of plan.songs) {
-      const count = result.patterns.filter((p) => p.id.startsWith(`${song.id}-`)).length;
-      expect(count, song.file).toBeGreaterThanOrEqual(1);
-      expect(count, song.file).toBeLessThanOrEqual(plan.maxPerSong);
-    }
-  });
+    it('accounts for every source file: imported or skipped with a reason', () => {
+      const files = new Set([...plan.songs.map((s) => s.file), ...plan.skipped.map((s) => s.file)]);
+      const sources = repositoryFiles(set.dir);
+      expect([...files].sort()).toEqual(sources);
+      for (const skipped of plan.skipped) expect(skipped.reason.length).toBeGreaterThan(10);
+    });
 
-  it('the phrase planner plays every event: no role exceeds its preset polyphony', () => {
-    for (const pattern of result.patterns) {
-      const normalizedPattern = analyzePattern(pattern, catalog).normalized;
-      const base = catalog.arrangements.get(
-        catalog.eras.get(pattern.eraId)?.defaultArrangement ?? '',
-      );
-      if (!normalizedPattern || !base) throw new Error(pattern.id);
-      const everyRole = {
-        ...base,
-        roles: Object.fromEntries(
-          Object.entries(base.roles).flatMap(([role, a]) =>
-            a ? [[role, { ...a, enabled: true }] as const] : [],
+    it('every pattern is playable: no validation errors, the era clock, CC0 with credit', () => {
+      expect(result.patterns.length).toBeGreaterThan(0);
+      for (const pattern of result.patterns) {
+        const errors = analyzePattern(pattern, catalog).diagnostics.filter(
+          (d) => d.level === 'error',
+        );
+        expect(errors, pattern.id).toEqual([]);
+        expect(pattern.bpm, pattern.id).toBeUndefined();
+        expect(pattern.license).toBe('CC0-1.0');
+        expect(pattern.attribution).toContain(creditOf(pattern.id));
+        expect(pattern.demo).toBe(false);
+      }
+    });
+
+    it('gives every era it feeds at least two patterns, and each song a fair share', () => {
+      for (const era of new Set(plan.songs.map((s) => s.era))) {
+        expect(byEra.get(era)?.length ?? 0, era).toBeGreaterThanOrEqual(2);
+      }
+      for (const song of plan.songs) {
+        const count = result.patterns.filter((p) => p.id.startsWith(`${song.id}-`)).length;
+        expect(count, song.file).toBeGreaterThanOrEqual(1);
+        expect(count, song.file).toBeLessThanOrEqual(plan.maxPerSong);
+      }
+    });
+
+    it('the phrase planner plays every event: no role exceeds its preset polyphony', () => {
+      for (const pattern of result.patterns) {
+        const normalizedPattern = analyzePattern(pattern, catalog).normalized;
+        const base = catalog.arrangements.get(
+          catalog.eras.get(pattern.eraId)?.defaultArrangement ?? '',
+        );
+        if (!normalizedPattern || !base) throw new Error(pattern.id);
+        const everyRole = {
+          ...base,
+          roles: Object.fromEntries(
+            Object.entries(base.roles).flatMap(([role, a]) =>
+              a ? [[role, { ...a, enabled: true }] as const] : [],
+            ),
           ),
-        ),
-      };
-      expect(
-        compilePhrase(normalizedPattern, everyRole, catalog.presets, 0, 192).dropped,
-        pattern.id,
-      ).toBe(0);
-    }
-  });
+        };
+        expect(
+          compilePhrase(normalizedPattern, everyRole, catalog.presets, 0, 192).dropped,
+          pattern.id,
+        ).toBe(0);
+      }
+    });
 
-  it('any two patterns of an era can follow each other (tonic entry, tonic/dominant exit)', () => {
-    for (const [era, bank] of byEra) {
-      expect(checkBankCompatibility(bank, DEFAULT_BOUNDARY_RULES), era).toEqual([]);
-    }
-  });
+    it('any two patterns of an era can follow each other (tonic entry, tonic/dominant exit)', () => {
+      for (const [era, bank] of byEra) {
+        expect(checkBankCompatibility(bank, DEFAULT_BOUNDARY_RULES), era).toEqual([]);
+      }
+    });
 
-  it('no two patterns of an era are the same music or near variants', () => {
-    for (const [era, bank] of byEra) expect(compareBank(bank), era).toEqual([]);
-  });
+    it('no two patterns of an era are the same music or near variants', () => {
+      for (const [era, bank] of byEra) expect(compareBank(bank), era).toEqual([]);
+    });
 
-  it('is deterministic, and the committed pattern files are exactly its output', () => {
-    expect(importAll(plan, readMidi, catalog).patterns).toEqual(result.patterns);
-    for (const pattern of result.patterns) {
-      const file = path.join('music', patternFile(pattern));
-      expect(JSON.parse(readFileSync(file, 'utf8')), file).toEqual(pattern);
-    }
+    it('is deterministic, and the committed pattern files are exactly its output', () => {
+      expect(importAll(plan, readMidi, catalog).patterns).toEqual(result.patterns);
+      for (const pattern of result.patterns) {
+        const file = path.join('music', patternFile(pattern));
+        expect(JSON.parse(readFileSync(file, 'utf8')), file).toEqual(pattern);
+      }
+    });
   });
-});
+}
 
-function repositoryFiles(): string[] {
-  return readdirSync(SOURCE)
-    .filter((f) => f.endsWith('.mid'))
+function repositoryFiles(dir: string): string[] {
+  return readdirSync(dir)
+    .filter((f) => SONG_EXTENSIONS.some((ext) => f.toLowerCase().endsWith(ext)))
     .sort();
 }
 
-describe('lead style (listening: Recursion good; elsewhere whiny, long, high main tones)', () => {
-  const result = importAll(plan, readMidi, catalog);
+for (const set of SETS) {
+  const plan = planOf(set.dir);
+  const result = importAll(plan, reader(set.dir), catalog);
   const songOf = (id: string) => plan.songs.find((s) => id.startsWith(`${s.id}-`));
 
-  it('the plan caps held lead notes and centres leads near C5, unless a song keeps its lead', () => {
-    expect(plan.lead).toEqual({ maxSteps: 6, centre: 'C5' });
-    const kept = plan.songs.filter((s) => s.lead).map((s) => s.era);
-    expect(new Set(kept)).toEqual(new Set(['recursion']));
-  });
+  describe(`lead style in ${set.dir} (listening: Recursion good; elsewhere whiny, long, high main tones)`, () => {
+    it('the plan caps held lead notes and centres leads near C5, unless a song keeps its lead', () => {
+      expect(plan.lead).toEqual({ maxSteps: 6, centre: 'C5' });
+      const kept = plan.songs.filter((s) => s.lead).map((s) => s.era);
+      expect(new Set(kept)).toEqual(new Set(set.keptLeadEras));
+    });
 
-  it('styled leads: no note longer than the cap, the line averaging within a fifth of C5', () => {
-    const centre = Note.midi(plan.lead?.centre ?? 'C5') ?? 72;
-    for (const pattern of result.patterns) {
-      if (songOf(pattern.id)?.lead) continue;
-      const lead = (pattern.tracks.lead ?? []).flatMap((e) => (e.type === 'note' ? [e] : []));
-      if (lead.length === 0) continue;
-      for (const n of lead)
-        expect(n.length, pattern.id).toBeLessThanOrEqual(plan.lead?.maxSteps ?? 6);
-      const mean = lead.reduce((sum, n) => sum + (Note.midi(n.pitch) ?? 0), 0) / lead.length;
-      expect(Math.abs(mean - centre), pattern.id).toBeLessThanOrEqual(7);
-    }
+    it('styled leads: no note longer than the cap or over an octave from C5, averaging within a fifth', () => {
+      const centre = Note.midi(plan.lead?.centre ?? 'C5') ?? 72;
+      for (const pattern of result.patterns) {
+        if (songOf(pattern.id)?.lead) continue;
+        const lead = (pattern.tracks.lead ?? []).flatMap((e) => (e.type === 'note' ? [e] : []));
+        if (lead.length === 0) continue;
+        for (const n of lead)
+          expect(n.length, pattern.id).toBeLessThanOrEqual(plan.lead?.maxSteps ?? 6);
+        for (const n of lead) {
+          expect(Math.abs((Note.midi(n.pitch) ?? 0) - centre), pattern.id).toBeLessThanOrEqual(12);
+        }
+        const mean = lead.reduce((sum, n) => sum + (Note.midi(n.pitch) ?? 0), 0) / lead.length;
+        expect(Math.abs(mean - centre), pattern.id).toBeLessThanOrEqual(7);
+      }
+    });
   });
-});
+}

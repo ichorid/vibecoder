@@ -184,7 +184,7 @@
         "type": "note",
         "step": 21,
         "length": 1,
-        "pitch": "C#6",
+        "pitch": "C#5",
         "velocity": 0.63
       },
       {
@@ -240,7 +240,7 @@
         "type": "note",
         "step": 29,
         "length": 1,
-        "pitch": "C#6",
+        "pitch": "C#5",
         "velocity": 0.63
       },
       {
@@ -296,7 +296,7 @@
         "type": "note",
         "step": 37,
         "length": 1,
-        "pitch": "D6",
+        "pitch": "D5",
         "velocity": 0.63
       },
       {
@@ -352,7 +352,7 @@
         "type": "note",
         "step": 45,
         "length": 1,
-        "pitch": "D6",
+        "pitch": "D5",
         "velocity": 0.63
       },
       {

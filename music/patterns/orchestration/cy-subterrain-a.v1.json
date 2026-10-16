@@ -1,0 +1,1011 @@
+{
+  "schemaVersion": 1,
+  "id": "cy-subterrain-a",
+  "revision": 1,
+  "eraId": "orchestration",
+  "bars": 4,
+  "key": {
+    "tonic": "D",
+    "mode": "dorian"
+  },
+  "harmony": [
+    {
+      "step": 0,
+      "length": 16,
+      "chord": "Dm"
+    },
+    {
+      "step": 16,
+      "length": 16,
+      "chord": "Am"
+    },
+    {
+      "step": 32,
+      "length": 16,
+      "chord": "Am"
+    },
+    {
+      "step": 48,
+      "length": 16,
+      "chord": "Fm"
+    }
+  ],
+  "energy": 1,
+  "tracks": {
+    "lead": [
+      {
+        "type": "note",
+        "step": 0,
+        "length": 2,
+        "pitch": "A4",
+        "velocity": 0.81
+      },
+      {
+        "type": "note",
+        "step": 2,
+        "length": 2,
+        "pitch": "F4",
+        "velocity": 0.86
+      },
+      {
+        "type": "note",
+        "step": 4,
+        "length": 2,
+        "pitch": "F4",
+        "velocity": 0.91
+      },
+      {
+        "type": "note",
+        "step": 6,
+        "length": 2,
+        "pitch": "F4",
+        "velocity": 0.95
+      },
+      {
+        "type": "note",
+        "step": 8,
+        "length": 2,
+        "pitch": "F4",
+        "velocity": 1
+      },
+      {
+        "type": "note",
+        "step": 10,
+        "length": 2,
+        "pitch": "F4",
+        "velocity": 0.78
+      },
+      {
+        "type": "note",
+        "step": 12,
+        "length": 2,
+        "pitch": "F4",
+        "velocity": 0.56
+      },
+      {
+        "type": "note",
+        "step": 14,
+        "length": 2,
+        "pitch": "F4",
+        "velocity": 0.35
+      },
+      {
+        "type": "note",
+        "step": 16,
+        "length": 2,
+        "pitch": "F4",
+        "velocity": 0.25
+      },
+      {
+        "type": "note",
+        "step": 18,
+        "length": 2,
+        "pitch": "G#4",
+        "velocity": 0.25
+      },
+      {
+        "type": "note",
+        "step": 20,
+        "length": 2,
+        "pitch": "G#4",
+        "velocity": 0.27
+      },
+      {
+        "type": "note",
+        "step": 22,
+        "length": 2,
+        "pitch": "G#4",
+        "velocity": 0.28
+      },
+      {
+        "type": "note",
+        "step": 24,
+        "length": 2,
+        "pitch": "G#4",
+        "velocity": 0.3
+      },
+      {
+        "type": "note",
+        "step": 26,
+        "length": 2,
+        "pitch": "G#4",
+        "velocity": 0.31
+      },
+      {
+        "type": "note",
+        "step": 28,
+        "length": 2,
+        "pitch": "G#4",
+        "velocity": 0.33
+      },
+      {
+        "type": "note",
+        "step": 30,
+        "length": 2,
+        "pitch": "G#4",
+        "velocity": 0.35
+      },
+      {
+        "type": "note",
+        "step": 32,
+        "length": 2,
+        "pitch": "G#4",
+        "velocity": 0.36
+      },
+      {
+        "type": "note",
+        "step": 34,
+        "length": 2,
+        "pitch": "G#4",
+        "velocity": 0.38
+      },
+      {
+        "type": "note",
+        "step": 36,
+        "length": 2,
+        "pitch": "G#4",
+        "velocity": 0.39
+      },
+      {
+        "type": "note",
+        "step": 38,
+        "length": 2,
+        "pitch": "G#4",
+        "velocity": 0.41
+      },
+      {
+        "type": "note",
+        "step": 40,
+        "length": 2,
+        "pitch": "G#4",
+        "velocity": 0.43
+      },
+      {
+        "type": "note",
+        "step": 42,
+        "length": 2,
+        "pitch": "G#4",
+        "velocity": 0.44
+      },
+      {
+        "type": "note",
+        "step": 44,
+        "length": 2,
+        "pitch": "G#4",
+        "velocity": 0.46
+      },
+      {
+        "type": "note",
+        "step": 46,
+        "length": 2,
+        "pitch": "G#4",
+        "velocity": 0.47
+      },
+      {
+        "type": "note",
+        "step": 48,
+        "length": 2,
+        "pitch": "G#4",
+        "velocity": 0.49
+      },
+      {
+        "type": "note",
+        "step": 50,
+        "length": 2,
+        "pitch": "G#4",
+        "velocity": 0.5
+      },
+      {
+        "type": "note",
+        "step": 52,
+        "length": 2,
+        "pitch": "A4",
+        "velocity": 0.53
+      },
+      {
+        "type": "note",
+        "step": 54,
+        "length": 2,
+        "pitch": "A4",
+        "velocity": 0.57
+      },
+      {
+        "type": "note",
+        "step": 56,
+        "length": 2,
+        "pitch": "A4",
+        "velocity": 0.62
+      },
+      {
+        "type": "note",
+        "step": 58,
+        "length": 2,
+        "pitch": "A4",
+        "velocity": 0.67
+      },
+      {
+        "type": "note",
+        "step": 60,
+        "length": 2,
+        "pitch": "A4",
+        "velocity": 0.72
+      },
+      {
+        "type": "note",
+        "step": 62,
+        "length": 2,
+        "pitch": "A4",
+        "velocity": 0.76
+      }
+    ],
+    "bass": [
+      {
+        "type": "note",
+        "step": 0,
+        "length": 1,
+        "pitch": "D3",
+        "velocity": 0.43
+      }
+    ],
+    "arp": [
+      {
+        "type": "note",
+        "step": 0,
+        "length": 2,
+        "pitch": "C6",
+        "velocity": 1
+      },
+      {
+        "type": "note",
+        "step": 2,
+        "length": 2,
+        "pitch": "D6",
+        "velocity": 1
+      },
+      {
+        "type": "note",
+        "step": 4,
+        "length": 2,
+        "pitch": "A5",
+        "velocity": 1
+      },
+      {
+        "type": "note",
+        "step": 6,
+        "length": 2,
+        "pitch": "D6",
+        "velocity": 1
+      },
+      {
+        "type": "note",
+        "step": 8,
+        "length": 2,
+        "pitch": "D6",
+        "velocity": 1
+      },
+      {
+        "type": "note",
+        "step": 10,
+        "length": 2,
+        "pitch": "A5",
+        "velocity": 1
+      },
+      {
+        "type": "note",
+        "step": 12,
+        "length": 2,
+        "pitch": "C6",
+        "velocity": 1
+      },
+      {
+        "type": "note",
+        "step": 14,
+        "length": 2,
+        "pitch": "C6",
+        "velocity": 1
+      },
+      {
+        "type": "note",
+        "step": 16,
+        "length": 2,
+        "pitch": "D5",
+        "velocity": 0.75
+      },
+      {
+        "type": "note",
+        "step": 18,
+        "length": 2,
+        "pitch": "E5",
+        "velocity": 1
+      },
+      {
+        "type": "note",
+        "step": 20,
+        "length": 2,
+        "pitch": "E5",
+        "velocity": 0.95
+      },
+      {
+        "type": "note",
+        "step": 22,
+        "length": 2,
+        "pitch": "E5",
+        "velocity": 0.92
+      },
+      {
+        "type": "note",
+        "step": 24,
+        "length": 2,
+        "pitch": "E5",
+        "velocity": 0.89
+      },
+      {
+        "type": "note",
+        "step": 26,
+        "length": 2,
+        "pitch": "E5",
+        "velocity": 0.84
+      },
+      {
+        "type": "note",
+        "step": 28,
+        "length": 2,
+        "pitch": "E5",
+        "velocity": 0.81
+      },
+      {
+        "type": "note",
+        "step": 30,
+        "length": 2,
+        "pitch": "E5",
+        "velocity": 0.78
+      },
+      {
+        "type": "note",
+        "step": 32,
+        "length": 2,
+        "pitch": "E5",
+        "velocity": 0.75
+      },
+      {
+        "type": "note",
+        "step": 34,
+        "length": 2,
+        "pitch": "E5",
+        "velocity": 0.7
+      },
+      {
+        "type": "note",
+        "step": 36,
+        "length": 2,
+        "pitch": "E5",
+        "velocity": 0.67
+      },
+      {
+        "type": "note",
+        "step": 38,
+        "length": 2,
+        "pitch": "E5",
+        "velocity": 0.64
+      },
+      {
+        "type": "note",
+        "step": 40,
+        "length": 2,
+        "pitch": "E5",
+        "velocity": 0.59
+      },
+      {
+        "type": "note",
+        "step": 42,
+        "length": 2,
+        "pitch": "E5",
+        "velocity": 0.56
+      },
+      {
+        "type": "note",
+        "step": 44,
+        "length": 2,
+        "pitch": "E5",
+        "velocity": 0.53
+      },
+      {
+        "type": "note",
+        "step": 46,
+        "length": 2,
+        "pitch": "E5",
+        "velocity": 0.5
+      },
+      {
+        "type": "note",
+        "step": 48,
+        "length": 2,
+        "pitch": "E5",
+        "velocity": 0.75
+      },
+      {
+        "type": "note",
+        "step": 50,
+        "length": 2,
+        "pitch": "G#5",
+        "velocity": 1
+      },
+      {
+        "type": "note",
+        "step": 52,
+        "length": 2,
+        "pitch": "G#5",
+        "velocity": 0.95
+      },
+      {
+        "type": "note",
+        "step": 54,
+        "length": 2,
+        "pitch": "G#5",
+        "velocity": 0.92
+      },
+      {
+        "type": "note",
+        "step": 56,
+        "length": 2,
+        "pitch": "G#5",
+        "velocity": 0.89
+      },
+      {
+        "type": "note",
+        "step": 58,
+        "length": 2,
+        "pitch": "G#5",
+        "velocity": 0.84
+      },
+      {
+        "type": "note",
+        "step": 60,
+        "length": 2,
+        "pitch": "G#5",
+        "velocity": 0.81
+      },
+      {
+        "type": "note",
+        "step": 62,
+        "length": 2,
+        "pitch": "G#5",
+        "velocity": 0.78
+      }
+    ],
+    "percussion": [
+      {
+        "type": "drum",
+        "step": 0,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.27
+      },
+      {
+        "type": "drum",
+        "step": 0,
+        "length": 1,
+        "sound": "kick",
+        "velocity": 0.9
+      },
+      {
+        "type": "drum",
+        "step": 1,
+        "length": 1,
+        "sound": "kick",
+        "velocity": 0.67
+      },
+      {
+        "type": "drum",
+        "step": 2,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.27
+      },
+      {
+        "type": "drum",
+        "step": 2,
+        "length": 1,
+        "sound": "kick",
+        "velocity": 0.45
+      },
+      {
+        "type": "drum",
+        "step": 4,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.27
+      },
+      {
+        "type": "drum",
+        "step": 4,
+        "length": 1,
+        "sound": "snare",
+        "velocity": 0.9
+      },
+      {
+        "type": "drum",
+        "step": 6,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.27
+      },
+      {
+        "type": "drum",
+        "step": 6,
+        "length": 1,
+        "sound": "kick",
+        "velocity": 0.9
+      },
+      {
+        "type": "drum",
+        "step": 7,
+        "length": 1,
+        "sound": "kick",
+        "velocity": 0.67
+      },
+      {
+        "type": "drum",
+        "step": 8,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.27
+      },
+      {
+        "type": "drum",
+        "step": 9,
+        "length": 1,
+        "sound": "snare",
+        "velocity": 0.9
+      },
+      {
+        "type": "drum",
+        "step": 10,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.27
+      },
+      {
+        "type": "drum",
+        "step": 10,
+        "length": 1,
+        "sound": "kick",
+        "velocity": 0.67
+      },
+      {
+        "type": "drum",
+        "step": 12,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.27
+      },
+      {
+        "type": "drum",
+        "step": 12,
+        "length": 1,
+        "sound": "snare",
+        "velocity": 0.9
+      },
+      {
+        "type": "drum",
+        "step": 14,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.27
+      },
+      {
+        "type": "drum",
+        "step": 14,
+        "length": 1,
+        "sound": "snare",
+        "velocity": 0.67
+      },
+      {
+        "type": "drum",
+        "step": 15,
+        "length": 1,
+        "sound": "snare",
+        "velocity": 0.45
+      },
+      {
+        "type": "drum",
+        "step": 16,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.27
+      },
+      {
+        "type": "drum",
+        "step": 16,
+        "length": 1,
+        "sound": "kick",
+        "velocity": 0.9
+      },
+      {
+        "type": "drum",
+        "step": 18,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.27
+      },
+      {
+        "type": "drum",
+        "step": 18,
+        "length": 1,
+        "sound": "kick",
+        "velocity": 0.9
+      },
+      {
+        "type": "drum",
+        "step": 20,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.27
+      },
+      {
+        "type": "drum",
+        "step": 20,
+        "length": 1,
+        "sound": "snare",
+        "velocity": 0.9
+      },
+      {
+        "type": "drum",
+        "step": 22,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.27
+      },
+      {
+        "type": "drum",
+        "step": 22,
+        "length": 1,
+        "sound": "kick",
+        "velocity": 0.67
+      },
+      {
+        "type": "drum",
+        "step": 23,
+        "length": 1,
+        "sound": "kick",
+        "velocity": 0.9
+      },
+      {
+        "type": "drum",
+        "step": 24,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.27
+      },
+      {
+        "type": "drum",
+        "step": 25,
+        "length": 1,
+        "sound": "snare",
+        "velocity": 0.9
+      },
+      {
+        "type": "drum",
+        "step": 26,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.27
+      },
+      {
+        "type": "drum",
+        "step": 26,
+        "length": 1,
+        "sound": "kick",
+        "velocity": 0.67
+      },
+      {
+        "type": "drum",
+        "step": 28,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.27
+      },
+      {
+        "type": "drum",
+        "step": 28,
+        "length": 1,
+        "sound": "snare",
+        "velocity": 0.9
+      },
+      {
+        "type": "drum",
+        "step": 30,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.27
+      },
+      {
+        "type": "drum",
+        "step": 30,
+        "length": 1,
+        "sound": "kick",
+        "velocity": 0.67
+      },
+      {
+        "type": "drum",
+        "step": 32,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.27
+      },
+      {
+        "type": "drum",
+        "step": 32,
+        "length": 1,
+        "sound": "kick",
+        "velocity": 0.9
+      },
+      {
+        "type": "drum",
+        "step": 34,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.27
+      },
+      {
+        "type": "drum",
+        "step": 34,
+        "length": 1,
+        "sound": "kick",
+        "velocity": 0.9
+      },
+      {
+        "type": "drum",
+        "step": 36,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.27
+      },
+      {
+        "type": "drum",
+        "step": 36,
+        "length": 1,
+        "sound": "snare",
+        "velocity": 0.9
+      },
+      {
+        "type": "drum",
+        "step": 38,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.27
+      },
+      {
+        "type": "drum",
+        "step": 38,
+        "length": 1,
+        "sound": "kick",
+        "velocity": 0.67
+      },
+      {
+        "type": "drum",
+        "step": 39,
+        "length": 1,
+        "sound": "kick",
+        "velocity": 0.9
+      },
+      {
+        "type": "drum",
+        "step": 40,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.27
+      },
+      {
+        "type": "drum",
+        "step": 40,
+        "length": 1,
+        "sound": "snare",
+        "velocity": 0.9
+      },
+      {
+        "type": "drum",
+        "step": 42,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.27
+      },
+      {
+        "type": "drum",
+        "step": 42,
+        "length": 1,
+        "sound": "kick",
+        "velocity": 0.67
+      },
+      {
+        "type": "drum",
+        "step": 44,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.27
+      },
+      {
+        "type": "drum",
+        "step": 44,
+        "length": 1,
+        "sound": "snare",
+        "velocity": 0.9
+      },
+      {
+        "type": "drum",
+        "step": 45,
+        "length": 1,
+        "sound": "snare",
+        "velocity": 0.67
+      },
+      {
+        "type": "drum",
+        "step": 46,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.27
+      },
+      {
+        "type": "drum",
+        "step": 46,
+        "length": 1,
+        "sound": "snare",
+        "velocity": 0.45
+      },
+      {
+        "type": "drum",
+        "step": 48,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.27
+      },
+      {
+        "type": "drum",
+        "step": 48,
+        "length": 1,
+        "sound": "kick",
+        "velocity": 0.9
+      },
+      {
+        "type": "drum",
+        "step": 50,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.27
+      },
+      {
+        "type": "drum",
+        "step": 50,
+        "length": 1,
+        "sound": "kick",
+        "velocity": 0.9
+      },
+      {
+        "type": "drum",
+        "step": 52,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.27
+      },
+      {
+        "type": "drum",
+        "step": 52,
+        "length": 1,
+        "sound": "snare",
+        "velocity": 0.9
+      },
+      {
+        "type": "drum",
+        "step": 54,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.27
+      },
+      {
+        "type": "drum",
+        "step": 54,
+        "length": 1,
+        "sound": "kick",
+        "velocity": 0.67
+      },
+      {
+        "type": "drum",
+        "step": 55,
+        "length": 1,
+        "sound": "kick",
+        "velocity": 0.9
+      },
+      {
+        "type": "drum",
+        "step": 56,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.27
+      },
+      {
+        "type": "drum",
+        "step": 57,
+        "length": 1,
+        "sound": "snare",
+        "velocity": 0.9
+      },
+      {
+        "type": "drum",
+        "step": 58,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.27
+      },
+      {
+        "type": "drum",
+        "step": 58,
+        "length": 1,
+        "sound": "kick",
+        "velocity": 0.67
+      },
+      {
+        "type": "drum",
+        "step": 60,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.27
+      },
+      {
+        "type": "drum",
+        "step": 60,
+        "length": 1,
+        "sound": "snare",
+        "velocity": 0.9
+      },
+      {
+        "type": "drum",
+        "step": 62,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.27
+      },
+      {
+        "type": "drum",
+        "step": 62,
+        "length": 1,
+        "sound": "kick",
+        "velocity": 0.67
+      }
+    ]
+  },
+  "boundary": {
+    "entryGroup": "tonic",
+    "exitGroup": "dominant"
+  },
+  "motifRef": {
+    "id": "demo-main",
+    "revision": 1
+  },
+  "license": "CC0-1.0",
+  "attribution": "congusbongus — \"Subterrain\" (https://opengameart.org/node/125360)",
+  "demo": false,
+  "metadata": {
+    "description": "From congusbongus-subterrain.xm, source bars 96–99. C minor → D dorian; one source bar = one bar at the era tempo (source 160 bpm). Roles: lead = ch5, bass = ch6, arp = ch1. Mood: Dark synth / drum and bass at 160 bpm; its minor uses the dorian 6 (14 % of the time). Does not quote the motif (imported material).",
+    "composer": "congusbongus (OpenGameArt, CC0); adapted by tools/music/importMidi.ts"
+  }
+}

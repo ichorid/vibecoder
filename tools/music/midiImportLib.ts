@@ -41,16 +41,30 @@ export interface SongPlan {
   readonly roles?: Partial<Record<'lead' | 'bass' | 'arp', number>>;
   /** Overrides the plan's lead style for this song. */
   readonly lead?: LeadStyle;
+  /** This song's own source (sets collected from several authors). */
+  readonly source?: SongSource;
+}
+
+/** Where a song comes from: credited in every pattern's `attribution` and `composer`. */
+export interface SongSource {
+  readonly title: string;
+  readonly author: string;
+  readonly url: string;
+  /** The hosting site, e.g. "OpenGameArt" or "The Mod Archive". */
+  readonly site: string;
 }
 
 export interface ImportPlan {
-  readonly source: {
-    readonly title: string;
-    readonly author: string;
-    readonly url: string;
-    readonly license: 'CC0-1.0';
-  };
+  /** The set's source; a song's own `source` overrides it. */
+  readonly source: SongSource & { readonly license: 'CC0-1.0' };
   readonly maxPerSong: number;
+  /**
+   * Which fitting windows to take first: the earliest (aligned phrases first; the default) or
+   * the busiest (most lead and arp notes; skips intros in long tracker songs).
+   */
+  readonly windows?: 'earliest' | 'busiest';
+  /** A window needs at least this many lead + arp notes (default 8). */
+  readonly minMelodicNotes?: number;
   /** Default lead style for every song (default: keep the source). */
   readonly lead?: LeadStyle;
   readonly songs: readonly SongPlan[];
@@ -504,7 +518,7 @@ function chordOfBar(
 /**
  * Octave-shift a role so its notes fit the preset range (fold the stragglers). Without a centre,
  * the shift with the most notes in range (nearest the source first); with one, the shift whose
- * line averages nearest the centre among those keeping ≥ 75 % of the notes in range.
+ * folded line averages nearest the centre among those keeping ≥ 75 % of the notes in range.
  */
 function fitRange(
   notes: readonly Placed[],
@@ -513,25 +527,31 @@ function fitRange(
   centre: number | null = null,
 ): Placed[] {
   if (notes.length === 0) return [];
-  const mean = notes.reduce((sum, n) => sum + n.midi, 0) / notes.length;
-  const shifts = [0, 12, -12, 24, -24, 36, -36].map((shift) => ({
-    shift,
-    fit: notes.filter((n) => n.midi + shift >= low && n.midi + shift <= high).length,
-  }));
+  const fold = (shift: number) =>
+    notes.map((n) => {
+      let midi = n.midi + shift;
+      while (midi < low) midi += 12;
+      while (midi > high) midi -= 12;
+      return { ...n, midi };
+    });
+  // Nearest octaves first; tracker samples can sit several octaves off their written note.
+  const shifts = [0, 12, -12, 24, -24, 36, -36, 48, -48, 60, -60].map((shift) => {
+    const folded = fold(shift);
+    return {
+      shift,
+      folded,
+      fit: notes.filter((n) => n.midi + shift >= low && n.midi + shift <= high).length,
+      mean: folded.reduce((sum, n) => sum + n.midi, 0) / folded.length,
+    };
+  });
   const most = Math.max(...shifts.map((c) => c.fit));
   const enough = shifts.filter((c) => c.fit >= notes.length * 0.75);
   const pool =
     centre === null || enough.length === 0 ? shifts.filter((c) => c.fit === most) : enough;
   const best = [...pool].sort((a, b) =>
-    centre === null ? 0 : Math.abs(mean + a.shift - centre) - Math.abs(mean + b.shift - centre),
+    centre === null ? 0 : Math.abs(a.mean - centre) - Math.abs(b.mean - centre),
   )[0];
-  const shift = best?.shift ?? 0;
-  return notes.map((n) => {
-    let midi = n.midi + shift;
-    while (midi < low) midi += 12;
-    while (midi > high) midi -= 12;
-    return { ...n, midi };
-  });
+  return best?.folded ?? fold(0);
 }
 
 /** One voice: on a shared step keep the highest (lowest for bass); cut overlaps. */
@@ -590,13 +610,22 @@ function buildPattern(
   const era = song.plan.era;
   const tracks: Record<string, Event[]> = {};
   const style = { maxSteps: null, centre: null, ...plan.lead, ...song.plan.lead };
+  const credit = song.plan.source ?? plan.source;
   for (const role of ['lead', 'bass', 'arp'] as const) {
     const [low, high] = rangeOf(catalog, era, role);
     const lead = role === 'lead';
     const centre = lead && style.centre !== null ? (Note.midi(style.centre) ?? null) : null;
     const cap = lead && style.maxSteps !== null ? style.maxSteps : Infinity;
     const notes = monophonic(
-      fitRange(windowNotes(song.lines[role], start), low, high, centre),
+      // A centred lead stays within an octave of its centre (high pulse leads whine).
+      centre === null
+        ? fitRange(windowNotes(song.lines[role], start), low, high)
+        : fitRange(
+            windowNotes(song.lines[role], start),
+            Math.max(low, centre - 12),
+            Math.min(high, centre + 12),
+            centre,
+          ),
       role === 'bass',
     ).map((n) => (n.length > cap ? { ...n, length: cap } : n));
     if (notes.length === 0) continue;
@@ -633,7 +662,7 @@ function buildPattern(
     .sort((a, b) => a.step - b.step || a.sound.localeCompare(b.sound));
   if (percussion.length > 0) tracks.percussion = percussion;
   const melodic = (tracks.lead?.length ?? 0) + (tracks.arp?.length ?? 0);
-  if (melodic < 8) return null;
+  if (melodic < (plan.minMelodicNotes ?? 8)) return null;
 
   const firstBar = start / STEPS_PER_BAR;
   const harmony = Array.from({ length: PHRASE_BARS }, (_, i) => {
@@ -672,7 +701,7 @@ function buildPattern(
     boundary: { entryGroup: 'tonic', exitGroup: lastRoot === 0 ? 'tonic' : 'dominant' },
     motifRef: { id: 'demo-main', revision: 1 },
     license: plan.source.license,
-    attribution: `${plan.source.author} — "${plan.source.title}" (${plan.source.url})`,
+    attribution: `${credit.author} — "${credit.title}" (${credit.url})`,
     demo: false,
     metadata: {
       description: [
@@ -682,7 +711,7 @@ function buildPattern(
         `Mood: ${song.plan.mood}`,
         'Does not quote the motif (imported material).',
       ].join(' '),
-      composer: `${plan.source.author} (OpenGameArt, CC0); adapted by tools/music/importMidi.ts`,
+      composer: `${credit.author} (${credit.site}, CC0); adapted by tools/music/importMidi.ts`,
     },
   };
 }
@@ -700,10 +729,15 @@ function importSong(
   bank: NormalizedPattern[],
 ): { patterns: PatternDocument[]; line: string } {
   const starts = boundaryStarts(song);
-  const ordered = [
-    ...starts.filter((s) => s % PHRASE_STEPS === 0),
-    ...starts.filter((s) => s % PHRASE_STEPS !== 0),
-  ];
+  const busy = (start: number) =>
+    windowNotes(song.lines.lead, start).length + windowNotes(song.lines.arp, start).length;
+  const ordered =
+    plan.windows === 'busiest'
+      ? [...starts].sort((a, b) => busy(b) - busy(a) || a - b)
+      : [
+          ...starts.filter((s) => s % PHRASE_STEPS === 0),
+          ...starts.filter((s) => s % PHRASE_STEPS !== 0),
+        ];
   const taken: { start: number; pattern: PatternDocument }[] = [];
   const skipped = { empty: 0, invalid: 0, similar: 0 };
   for (const start of ordered) {
