@@ -27,12 +27,20 @@ export function keyboardPhoto(): PixelCanvas {
   c.rect(4, 32, 44, 7, p.plasticDark);
   for (let x = 6; x < 46; x += 4) c.rect(x, 34, 3, 2, p.plastic);
   blitScaled(c, catFrame('cat-sleep'), 6, 14, 2);
-  // Programmer's hand resting gently next to the cat.
-  const hand = createCanvas(18, 10);
-  ellipse(hand, 8, 6, 8, 3, p.hoodie);
-  hand.rect(12, 4, 5, 4, p.skin);
-  outline(hand, p.outline);
-  c.blit(hand, 46, 33);
+  // A coffee mug, still steaming, beside the sleeping cat.
+  const mug = createCanvas(64, 48);
+  mug.rect(52, 30, 8, 9, p.mug);
+  mug.rect(60, 32, 2, 4, p.mug);
+  mug.rect(53, 31, 6, 2, p.food);
+  outline(mug, p.outline);
+  c.blit(mug, 0, 0);
+  for (const [x, y] of [
+    [55, 27],
+    [56, 26],
+    [55, 25],
+    [57, 28],
+  ] as const)
+    c.set(x, y, p.paper);
   return c;
 }
 
@@ -47,6 +55,7 @@ export function lapPhoto(): PixelCanvas {
   c.rect(0, 40, 64, 8, p.floor);
   // Desk and monitor on the right.
   c.rect(44, 18, 20, 3, p.wood);
+  c.rect(45, 21, 3, 19, p.woodDark);
   c.rect(60, 21, 3, 19, p.woodDark);
   c.rect(48, 8, 14, 10, p.metalDark);
   c.rect(49, 9, 12, 8, p.screen);
@@ -61,8 +70,14 @@ export function lapPhoto(): PixelCanvas {
   body.rect(20, 28, 18, 5, p.jeans);
   body.rect(33, 28, 5, 12, p.jeans);
   body.rect(33, 40, 7, 2, p.hoodieDark);
+  // Short hair: a cap over the top and the back of the head, a sideburn, an ear.
   body.disc(24, 9, 5, p.skin);
-  ellipse(body, 22, 6, 5, 3, p.hair);
+  body.rect(20, 4, 9, 2, p.hair);
+  body.rect(19, 6, 9, 1, p.hair);
+  body.rect(19, 7, 4, 4, p.hair);
+  body.rect(19, 11, 3, 1, p.hair);
+  body.set(23, 9, p.skinShade);
+  body.set(23, 10, p.skinShade);
   body.set(27, 9, p.eye);
   body.rect(27, 12, 2, 1, p.skinShade);
   outline(body, p.outline);

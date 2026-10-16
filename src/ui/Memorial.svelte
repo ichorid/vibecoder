@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Candle from './Candle.svelte';
   import PixelIcon from './PixelIcon.svelte';
   import { memorialKeyboard, memorialLap } from './pixelArt';
 
@@ -29,6 +30,7 @@
       {/if}
     </figure>
   {/each}
+  <div class="candle-row"><Candle /></div>
 </div>
 
 <style>
@@ -38,6 +40,10 @@
     justify-content: center;
     gap: 18px;
     padding: 24px 8px;
+  }
+  .candle-row {
+    flex-basis: 100%;
+    padding-top: 6px;
   }
   .photo {
     margin: 0;

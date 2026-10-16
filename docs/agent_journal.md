@@ -265,3 +265,8 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   still crosses in ≥ minHitWindowMs — so first attempts are a bit slower than before). Memorial
   lap photo redrawn (5 drafts; chose the side view in the desk chair, hand on the cat). Header
   cat icon: skull when dead, sunset when stray (`data-fate`).
+- 2026-10-16: memorial polish (user): cat skull with ears in the header; animated candle under
+  the photos (3 flame frames + glow, static with reduced motion); lap photo hair redrawn (short
+  cap, best of 3) and the desk gets its second leg; the keyboard photo's odd hand replaced by a
+  steaming mug (removal / hand-on-cat / mug drafted); Cat title reads "CAT (Dead)" — and
+  "CAT (Missing)" for a stray.

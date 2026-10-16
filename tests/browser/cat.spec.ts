@@ -48,8 +48,10 @@ test('a dead cat stays dead: gray bars, memorial with two photos, no care', asyn
   await expect(page.getByRole('list', { name: 'Recent events' })).toContainText('The cat is gone.');
 
   await page.getByTestId('cat-button').click();
+  await expect(page.getByRole('heading', { name: /^CAT\s\(Dead\)$/ })).toBeVisible();
   const memorial = page.getByTestId('memorial');
   await expect(memorial).toBeVisible();
+  await expect(page.getByTestId('memorial-candle')).toBeVisible();
   await expect(memorial.locator('figure')).toHaveCount(2);
   for (const name of ['FEED', 'PLAY', 'PET']) {
     await expect(page.getByRole('button', { name })).toHaveCount(0);
@@ -87,6 +89,7 @@ test('a stray cat left without a word: no log line, a missing poster, no care', 
   await expect(log).not.toContainText(/left|gone|stray/i);
 
   await page.getByTestId('cat-button').click();
+  await expect(page.getByRole('heading', { name: /^CAT\s\(Missing\)$/ })).toBeVisible();
   const poster = page.getByTestId('missing-poster');
   await expect(poster).toBeVisible();
   await expect(poster).toContainText('MISSING');
