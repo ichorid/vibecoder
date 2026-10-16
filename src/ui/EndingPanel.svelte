@@ -31,9 +31,14 @@
   {/each}
   {#if ending.experience}
     <p class="lesson" data-testid="ending-experience">
-      📈 You are now more experienced with vibe coding: +{Math.round(
-        ending.experience.gained * 100,
-      )}% code yield in your next runs (next run: +{Math.round(ending.experience.next * 100)}%).
+      {#if ending.experience.repeat}
+        📈 Lesson already learned. Your next runs keep +{Math.round(ending.experience.next * 100)}%
+        code yield.
+      {:else}
+        📈 You are now more experienced with vibe coding: +{Math.round(
+          ending.experience.gained * 100,
+        )}% code yield in your next runs (next run: +{Math.round(ending.experience.next * 100)}%).
+      {/if}
     </p>
   {/if}
 </section>

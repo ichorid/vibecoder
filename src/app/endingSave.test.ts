@@ -8,6 +8,7 @@ import type { RunState } from '../game/types';
 import { TECHNOLOGY_IDS } from '../game/ids';
 import {
   CHECKPOINT_KEY,
+  CURRENT_SCHEMA_VERSION,
   createProfile,
   createSaveAdapter,
   SAVE_KEY,
@@ -122,7 +123,7 @@ describe('ending persistence', () => {
       stats: { ...run.stats, negativeMarginMs: 200_000 },
     }));
     expect(t.game.api.dispatch({ type: 'choose', id: 'close-company' })).toBe('applied');
-    expect(t.latest().game.ending?.experience).toEqual({ gained: 0.1, next: 0.1 });
+    expect(t.latest().game.ending?.experience).toEqual({ gained: 0.1, next: 0.1, repeat: false });
     expect(stored(t.storage).profile.experience).toBe(0.1);
     t.game.api.dispatch({ type: 'restart' });
     expect(t.latest().run.experience).toBe(0.1);
@@ -142,5 +143,40 @@ describe('ending persistence', () => {
     t.game.api.dispatch({ type: 'choose', id: 'keep-approval' });
     expect(t.latest().history.endings).toHaveLength(2);
     expect(stored(t.storage).run.ending?.id).toBe('the-human-approval-api');
+  });
+
+  it('reaching the same lesson ending twice teaches once', () => {
+    const storage = createMemoryStorage();
+    const expand = (run: RunState): RunState => ({
+      ...run,
+      choices: { 'expand-anyway': { atActiveMs: 0, manualActions: 0, overhead: 20 } },
+      stats: { ...run.stats, negativeMarginMs: 200_000 },
+    });
+    const first = setup(storage, 'run-1', expand);
+    first.game.api.dispatch({ type: 'choose', id: 'close-company' });
+    first.game.dispose();
+    const second = setup(storage, 'run-2', expand);
+    second.game.api.dispatch({ type: 'choose', id: 'close-company' });
+    expect(second.latest().game.ending?.experience).toMatchObject({ gained: 0, repeat: true });
+    expect(stored(storage).profile.experience).toBe(0.1);
+  });
+
+  it('an inflated stored experience normalises to the distinct lessons on load', () => {
+    const storage = createMemoryStorage();
+    createSaveAdapter(storage).write({
+      schemaVersion: CURRENT_SCHEMA_VERSION,
+      contentVersion: 1,
+      revision: 1,
+      profile: {
+        theme: 'auto',
+        experience: 0.7,
+        endings: [
+          { id: 'the-forgotten-project', runId: 'a', activeMs: 1, order: 1 },
+          { id: 'the-last-programmer', runId: 'b', activeMs: 1, order: 2 },
+        ],
+      },
+      run: createRun(1, 'stored'),
+    });
+    expect(setup(storage).latest().profile.experience).toBe(0.2);
   });
 });

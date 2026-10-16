@@ -47,7 +47,7 @@ export interface UiSnapshot {
   readonly setup: SetupViewModel;
   readonly cat: CatViewModel;
   readonly world: WorldViewModel;
-  readonly profile: { readonly theme: ThemePreference };
+  readonly profile: { readonly theme: ThemePreference; readonly experience: number };
   readonly save: { readonly status: SaveStatus };
   /** The checkpoint slot (null: empty or not available). */
   readonly checkpoint: CheckpointInfo | null;

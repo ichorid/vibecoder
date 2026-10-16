@@ -27,9 +27,11 @@ describe('experience from earlier runs', () => {
       status: 'ended' as const,
       ending: { id: 'the-forgotten-project' as const, catAlive: true, catLeft: false, activeMs: 1 },
     };
+    // Next run's experience is derived from the profile's distinct lesson endings (D1).
     expect(selectGame(ended, catalog).ending?.experience).toEqual({
       gained: 0.1,
-      next: 0.30000000000000004,
+      next: 0.1,
+      repeat: false,
     });
     const other = { ...ended, ending: { ...ended.ending, id: 'you-have-been-optimized' as const } };
     expect(selectGame(other, catalog).ending?.experience).toBeNull();

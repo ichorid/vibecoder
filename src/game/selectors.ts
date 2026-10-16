@@ -13,6 +13,7 @@ import type {
 import { isChoiceOffered } from './endings';
 import { currentPrimaryAction, findTechnology, isUpgradeOffered } from './progression';
 import { cardEffects } from './effectText';
+import { experienceOf } from './experience';
 import { creditState, type CreditState } from './money';
 import { plantLook, type PlantLook } from './plant';
 import { upgradeImpact } from './setup';
@@ -106,8 +107,13 @@ export interface EndingViewModel {
   readonly paragraphs: readonly string[];
   /** Picture asset ID, chosen by the cat's presence when the run ended (null: no picture). */
   readonly illustrationId: string | null;
-  /** Experience gained (code yield for later runs) and what the next run will have. */
-  readonly experience: { readonly gained: number; readonly next: number } | null;
+  /** Experience gained (code yield for later runs; 0 if this lesson was already learned) and
+   * what the next run will have. */
+  readonly experience: {
+    readonly gained: number;
+    readonly next: number;
+    readonly repeat: boolean;
+  } | null;
 }
 
 export interface StatViewModel {
@@ -259,7 +265,11 @@ function primaryGain(
 }
 
 /** Only what the current Game view may show: current offers, never future definitions. */
-export function selectGame(run: ReadonlyRun, catalog: Catalog): GameViewModel {
+export function selectGame(
+  run: ReadonlyRun,
+  catalog: Catalog,
+  discovered: readonly DeepReadonly<DiscoveredEnding>[] = [],
+): GameViewModel {
   const action = currentPrimaryAction(run, catalog);
   const upgradeCards = catalog.upgrades
     .filter((upgrade) => isUpgradeOffered(run, upgrade))
@@ -367,14 +377,31 @@ export function selectGame(run: ReadonlyRun, catalog: Catalog): GameViewModel {
         }
       : null,
     log: run.log.slice(-catalog.balance.logVisibleLines),
-    ending: selectEnding(run, catalog),
+    ending: selectEnding(run, catalog, discovered),
     lastRelease: selectRelease(run, catalog, run.releases.length - 1),
     credit: creditState(run, catalog),
   };
 }
 
+/** A lesson ending: new to the profile, or already learned in an earlier run. */
+function endingLesson(
+  run: ReadonlyRun,
+  amount: number,
+  id: EndingId,
+  discovered: readonly DeepReadonly<DiscoveredEnding>[],
+  catalog: Catalog,
+): { gained: number; next: number; repeat: boolean } {
+  const earlier = discovered.some((e) => e.id === id && e.runId !== run.id);
+  const all = discovered.some((e) => e.id === id) ? discovered : [...discovered, { id }];
+  return { gained: earlier ? 0 : amount, next: experienceOf(all, catalog), repeat: earlier };
+}
+
 /** The ending panel: stored ending ID and the fate captured when it happened. */
-function selectEnding(run: ReadonlyRun, catalog: Catalog): EndingViewModel | null {
+function selectEnding(
+  run: ReadonlyRun,
+  catalog: Catalog,
+  discovered: readonly DeepReadonly<DiscoveredEnding>[],
+): EndingViewModel | null {
   const record = run.ending;
   if (!record) return null;
   const definition = catalog.endings.find((e) => e.id === record.id);
@@ -393,7 +420,7 @@ function selectEnding(run: ReadonlyRun, catalog: Catalog): EndingViewModel | nul
     title: definition.title,
     illustrationId: picture ? `ending-${picture}${record.catAlive ? '' : '-nocat'}` : null,
     experience: definition.experience
-      ? { gained: definition.experience, next: run.experience + definition.experience }
+      ? endingLesson(run, definition.experience, record.id, discovered, catalog)
       : null,
     paragraphs: record.catAlive
       ? definition.text.alive

@@ -2,6 +2,7 @@ import type { Catalog } from '../game/catalog';
 import { applyCommand, type CommandResult } from '../game/commands';
 import { selectCat, selectGame, selectHistory, selectWorld } from '../game/selectors';
 import { selectSetup } from '../game/setup';
+import { experienceOf } from '../game/experience';
 import { stepRun } from '../game/simulation';
 import type { GameCommand, GameFact, ReadonlyRun, RunState } from '../game/types';
 import {
@@ -102,7 +103,17 @@ function needsImmediateSave(facts: readonly GameFact[]): boolean {
 export function createGame(options: GameOptions): Game {
   const { catalog, persistence } = options;
   let run = options.run;
-  let profile: ProfileState = persistence?.profile ?? { theme: 'auto', endings: [], experience: 0 };
+  const loadedProfile: ProfileState = persistence?.profile ?? {
+    theme: 'auto',
+    endings: [],
+    experience: 0,
+  };
+  // A stored experience is not trusted: it is recomputed from the discovered endings, so a
+  // profile inflated by repeated endings normalises on load.
+  let profile: ProfileState = {
+    ...loadedProfile,
+    experience: experienceOf(loadedProfile.endings, catalog),
+  };
   let revision = persistence?.revision ?? 0;
   let saveStatus: SaveStatus = persistence ? 'ok' : 'disabled';
   let lastSavedRun: RunState | null = run;
@@ -125,7 +136,7 @@ export function createGame(options: GameOptions): Game {
 
   const snapshot = (): GameSnapshot => ({
     run,
-    game: selectGame(run, catalog),
+    game: selectGame(run, catalog, profile.endings),
     history: selectHistory(run, catalog, profile.endings),
     setup: selectSetup(run, catalog),
     cat: selectCat(run, catalog),
@@ -160,14 +171,6 @@ export function createGame(options: GameOptions): Game {
   function recordDiscoveries(facts: readonly GameFact[]): void {
     for (const fact of facts) {
       if (fact.type !== 'endingReached') continue;
-      // A lesson learned: experience stacks every time such an ending is reached.
-      const gained = catalog.endings.find((e) => e.id === fact.id)?.experience ?? 0;
-      if (gained > 0) {
-        profile = {
-          ...profile,
-          experience: Math.round((profile.experience + gained) * 1000) / 1000,
-        };
-      }
       if (profile.endings.some((e) => e.id === fact.id)) continue;
       profile = {
         ...profile,
@@ -176,6 +179,8 @@ export function createGame(options: GameOptions): Game {
           { id: fact.id, runId: run.id, activeMs: run.activeMs, order: profile.endings.length + 1 },
         ],
       };
+      // Each lesson ending teaches once: experience is derived from the distinct endings.
+      profile = { ...profile, experience: experienceOf(profile.endings, catalog) };
     }
   }
 

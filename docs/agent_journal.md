@@ -369,3 +369,8 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   | 3 cps, experience 0.5 | 18.7 | | | 39 s | 0 % | | 0 % | 69 % | 43 | 1.4 |
   Disaster cost 2–54 s (varies with seed). Freeze-features offered the same step as Evaluations.
   Also: the stats line in the upgrades popup opens Setup; back returns to the popup.
+- 2026-10-16: economy redesign EX (D1): experience is derived — `experienceOf(profile.endings)`
+  (src/game/experience.ts) sums distinct lesson endings (max +0.5). createGame recomputes it on
+  load (inflated profiles normalise) and after each new discovery; a repeat lesson ending shows
+  "Lesson already learned" (`experience.repeat`). The 3 cps run at experience 0.5 is 18.7 min
+  today (< the 20 min floor) — to be re-measured after E3/E6 slow the early game.
