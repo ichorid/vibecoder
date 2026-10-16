@@ -48,13 +48,15 @@ export const catFace: PixelMap = {
 };
 
 /**
- * The cat died: a small cat skull — rounded cranium, very large eye sockets, wide cheekbones
- * tapering to a short muzzle with a nose opening and two fangs.
+ * The cat died: a cat skull — big eye sockets, wide cheekbones tapering to a short muzzle with
+ * a nose opening and two fangs — with pointed cat ears on top (not anatomy, just cool).
  */
 export const catSkull: PixelMap = {
   rows: [
-    '...kkkkkk...',
-    '.kkbbbbbbkk.',
+    '.k........k.',
+    'kbk......kbk',
+    'kbbk.kk.kbbk',
+    'kbbbkbbkbbbk',
     'kbbbbbbbbbbk',
     'kbxxxbbxxxbk',
     'kbxxxbbxxxbk',
