@@ -43,6 +43,28 @@ npm run test:music                       # engine/tool tests
 6. **Feedback to a composer** — _COPY FEEDBACK PROMPT_ in the Lab, or
    `npm run music:prompt -- --era <id> [--template era|lead] [--out task.md]`.
 
+## Composing the real soundtrack (later work)
+
+The four demos only prove the infrastructure. The final soundtrack (≈ 10 patterns per era) is a
+separate task, done in this order:
+
+1. **Lead composer** — `npm run music:prompt -- --era discovery --template lead --out lead.md`:
+   pending motif candidates and one reference pattern per era. A human listens in the Lab and
+   approves one motif (`music/motif/<id>.json` with `"status": "approved"`, committed by the
+   coordinator; agents never approve).
+2. **Era composers, in parallel** — the coordinator creates one Git worktree and branch per era
+   (`git worktree add ../vibe-<era> -b music/<era>`) and hands each agent
+   `npm run music:prompt -- --era <era> --out task-<era>.md`. Each agent touches only
+   `music/patterns/<era>/` and `music/reports/<era>.md`; motif, schema, presets, arrangements,
+   reviews and code are a shared immutable contract.
+3. **Integration** — the coordinator merges branches one by one, runs
+   `npm run music:validate && npm run test:music`, and the human reviews in the Lab.
+4. **Feedback rounds** — export reviews into `music/reviews/`, regenerate the era prompt (it
+   now lists the revise/reject versions with feedback), repeat in the same worktree. New
+   revisions are new files; approved files are never edited.
+5. **Publish** — `npm run music:pack -- --mode approved`, commit the pack. The engine, director
+   and game code do not change when patterns are added.
+
 ## Adding an era
 
 1. Add `eras/<id>.json` (copy an existing one; pick `clockGroup`, key, `emptyBankPolicy`, and a

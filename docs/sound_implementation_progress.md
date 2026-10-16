@@ -131,3 +131,12 @@ Status: **done headless**; S08.5 listening and the iOS/Android checklist are **b
 - S08.4 arrangement voice budget (enabled polyphony + 1 SFX ≤ 8) is a catalog error (RED 1/1); loudest legal mix < −1 dBFS; `reportSize.ts` now fails the build if the Sound-gesture audio JS > 250 KiB gzip (137 KiB) or demo JSON > 100 KiB (22 KiB).
 
 Exit: `test:music` 169/169, `test:music-browser` 18/18, `test:game` 375/375, `test:browser` 60/60, `npm run check` OK, build within all budgets.
+
+## S09 — music workflow acceptance
+
+Status: **infrastructure verified headless**; listening, artistic judgement and phone checks **blocked**. Report and matrix: `docs/sound_validation_report.md` (S09 section).
+
+- S09.1 `tests/browser/lab-workflow.spec.ts`: the six walkthrough steps as one production flow (passed; no product defect found).
+- S09.2 `tools/music/authorCycle.test.ts`: candidate → CLI validate → test-only approval → pack → director; Lab prompt = CLI prompt minus template (**finding:** schema whitespace differed → formatter normalises). README: coordinator/worktree workflow. `tools/music/docs.test.ts`: every documented `npm run` exists.
+- S09.3 `src/app/musicRoute.test.ts`: binding through a 30-min baseline run (bank per stage table), cat-neutral.
+- S09.4 clean `npm ci` → all gates green (game 377, music 174, music-browser 18, browser 61).

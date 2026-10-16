@@ -181,3 +181,6 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   all gates, Lab path redirect). Device/human items blocked. Next: S08 (hardening), S09.
 - 2026-10-16: S08 done headless (long session bounds, voice-bank release, context interruption,
   import limits, voice budget, audio size budgets). Listening/devices blocked. Next S09.
+- 2026-10-16: S09 done headless (production walkthrough, author cycle, full-run binding, docs
+  guard, clean npm ci + all gates). ALL PLANNED PHASES DONE. Remaining = human/device blocks
+  only (see validation_report.md and sound_validation_report.md matrices).

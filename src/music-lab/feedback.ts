@@ -191,7 +191,8 @@ export function formatFeedbackPrompt(input: FeedbackPromptInput): Result<string>
     '## Pattern schema',
     '',
     '```json',
-    input.schemaText.trim(),
+    // Normalised here so the file text (CLI) and the bundled object (Lab) give the same bytes.
+    JSON.stringify(JSON.parse(input.schemaText) as unknown, null, 2),
     '```',
     '',
   );
