@@ -56,7 +56,10 @@ describe('author cycle without chat history', () => {
       { encoding: 'utf8' },
     );
     expect(validate.status).toBe(0);
-    expect(validate.stdout).toMatch(/3 patterns, 0 errors/);
+    const before = buildCatalog(readRepository('music')).catalog.patterns.filter(
+      (p) => p.eraId === 'singularity',
+    ).length;
+    expect(validate.stdout).toMatch(new RegExp(`${before + 1} patterns, 0 errors`));
 
     const { catalog } = buildCatalog(readRepository(root));
     const doc = catalog.patterns.find((p) => p.id === candidate.id);

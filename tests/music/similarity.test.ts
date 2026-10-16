@@ -54,7 +54,9 @@ describe('pattern similarity', () => {
 
   it('a shared motif with different rhythm, register and density is not a duplicate', () => {
     const { catalog } = buildCatalog(readRepository('music'));
+    // The four demo patterns all transform the one demo motif.
     const bank = catalog.patterns
+      .filter((p) => p.demo)
       .map((p) => analyzePattern(p, catalog).normalized)
       .filter((n) => n !== null);
     expect(bank).toHaveLength(4);

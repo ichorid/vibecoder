@@ -1,0 +1,325 @@
+{
+  "schemaVersion": 1,
+  "id": "rpg-bittersweet-b",
+  "revision": 1,
+  "eraId": "self-improvement",
+  "bars": 4,
+  "key": {
+    "tonic": "E",
+    "mode": "phrygian"
+  },
+  "harmony": [
+    {
+      "step": 0,
+      "length": 16,
+      "chord": "Em"
+    },
+    {
+      "step": 16,
+      "length": 16,
+      "chord": "Em"
+    },
+    {
+      "step": 32,
+      "length": 16,
+      "chord": "Em"
+    },
+    {
+      "step": 48,
+      "length": 16,
+      "chord": "Em"
+    }
+  ],
+  "energy": 0.4,
+  "tracks": {
+    "lead": [
+      {
+        "type": "note",
+        "step": 0,
+        "length": 15,
+        "pitch": "B5",
+        "velocity": 0.76
+      },
+      {
+        "type": "note",
+        "step": 16,
+        "length": 15,
+        "pitch": "A5",
+        "velocity": 0.76
+      },
+      {
+        "type": "note",
+        "step": 32,
+        "length": 15,
+        "pitch": "G5",
+        "velocity": 0.76
+      },
+      {
+        "type": "note",
+        "step": 48,
+        "length": 15,
+        "pitch": "A5",
+        "velocity": 0.76
+      }
+    ],
+    "bass": [
+      {
+        "type": "note",
+        "step": 0,
+        "length": 30,
+        "pitch": "B3",
+        "velocity": 0.5
+      },
+      {
+        "type": "note",
+        "step": 32,
+        "length": 30,
+        "pitch": "B3",
+        "velocity": 0.5
+      }
+    ],
+    "arp": [
+      {
+        "type": "note",
+        "step": 0,
+        "length": 1,
+        "pitch": "B4",
+        "velocity": 0.63
+      },
+      {
+        "type": "note",
+        "step": 3,
+        "length": 1,
+        "pitch": "E5",
+        "velocity": 0.63
+      },
+      {
+        "type": "note",
+        "step": 5,
+        "length": 2,
+        "pitch": "E5",
+        "velocity": 0.63
+      },
+      {
+        "type": "note",
+        "step": 8,
+        "length": 1,
+        "pitch": "G5",
+        "velocity": 0.63
+      },
+      {
+        "type": "note",
+        "step": 11,
+        "length": 1,
+        "pitch": "G5",
+        "velocity": 0.63
+      },
+      {
+        "type": "note",
+        "step": 13,
+        "length": 2,
+        "pitch": "B5",
+        "velocity": 0.63
+      },
+      {
+        "type": "note",
+        "step": 16,
+        "length": 1,
+        "pitch": "B5",
+        "velocity": 0.63
+      },
+      {
+        "type": "note",
+        "step": 19,
+        "length": 1,
+        "pitch": "G5",
+        "velocity": 0.63
+      },
+      {
+        "type": "note",
+        "step": 21,
+        "length": 2,
+        "pitch": "G5",
+        "velocity": 0.63
+      },
+      {
+        "type": "note",
+        "step": 24,
+        "length": 1,
+        "pitch": "E5",
+        "velocity": 0.63
+      },
+      {
+        "type": "note",
+        "step": 27,
+        "length": 1,
+        "pitch": "E5",
+        "velocity": 0.63
+      },
+      {
+        "type": "note",
+        "step": 29,
+        "length": 2,
+        "pitch": "B4",
+        "velocity": 0.63
+      },
+      {
+        "type": "note",
+        "step": 32,
+        "length": 1,
+        "pitch": "B4",
+        "velocity": 0.63
+      },
+      {
+        "type": "note",
+        "step": 35,
+        "length": 1,
+        "pitch": "E5",
+        "velocity": 0.63
+      },
+      {
+        "type": "note",
+        "step": 37,
+        "length": 2,
+        "pitch": "E5",
+        "velocity": 0.63
+      },
+      {
+        "type": "note",
+        "step": 40,
+        "length": 1,
+        "pitch": "G5",
+        "velocity": 0.63
+      },
+      {
+        "type": "note",
+        "step": 43,
+        "length": 1,
+        "pitch": "G5",
+        "velocity": 0.63
+      },
+      {
+        "type": "note",
+        "step": 45,
+        "length": 2,
+        "pitch": "B5",
+        "velocity": 0.63
+      },
+      {
+        "type": "note",
+        "step": 48,
+        "length": 1,
+        "pitch": "B5",
+        "velocity": 0.63
+      },
+      {
+        "type": "note",
+        "step": 51,
+        "length": 1,
+        "pitch": "G5",
+        "velocity": 0.63
+      },
+      {
+        "type": "note",
+        "step": 53,
+        "length": 2,
+        "pitch": "G5",
+        "velocity": 0.63
+      },
+      {
+        "type": "note",
+        "step": 56,
+        "length": 1,
+        "pitch": "E5",
+        "velocity": 0.63
+      },
+      {
+        "type": "note",
+        "step": 59,
+        "length": 1,
+        "pitch": "E5",
+        "velocity": 0.63
+      },
+      {
+        "type": "note",
+        "step": 61,
+        "length": 2,
+        "pitch": "B4",
+        "velocity": 0.63
+      }
+    ],
+    "percussion": [
+      {
+        "type": "drum",
+        "step": 0,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.57
+      },
+      {
+        "type": "drum",
+        "step": 8,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.57
+      },
+      {
+        "type": "drum",
+        "step": 16,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.57
+      },
+      {
+        "type": "drum",
+        "step": 24,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.57
+      },
+      {
+        "type": "drum",
+        "step": 32,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.57
+      },
+      {
+        "type": "drum",
+        "step": 40,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.57
+      },
+      {
+        "type": "drum",
+        "step": 48,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.57
+      },
+      {
+        "type": "drum",
+        "step": 56,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.57
+      }
+    ]
+  },
+  "boundary": {
+    "entryGroup": "tonic",
+    "exitGroup": "tonic"
+  },
+  "motifRef": {
+    "id": "demo-main",
+    "revision": 1
+  },
+  "license": "CC0-1.0",
+  "attribution": "Aureolus_Omicron — \"15 Melodic RPG Chiptunes\" (https://opengameart.org/content/15-melodic-rpg-chiptunes)",
+  "demo": false,
+  "metadata": {
+    "description": "From rpgchip02_bittersweet_story.mid, source bars 29–30. D minor → E phrygian; half-time (one source bar = two bars) at the era tempo (source 72 bpm). Roles: lead = ch2, bass = ch5, arp = ch1. Mood: D minor with ♭2 and chromatic turns at 72 bpm: uneasy; its ♭2 suits phrygian. Does not quote the motif (imported material).",
+    "composer": "Aureolus_Omicron (OpenGameArt, CC0); adapted by tools/music/importMidi.ts"
+  }
+}

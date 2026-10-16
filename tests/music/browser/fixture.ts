@@ -3,7 +3,12 @@
  * `npm run test:music-browser`; never part of the production build).
  */
 import * as Tone from 'tone';
-import type { PhrasePlan, PlannedEvent } from '../../../src/music/core/phrasePlanner';
+import {
+  compilePhrase,
+  type PhrasePlan,
+  type PlannedEvent,
+} from '../../../src/music/core/phrasePlanner';
+import { analyzePattern } from '../../../src/music/core/validation';
 import type { PresetDocument } from '../../../src/music/data/patterns.generated';
 import { createToneBackend } from '../../../src/music/backend/toneBackend';
 import { buildCatalog } from '../../../src/music/core/catalog';
@@ -342,6 +347,50 @@ async function liveRelease(presets: PresetDocument[]) {
   return { early, late };
 }
 
+/**
+ * Every imported pattern (non-demo, attributed third-party material) rendered alone for one
+ * phrase through the real Tone backend with all roles of its era on: loudness, peak, drops.
+ */
+async function importedPatterns() {
+  const { catalog, diagnostics } = buildCatalog({
+    eras: repository('eras'),
+    presets: repository('presets'),
+    arrangements: repository('arrangements'),
+    motifs: repository('motif'),
+    patterns: repository('patterns'),
+  });
+  const results: { key: string; rms: number; peak: number; dropped: number }[] = [];
+  for (const pattern of catalog.patterns.filter((p) => !p.demo && p.attribution)) {
+    const normalized = analyzePattern(pattern, catalog).normalized;
+    const base = catalog.arrangements.get(
+      catalog.eras.get(pattern.eraId)?.defaultArrangement ?? '',
+    );
+    if (!normalized || !base) throw new Error(`${pattern.id}: not playable`);
+    const arrangement = {
+      ...base,
+      roles: Object.fromEntries(
+        Object.entries(base.roles).flatMap(([role, a]) =>
+          a ? [[role, { ...a, enabled: true }] as const] : [],
+        ),
+      ),
+    };
+    let dropped = 0;
+    const buffer = await Tone.Offline(() => {
+      const backend = createToneBackend(Tone, { volume: 1 });
+      backend.loadPresets([...catalog.presets.values()]);
+      const plan = compilePhrase(normalized, arrangement, catalog.presets, 0, backend.ppq);
+      dropped = plan.dropped;
+      backend.schedulePhrase(plan, () => {});
+      backend.start();
+    }, 8.5);
+    const { windows, peak } = analyse(buffer);
+    const phrase = windows.slice(0, 160);
+    const rms = Math.sqrt(phrase.reduce((sum, v) => sum + v * v, 0) / phrase.length);
+    results.push({ key: `${pattern.id}@${pattern.revision}`, rms, peak, dropped });
+  }
+  return { errors: diagnostics.filter((d) => d.level === 'error').length, results };
+}
+
 (window as unknown as { musicFixture: unknown }).musicFixture = {
   render,
   lifecycleCycles,
@@ -351,4 +400,5 @@ async function liveRelease(presets: PresetDocument[]) {
   sfxMix,
   longRender,
   liveRelease,
+  importedPatterns,
 };

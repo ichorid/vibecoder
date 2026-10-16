@@ -457,3 +457,28 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   adding MIDI import (tools/music/midi*, music/sources/) at the same time; its unfinished
   midiImport.test.ts fails svelte-check — left alone, not staged.
 
+- 2026-10-16: CC0 MIDI import (user: "analyze them, match and remix" into the generative system).
+  Source: "15 Melodic RPG Chiptunes" by Aureolus_Omicron (OpenGameArt, CC0), 15 .mid files kept
+  in music/sources/rpgchip/ with plan.json (song → era + measured mood; game over skipped: 3/4
+  sting). New tools: tools/music/midiFile.ts (dependency-free SMF parser), midiImportLib.ts,
+  importMidi.ts (`npm run music:import-midi [-- --check]`). Pipeline per song: key by
+  Krumhansl profile in the target mode's family, channel → role (active low line = bass,
+  highest independent melody = lead, busiest other line = arp, else pads arpeggiated; pads =
+  shared onsets + slow or ≤ 6 pitches), transpose + recolour degree→degree into the era mode,
+  quantize (half-time when closer to the source tempo), one chord per bar, four-bar windows that
+  enter on the tonic chord (mode quality) and exit on I, V, or a chord the source resolves to I;
+  near-duplicates skipped with the validator's own similarity rule; kit polyphony respected.
+  When no window fits, the reading is searched over the 4 best tonics × both stretches (The
+  Evil One profiles as G minor but circles E). Battle 2 moved acceleration → orchestration (its
+  tonic chord is minor). Result: 45 unreviewed candidates (demo: false, CC0, attribution) in all
+  six eras (discovery 10, acceleration 4, orchestration 8, recursion 10, self-improvement 6,
+  singularity 7); music:validate 0 errors (707 warnings, chord/chromatic notes); every pattern
+  renders through real Tone with no dropped event, RMS 0.028–0.087, peak ≤ 0.36
+  (tests/browser/music-imported.spec.ts); dev Lab lists them. Approved/demo packs unchanged —
+  they ship only after a human approves them in the Lab. Two music tests assumed the corpus size
+  (4 demo patterns; 3 singularity patterns) and now scope/derive it.
+- F20: the validator does not apply per-role polyphony to drums, but the phrase planner does
+  (whisper-kit = 2): an import with three hits on a step dropped one silently. The importer caps
+  hits per step (kick > snare > hat) and a test asserts compilePhrase drops nothing.
+- NOTE: another session has uncommitted changes in src/game, src/app, src/content,
+  src/persistence; left untouched.

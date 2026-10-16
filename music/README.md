@@ -16,6 +16,7 @@ published as a **pack** the game plays. Code: `src/music/` (engine), `src/music-
 | `patterns/<era>/<id>.v<revision>.json` | compositions; a change is a new revision file                                     |
 | `reviews/`                             | review files exported from the Lab (input to the pack)                            |
 | `composer-prompts/`                    | lead/era composer templates for `music:prompt`                                    |
+| `sources/<set>/`                       | third-party CC0 MIDI + `plan.json` for `music:import-midi`                        |
 
 ## Workflow
 
@@ -42,6 +43,20 @@ npm run test:music                       # engine/tool tests
    a committed pack is out of date. The demo pack: `npm run music:pack -- --mode demo`.
 6. **Feedback to a composer** — _COPY FEEDBACK PROMPT_ in the Lab, or
    `npm run music:prompt -- --era <id> [--template era|lead] [--out task.md]`.
+
+## Imported CC0 MIDI (candidates)
+
+`npm run music:import-midi` turns the songs listed in `sources/rpgchip/plan.json` (Aureolus_Omicron,
+"15 Melodic RPG Chiptunes", CC0) into **unreviewed** patterns `patterns/<era>/rpg-*.v1.json`.
+Per song it reads the key and the chords, maps channels to lead / bass / arp / percussion,
+transposes into the era key and recolours scale degrees into the era mode (e.g. minor ♭6 → dorian
+6), quantizes onto the era clock (slow songs half-time), then cuts four-bar windows that start on
+the tonic chord and end on the tonic or dominant, skipping near-duplicates. The plan says which
+era each song feeds and why (its `mood`); edit it to move a song, pin `mode`, `stretch`,
+`sourceTonic` or channel `roles`, and run the import again. `-- --check` fails when the files
+differ from the importer's output. Listen in the Lab (`npm run dev:music-lab`, filter by era),
+review, export reviews, publish as above. A reviewed import is never overwritten: change the
+importer, then add `revision + 1`.
 
 ## Composing the real soundtrack (later work)
 

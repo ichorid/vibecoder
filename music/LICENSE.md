@@ -13,6 +13,10 @@ Current material:
 - `motif/demo-main.json` and the four `patterns/*/*-demo-*.v1.json` files are **temporary demo
   material** written for this repository's infrastructure stage, dedicated under `CC0-1.0`. They
   are labelled `demo: true` / motif `status: "demo"` and are not the approved soundtrack.
+- `patterns/*/rpg-*.v1.json` are adapted from **"15 Melodic RPG Chiptunes" by Aureolus_Omicron**
+  (<https://opengameart.org/content/15-melodic-rpg-chiptunes>), dedicated under `CC0-1.0`; the
+  source MIDI files are kept in `sources/rpgchip/`. CC0 needs no credit; each file still names
+  the author in `attribution`, and the material is never presented as original work.
 - Era, preset, arrangement and schema files are configuration and are covered by Apache-2.0
   with the code.
 

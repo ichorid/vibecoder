@@ -1,0 +1,102 @@
+{
+  "source": {
+    "title": "15 Melodic RPG Chiptunes",
+    "author": "Aureolus_Omicron",
+    "url": "https://opengameart.org/content/15-melodic-rpg-chiptunes",
+    "license": "CC0-1.0"
+  },
+  "maxPerSong": 4,
+  "songs": [
+    {
+      "file": "rpgchip01_title_screen.mid",
+      "id": "rpg-title",
+      "era": "discovery",
+      "mood": "C major, purely diatonic, bright square chords under a high lead: the cheerful start."
+    },
+    {
+      "file": "rpgchip03_town.mid",
+      "id": "rpg-town",
+      "era": "discovery",
+      "mood": "E major with a light mixolydian ♭7, two independent melodies over pads: friendly, adventurous."
+    },
+    {
+      "file": "rpgchip04_in_the_royal_court.mid",
+      "id": "rpg-court",
+      "era": "discovery",
+      "mood": "G major, stately bass walk G–F#–E–B, running arpeggio: orchestral NES."
+    },
+    {
+      "file": "rpgchip11_airship.mid",
+      "id": "rpg-airship",
+      "era": "acceleration",
+      "mood": "A♭ major with a lydian ♯4, the densest track (10.6 notes per beat): soaring optimism."
+    },
+    {
+      "file": "rpgchip10_fountain_of_the_fairies.mid",
+      "id": "rpg-fountain",
+      "era": "orchestration",
+      "mood": "C# minor, two channels of continuous arpeggios echoing each other: mechanical, layered."
+    },
+    {
+      "file": "rpgchip07_the_shrine_of_mysteries.mid",
+      "id": "rpg-shrine",
+      "era": "orchestration",
+      "mood": "B♭ minor, an unbroken sixteenth-note line over pads, ♭2 and ♯4 colour: obsessive."
+    },
+    {
+      "file": "rpgchip14_battle_2.mid",
+      "id": "rpg-battle2",
+      "era": "orchestration",
+      "mood": "E♭ with a minor tonic chord (E♭m), driving at 144 bpm and the most chromatic track: intense; minor, so dorian rather than mixolydian."
+    },
+    {
+      "file": "rpgchip06_dungeon.mid",
+      "id": "rpg-dungeon",
+      "era": "recursion",
+      "mood": "E minor, the bass walks down chromatically (E D C B … B♭ A♭ F#): anxious."
+    },
+    {
+      "file": "rpgchip13_battle_1.mid",
+      "id": "rpg-battle1",
+      "era": "recursion",
+      "mood": "G minor grinding a ♭2 over a pedal, busy drums: complex, tense."
+    },
+    {
+      "file": "rpgchip09_rainy_streets.mid",
+      "id": "rpg-rainy",
+      "era": "recursion",
+      "mood": "B minor, a moving bass line and dense drums under sparse pads: restless."
+    },
+    {
+      "file": "rpgchip12_the_evil_one.mid",
+      "id": "rpg-evil",
+      "era": "self-improvement",
+      "mood": "E minor (the importer's reading; the profile alone says G minor): a bass sliding E–E♭–D–C, ominous and unstable."
+    },
+    {
+      "file": "rpgchip02_bittersweet_story.mid",
+      "id": "rpg-bittersweet",
+      "era": "self-improvement",
+      "mode": "phrygian",
+      "mood": "D minor with ♭2 and chromatic turns at 72 bpm: uneasy; its ♭2 suits phrygian."
+    },
+    {
+      "file": "rpgchip08_castle_on_the_mountain.mid",
+      "id": "rpg-castle",
+      "era": "singularity",
+      "mood": "B♭ minor, one bass note every four bars, 1.6 notes per beat: cold and minimal."
+    },
+    {
+      "file": "rpgchip05_pavane.mid",
+      "id": "rpg-pavane",
+      "era": "singularity",
+      "mood": "D minor, sparse, purely modal (no chromatic notes): solemn, existential."
+    }
+  ],
+  "skipped": [
+    {
+      "file": "rpgchip15_game_over.mid",
+      "reason": "A 25-second 3/4 ending sting: it cannot share the eras' 4/4 four-bar clock."
+    }
+  ]
+}
