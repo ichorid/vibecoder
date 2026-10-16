@@ -95,13 +95,6 @@
     {@render world?.()}
     {#if game.ending}
       <EndingPanel ending={game.ending} />
-    {:else if game.announcement}
-      {@const announcement = game.announcement}
-      <UnlockAnnouncement
-        {announcement}
-        illustrationUrl={illustrationUrl(announcement.illustrationId)}
-        onAcknowledge={() => acknowledge(announcement.id)}
-      />
     {/if}
   </div>
   <div class="controls" bind:this={controls}>
@@ -200,10 +193,20 @@
       </ol>
     {/if}
   </div>
+  <!-- A discovery takes over everything below the header (which stays usable). -->
+  {#if !game.ending && game.announcement}
+    {@const announcement = game.announcement}
+    <UnlockAnnouncement
+      {announcement}
+      illustrationUrl={illustrationUrl(announcement.illustrationId)}
+      onAcknowledge={() => acknowledge(announcement.id)}
+    />
+  {/if}
 </section>
 
 <style>
   .game-view {
+    position: relative;
     display: grid;
     grid-template-rows: minmax(0, 1fr) auto;
     height: 100%;
@@ -283,7 +286,7 @@
     font-weight: 800;
   }
   .offer-desc {
-    font-size: 12px;
+    font-size: 14px;
     color: var(--ink-soft);
   }
   .price {
@@ -331,13 +334,20 @@
   .log {
     list-style: none;
     margin: 0;
-    padding: 6px 8px;
+    padding: 6px 8px 8px;
     max-height: 7.5em;
     overflow: hidden;
+    /* The newest line sits fully visible at the bottom; older ones clip at the top. */
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
     background: var(--log-bg);
     color: var(--log-ink);
     font-size: 12px;
     line-height: 1.45;
+  }
+  .log li {
+    flex: none;
   }
   .time {
     opacity: 0.7;

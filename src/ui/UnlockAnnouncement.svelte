@@ -11,34 +11,52 @@
   let failed = $state(false);
 </script>
 
-<section class="announcement" aria-labelledby="announcement-title" data-testid="announcement">
-  <p class="kicker">NEW TECHNOLOGY</p>
-  <div class="frame">
-    {#if illustrationUrl && !failed}
-      <img
-        class="pixelated"
-        src={illustrationUrl}
-        alt=""
-        width="128"
-        height="96"
-        onerror={() => (failed = true)}
-      />
-    {:else}
-      <div class="fallback" aria-hidden="true"></div>
-    {/if}
+<div class="backdrop">
+  <div
+    class="announcement"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="announcement-title"
+    data-testid="announcement"
+  >
+    <p class="kicker">NEW TECHNOLOGY</p>
+    <div class="frame">
+      {#if illustrationUrl && !failed}
+        <img
+          class="pixelated"
+          src={illustrationUrl}
+          alt=""
+          width="128"
+          height="96"
+          onerror={() => (failed = true)}
+        />
+      {:else}
+        <div class="fallback" aria-hidden="true"></div>
+      {/if}
+    </div>
+    <h2 id="announcement-title">{announcement.title}</h2>
+    <p class="description">{announcement.description}</p>
+    <button type="button" class="continue" onclick={onAcknowledge}>CONTINUE</button>
   </div>
-  <h2 id="announcement-title">{announcement.title}</h2>
-  <p class="description">{announcement.description}</p>
-  <button type="button" class="continue" onclick={onAcknowledge}>CONTINUE</button>
-</section>
+</div>
 
 <style>
-  .announcement {
+  /* Takes over the whole Game view below the header (navigation stays usable) so even small
+     phones show it complete; the world's reveal stays visible behind the translucent backdrop. */
+  .backdrop {
     position: absolute;
-    left: 8px;
-    right: 8px;
-    bottom: 8px;
-    max-height: calc(100% - 16px);
+    inset: 0;
+    z-index: 40;
+    display: grid;
+    place-items: center;
+    padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
+    background: color-mix(in srgb, var(--log-bg) 45%, transparent);
+  }
+  .announcement {
+    position: relative;
+    width: min(420px, 100%);
+    max-height: 100%;
+    box-sizing: border-box;
     display: flex;
     flex-direction: column;
     align-items: center;

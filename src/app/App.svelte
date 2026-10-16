@@ -265,8 +265,8 @@
     max-width: 560px;
     margin: 0 auto;
     background: var(--bg);
-    border-left: 3px solid var(--border);
-    border-right: 3px solid var(--border);
+    border: 3px solid var(--border);
+    box-sizing: border-box;
   }
   .main {
     position: relative;
@@ -281,7 +281,7 @@
   }
   .save-warning {
     position: absolute;
-    z-index: 20;
+    z-index: 45; /* above the discovery overlay (40): status and RETRY stay reachable */
     left: 8px;
     right: 8px;
     top: 4px;
