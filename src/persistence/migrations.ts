@@ -13,10 +13,11 @@
  * - 3 → 4: Ship It. Runs get `releases: []` and a release RNG stream derived from the run ID
  *   (old saves have no seed); the retired `ship-original` choice is dropped from `choices` (a
  *   run that took it has already ended with the legacy `three-users` ending, which stays).
+ * - 4 → 5: the corner plant. Runs get a fresh, living plant (`water` 60).
  */
 import { deriveSeed } from '../game/random';
 
-export const CURRENT_SCHEMA_VERSION = 4;
+export const CURRENT_SCHEMA_VERSION = 5;
 
 /** 6 tokens/s × 300 s: what one old supply level gave over five minutes. */
 export const TOKENS_PER_OLD_SUPPLY_LEVEL = 1800;
@@ -101,10 +102,27 @@ function v3ToV4(envelope: Record<string, unknown>): MigrationResult {
   };
 }
 
+function v4ToV5(envelope: Record<string, unknown>): MigrationResult {
+  const run = envelope.run;
+  if (!isRecord(run)) return { ok: false, unsupported: false, reason: 'v4 save without a run' };
+  return {
+    ok: true,
+    value: {
+      ...envelope,
+      schemaVersion: 5,
+      run: {
+        ...run,
+        plant: { water: 60, alive: true, diedAtActiveMs: null, cause: null, warned: false },
+      },
+    },
+  };
+}
+
 const STEPS: Record<number, (envelope: Record<string, unknown>) => MigrationResult> = {
   1: v1ToV2,
   2: v2ToV3,
   3: v3ToV4,
+  4: v4ToV5,
 };
 
 export function migrate(envelope: Record<string, unknown>): MigrationResult {

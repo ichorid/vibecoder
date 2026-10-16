@@ -334,3 +334,9 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   countdown under the stats; Setup explains it. Save: `economy.revenue` may be negative.
   Also: a new run clears stale world clusters (renderer reconcile); the dead-cat title puts the
   fate on a second line; memorial photos 10 % smaller.
+- 2026-10-16: room taps (user): poster jokes ("+1 motivation (does nothing)" …, no longer a
+  press), bookshelf "no time for that", window "maybe other time", monitor = main action, plant =
+  water it. The plant is a care toy with no economy effect (src/game/plant.ts): water 60, drains
+  8/min, +35 per watering, drowns above 120, dries at 0, thirsty warning once below 25; sprite
+  `room-plant-{ok,thirsty,soggy,dead}` split out of room-back. Save schema 5 (4→5 adds a living
+  plant); v4 fixtures kept, v5 added.

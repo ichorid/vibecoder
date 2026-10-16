@@ -128,6 +128,18 @@ export interface BalanceDefinition {
   readonly tokens: TokenBalance;
   readonly chatter: ChatterBalance;
   readonly money: MoneyBalance;
+  readonly plant: PlantBalance;
+}
+
+/** The corner plant: water drains over active time; each watering adds some. */
+export interface PlantBalance {
+  readonly start: number;
+  readonly drainPerMinute: number;
+  readonly perWatering: number;
+  /** More water than this and it drowns. */
+  readonly drownAbove: number;
+  readonly thirstyBelow: number;
+  readonly soggyAbove: number;
 }
 
 /** When costs exceed revenue the bank lends: down to this many seconds of costs, with interest. */

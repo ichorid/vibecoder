@@ -74,6 +74,7 @@ export function createRun(seed: number, runId: string): RunState {
     catPlaySeq: 0,
     choices: {},
     releases: [],
+    plant: { water: 60, alive: true, diedAtActiveMs: null, cause: null, warned: false },
     ending: null,
   };
 }

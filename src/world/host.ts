@@ -9,7 +9,7 @@ export interface WorldProjection extends WorldViewModel {
 
 /** A tap on an interactive world object; x/y in CSS pixels relative to the world canvas. */
 export interface WorldTap {
-  readonly target: 'cat' | 'bowl' | 'poster';
+  readonly target: 'cat' | 'bowl' | 'poster' | 'shelf' | 'window' | 'monitor' | 'plant';
   readonly x: number;
   readonly y: number;
 }

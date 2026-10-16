@@ -9,6 +9,7 @@ import {
   isUpgradeOffered,
   resolveDiscoveries,
 } from './progression';
+import { waterPlant } from './plant';
 import { shipRelease } from './releases';
 import { appendLog } from './log';
 import type { Transition } from './simulation';
@@ -101,6 +102,10 @@ export function applyCommand(
         facts: [{ type: 'choiceMade', id: choice.id }, ...ended.facts],
         result: 'applied',
       };
+    }
+    case 'waterPlant': {
+      const watered = waterPlant(run, catalog);
+      return watered ? { run: watered, facts: [], result: 'applied' } : reject(run, 'unavailable');
     }
     case 'shipRelease': {
       const shipped = shipRelease(run, catalog);

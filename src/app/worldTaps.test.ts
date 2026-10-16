@@ -56,12 +56,37 @@ async function setup() {
 }
 
 describe('tapping world objects', () => {
-  it('the poster works like a primary press and floats the gain', async () => {
+  it('the monitor works like a primary press and floats the gain', async () => {
     const t = await setup();
-    await t.tap('poster');
+    await t.tap('monitor');
     t.tick(100);
     expect(t.run().economy.output).toBe(1);
     expect(t.floats()).toContain('+1');
+  });
+
+  it('the poster, the bookshelf and the window only joke (nothing changes)', async () => {
+    const t = await setup();
+    await t.tap('poster');
+    await t.tap('poster');
+    await t.tap('shelf');
+    await t.tap('window');
+    t.tick(100);
+    expect(t.run().economy.output).toBe(0);
+    expect(t.floats()).toEqual([
+      '+1 motivation (does nothing)',
+      '+1 inspiration (expired)',
+      'no time for that',
+      'maybe other time',
+    ]);
+  });
+
+  it('the plant can be watered (and drowned)', async () => {
+    const t = await setup();
+    await t.tap('plant');
+    expect(t.floats().at(-1)).toMatch(/^glug/);
+    await t.tap('plant');
+    expect(t.run().plant.alive).toBe(false);
+    expect(t.floats().at(-1)).toBe('oops');
   });
 
   it('the bowl feeds the cat and says so', async () => {

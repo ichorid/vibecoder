@@ -37,6 +37,7 @@ export function createTestCatalog(): Catalog {
       logVisibleLines: 5,
       chatter: balance.chatter,
       money: balance.money,
+      plant: balance.plant,
     },
     primaryActionLabels: {
       writeCode: 'WRITE CODE',

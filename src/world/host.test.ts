@@ -18,6 +18,7 @@ const world: WorldProjection = {
   cat: { alive: true, presentation: 'normal', round: false },
   releases: 0,
   computeSlots: 0,
+  plant: 'ok',
   theme: 'light',
   reducedMotion: false,
 };

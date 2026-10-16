@@ -109,6 +109,16 @@ export type HistoryEntry =
   | { kind: 'ending'; id: EndingId; activeMs: number }
   | { kind: 'release'; window: ReleaseWindow; outcome: ReleaseResult; activeMs: number };
 
+export interface PlantState {
+  /** 0 = bone dry; above the drown line it rots. */
+  water: number;
+  alive: boolean;
+  diedAtActiveMs: number | null;
+  cause: 'drowned' | 'dried' | null;
+  /** The thirsty warning was already logged since the last watering. */
+  warned: boolean;
+}
+
 /** What the release wheel landed on: a silly slice or the gold one. */
 export type ReleaseResult = ReleaseOutcomeId | 'jackpot';
 
@@ -212,8 +222,10 @@ export interface RunState {
   /** Last issued PLAY attempt ID. */
   catPlaySeq: number;
   choices: Partial<Record<ChoiceId, ChoiceRecord>>;
-  /** Shipped releases, in ship order (window open/closed state is derived, not stored). */
+  /** Shipped releases, in ship order. */
   releases: ReleaseRecord[];
+  /** The corner plant: watered too often it drowns, too rarely it dries out. */
+  plant: PlantState;
   ending: EndingRecord | null;
 }
 
@@ -224,6 +236,7 @@ export type GameCommand =
   | { type: 'buyUpgrade'; id: UpgradeId }
   | { type: 'acknowledgeUnlock'; id: TechnologyId }
   | { type: 'shipRelease' }
+  | { type: 'waterPlant' }
   | { type: 'feedCat' }
   | { type: 'petCat' }
   | { type: 'startCatPlay' }

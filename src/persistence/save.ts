@@ -29,6 +29,22 @@ function releaseWindow(value: unknown, path: string): ReleaseWindow {
   return window;
 }
 
+function decodePlant(value: unknown, path: string): RunState['plant'] {
+  const raw = record(value, path);
+  const plant: RunState['plant'] = {
+    water: num(raw.water, `${path}.water`, { min: 0, max: 1000 }),
+    alive: bool(raw.alive, `${path}.alive`),
+    diedAtActiveMs: nullableNum(raw.diedAtActiveMs, `${path}.diedAtActiveMs`, nonNegative),
+    cause:
+      raw.cause === null ? null : oneOf(raw.cause, `${path}.cause`, ['drowned', 'dried'] as const),
+    warned: bool(raw.warned, `${path}.warned`),
+  };
+  if (plant.alive !== (plant.diedAtActiveMs === null) || plant.alive !== (plant.cause === null)) {
+    fail(path, 'a dead plant needs a time and a cause, a living one neither');
+  }
+  return plant;
+}
+
 function decodeRelease(value: unknown, path: string): ReleaseRecord {
   const raw = record(value, path);
   const outcome = oneOf(raw.outcome, `${path}.outcome`, RELEASE_RESULTS);
@@ -387,6 +403,7 @@ export function decodeRun(value: unknown, path = 'run'): RunState {
     catPlaySeq: num(raw.catPlaySeq, `${path}.catPlaySeq`, { min: 0, integer: true }),
     choices: decodeChoices(raw.choices, `${path}.choices`),
     releases: list(raw.releases, `${path}.releases`, decodeRelease, MAX_RELEASES),
+    plant: decodePlant(raw.plant, `${path}.plant`),
     ending: raw.ending === null ? null : decodeEnding(raw.ending, `${path}.ending`),
   };
   if ((run.status === 'ended') !== (run.ending !== null))

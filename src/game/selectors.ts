@@ -14,6 +14,7 @@ import { isChoiceOffered } from './endings';
 import { currentPrimaryAction, findTechnology, isUpgradeOffered } from './progression';
 import { cardEffects } from './effectText';
 import { creditState, type CreditState } from './money';
+import { plantLook, type PlantLook } from './plant';
 import { upgradeImpact } from './setup';
 import { deriveSeed } from './random';
 import { catAware } from './catAware';
@@ -545,6 +546,8 @@ export interface WorldViewModel {
   readonly releases: number;
   /** Bought compute slots (each stacks as a server unit in the room). */
   readonly computeSlots: number;
+  /** How the corner plant looks (it can be watered, and drowned, and forgotten). */
+  readonly plant: PlantLook;
 }
 
 /** Discovered-world projection for the renderer: unlocked IDs and the cat's presentation facts. */
@@ -560,6 +563,7 @@ export function selectWorld(run: ReadonlyRun, catalog: Catalog): WorldViewModel 
     },
     releases: run.releases.length,
     computeSlots: run.upgradeLevels['compute-slot'] ?? 0,
+    plant: plantLook(run, catalog),
   };
 }
 

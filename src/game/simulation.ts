@@ -1,5 +1,6 @@
 import { evaluateChatter } from './chatter';
 import { creditNotices } from './money';
+import { updatePlant } from './plant';
 import { releaseNotices } from './releases';
 import { updateAttention, updateCat } from './cat';
 import { advanceSession, sessionOf, withSession } from './catPlaySession';
@@ -61,6 +62,7 @@ export function stepRun(run: RunState, stepMs: number, catalog: Catalog): Transi
   const automatic = resolveAutomaticEnding(next, catalog);
   next = automatic.run;
   facts.push(...automatic.facts);
+  next = updatePlant(next, stepMs, catalog);
   // A release that became available, and the credit line's milestones, get one line each.
   next = releaseNotices(next, catalog);
   next = creditNotices(next, catalog);

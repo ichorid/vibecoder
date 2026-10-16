@@ -381,17 +381,24 @@ export const ROOM_ADDITION: WorldAddition = {
 export interface RoomExtras {
   readonly releases: number;
   readonly computeSlots: number;
+  /** The corner plant's look (`room-plant-<look>`); the room always has the plant. */
+  readonly plant?: 'ok' | 'thirsty' | 'soggy' | 'dead';
 }
 
 /** An addition with framed releases on the wall and the bought compute slots stacked up. */
 export function withRoomExtras(addition: WorldAddition, extras: RoomExtras): WorldAddition {
   const frames = (addition.frameSlots ?? []).slice(0, Math.max(0, extras.releases));
   const compute = (addition.computeSlots ?? []).slice(0, Math.max(0, extras.computeSlots));
-  if (frames.length === 0 && compute.length === 0) return addition;
+  const plant =
+    addition.id === 'room' && extras.plant
+      ? [{ sprite: `room-plant-${extras.plant}`, x: 56, y: -22 }]
+      : [];
+  if (frames.length === 0 && compute.length === 0 && plant.length === 0) return addition;
   return {
     ...addition,
     placements: [
       ...addition.placements,
+      ...plant,
       ...frames.map((slot) => ({ sprite: 'release-frame', x: slot.x, y: slot.y })),
       ...compute.map((slot) => ({ sprite: 'compute-slot', x: slot.x, y: slot.y })),
     ],

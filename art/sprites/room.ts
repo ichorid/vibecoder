@@ -55,20 +55,7 @@ function roomBack(p: Palette): PixelCanvas {
   c.rect(86, 19, 7, 7, p.metal);
   c.set(88, 21, p.ledBlue);
   c.set(91, 21, p.ledBlue);
-  // Plant in the corner.
-  c.rect(150, 64, 14, 18, p.pot);
-  c.rect(149, 64, 16, 3, p.rugDark);
-  for (const [x, y, r] of [
-    [152, 56, 5],
-    [160, 52, 5],
-    [156, 46, 4],
-    [163, 60, 4],
-    [148, 60, 4],
-  ] as const) {
-    c.disc(x, y, r, p.plant);
-  }
-  c.disc(156, 50, 2, p.plantDark);
-  c.disc(150, 58, 2, p.plantDark);
+  // The plant in the corner is its own sprite (`room-plant-*`): it can be watered.
   // Floor lamp.
   c.rect(108, 40, 2, 44, p.metalDark);
   c.rect(102, 34, 14, 7, p.lamp);
@@ -169,6 +156,42 @@ function bowl(p: Palette): PixelCanvas {
   return c;
 }
 
+export type PlantLook = 'ok' | 'thirsty' | 'soggy' | 'dead';
+
+/** The corner plant (26×42, drawn where the room used to paint it): four states of care. */
+function plant(p: Palette, look: PlantLook): PixelCanvas {
+  const c = createCanvas(26, 42);
+  const droop = look === 'thirsty' ? 3 : look === 'dead' ? 6 : 0;
+  const leaf = look === 'dead' ? p.woodLight : look === 'soggy' ? p.plantDark : p.plant;
+  const shade = look === 'dead' ? p.wood : p.plantDark;
+  const size = look === 'dead' ? -2 : look === 'thirsty' ? -1 : 0;
+  for (const [x, y, r] of [
+    [8, 14, 5],
+    [16, 10, 5],
+    [12, 4, 4],
+    [19, 18, 4],
+    [4, 18, 4],
+  ] as const) {
+    c.disc(x, y + droop, Math.max(1, r + size), leaf);
+  }
+  c.disc(12, 8 + droop, Math.max(1, 2 + size), shade);
+  c.disc(6, 16 + droop, Math.max(1, 2 + size), shade);
+  if (look === 'dead') {
+    // Bare stems sagging over the rim.
+    c.rect(11, 12, 1, 10, p.woodDark);
+    c.rect(15, 14, 1, 8, p.woodDark);
+  }
+  c.rect(6, 22, 14, 18, p.pot);
+  c.rect(5, 22, 16, 3, p.rugDark);
+  if (look === 'soggy') {
+    // Overflowing: a puddle and drips.
+    c.rect(2, 40, 22, 2, p.ledBlue);
+    c.set(7, 30, p.ledBlue);
+    c.set(18, 34, p.ledBlue);
+  }
+  return c;
+}
+
 /** A shipped release, framed on the wall: a tiny certificate with a launch rocket. */
 function releaseFrame(p: Palette): PixelCanvas {
   const c = createCanvas(7, 9);
@@ -203,6 +226,11 @@ export function roomSprites(p: Palette): SpriteFrames[] {
     { tag: 'programmer-typing', frameMs: 180, frames: [0, 1].map((f) => programmer(p, f)) },
     { tag: 'cat-bowl', frameMs: 1000, frames: [bowl(p)] },
     { tag: 'release-frame', frameMs: 1000, frames: [releaseFrame(p)] },
+    ...(['ok', 'thirsty', 'soggy', 'dead'] as const).map((look) => ({
+      tag: `room-plant-${look}`,
+      frameMs: 1000,
+      frames: [plant(p, look)],
+    })),
     { tag: 'compute-slot', frameMs: 520, frames: [0, 1].map((f) => computeSlot(p, f)) },
   ];
 }

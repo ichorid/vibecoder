@@ -2,7 +2,10 @@ import { expect, test, type Page } from '@playwright/test';
 import { freshGame, headerStat } from './helpers';
 
 /** Tap a world object at the screen position the renderer publishes for it. */
-async function tapWorld(page: Page, target: 'Poster' | 'Bowl' | 'Cat') {
+async function tapWorld(
+  page: Page,
+  target: 'Poster' | 'Bowl' | 'Cat' | 'Monitor' | 'Shelf' | 'Window' | 'Plant',
+) {
   const canvas = page.getByTestId('world-canvas');
   await expect(canvas).not.toHaveAttribute(`data-hit-${target.toLowerCase()}`, '');
   const value = await canvas.getAttribute(`data-hit-${target.toLowerCase()}`);
@@ -12,13 +15,31 @@ async function tapWorld(page: Page, target: 'Poster' | 'Bowl' | 'Cat') {
   await page.mouse.click(box.x + x, box.y + y);
 }
 
-test('the poster, the bowl and the cat in the room are tappable', async ({ page }) => {
+test('the room is tappable: monitor works, poster/shelf/window joke, bowl feeds, plant drinks, cat purrs', async ({
+  page,
+}) => {
   await freshGame(page);
   await expect(page.getByTestId('world-canvas')).toHaveAttribute('data-ticker', 'running');
 
-  await tapWorld(page, 'Poster');
+  await tapWorld(page, 'Monitor');
   await expect.poll(() => headerStat(page)).toBe('1');
   await expect(page.getByTestId('floating-gain').filter({ hasText: '+1' }).first()).toBeVisible();
+
+  await tapWorld(page, 'Poster');
+  await expect(page.getByTestId('floating-gain').filter({ hasText: 'motivation' })).toHaveCount(1);
+  await tapWorld(page, 'Shelf');
+  await expect(
+    page.getByTestId('floating-gain').filter({ hasText: 'no time for that' }),
+  ).toHaveCount(1);
+  await tapWorld(page, 'Window');
+  await expect(
+    page.getByTestId('floating-gain').filter({ hasText: 'maybe other time' }),
+  ).toHaveCount(1);
+  expect(await headerStat(page)).toBe('1');
+
+  await tapWorld(page, 'Plant');
+  await expect(page.getByTestId('floating-gain').filter({ hasText: 'glug' })).toHaveCount(1);
+  await expect(page.getByTestId('world-canvas')).toHaveAttribute('data-plant', 'soggy');
 
   await tapWorld(page, 'Bowl');
   await expect(

@@ -129,25 +129,27 @@ export function validateContent({
   return issues;
 }
 
-/** Ship It content: five windows in catalog order with growing prices, odds summing to 20 %. */
+/** Ship It content: five authored releases with growing prices, odds summing to 20 %. */
 function checkReleases(catalog: Catalog, issues: ContentIssue[]): void {
   const { windows, slices, comments } = catalog.releases;
-  if (windows.length !== 5) issues.push({ message: `releases: ${windows.length} windows, not 5` });
-  const order = catalog.technologies.map((t) => t.id as string);
+  if (windows.length !== 5) issues.push({ message: `releases: ${windows.length} authored, not 5` });
+  if (!catalog.technologies.some((t) => t.id === catalog.releases.availableFrom)) {
+    issues.push({ message: `releases: unknown technology "${catalog.releases.availableFrom}"` });
+  }
   windows.forEach((window, i) => {
     const previous = windows[i - 1];
-    if (!order.includes(window.technology)) {
+    if (window.window !== i + 1) {
       issues.push({
-        message: `release ${window.version}: unknown technology "${window.technology}"`,
+        message: `release ${window.version}: numbered ${window.window}, not ${i + 1}`,
       });
-    }
-    if (previous && order.indexOf(window.technology) <= order.indexOf(previous.technology)) {
-      issues.push({ message: `release ${window.version}: technologies out of catalog order` });
     }
     if (previous && window.price <= previous.price) {
       issues.push({ message: `release ${window.version}: price does not increase` });
     }
   });
+  if (catalog.releases.laterPriceGrowth <= 1) {
+    issues.push({ message: 'releases: later releases must cost more each time' });
+  }
   const weights = windows.reduce((sum, w) => sum + w.jackpotWeight, 0);
   if (Math.abs(weights - 20) > 1e-9) {
     issues.push({ message: `releases: jackpot weights sum to ${weights}, not 20` });
@@ -165,10 +167,10 @@ function checkReleases(catalog: Catalog, issues: ContentIssue[]): void {
     }
   }
   if (slices.length < windows.length) {
-    issues.push({ message: 'releases: fewer slices than windows (outcomes would repeat)' });
+    issues.push({ message: 'releases: fewer slices than releases (outcomes would repeat)' });
   }
   if (comments.length < windows.length) {
-    issues.push({ message: 'releases: fewer comments than windows (comments would repeat)' });
+    issues.push({ message: 'releases: fewer comments than releases (comments would repeat)' });
   }
   for (const comment of comments) {
     if (comment.text.length > 140) {

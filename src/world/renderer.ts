@@ -252,9 +252,13 @@ export async function createPixiRenderer(
   const ROOM_TARGETS = {
     poster: { x: -75, y: -53, w: 32, h: 40 },
     bowl: { x: 44, y: 38, w: 26, h: 20 },
+    shelf: { x: -32, y: -52, w: 44, h: 20 },
+    window: { x: 32, y: -54, w: 44, h: 38 },
+    monitor: { x: 2, y: -25, w: 48, h: 32 },
+    plant: { x: 58, y: -14, w: 22, h: 34 },
   } as const;
   for (const [target, r] of Object.entries(ROOM_TARGETS) as [
-    'poster' | 'bowl',
+    keyof typeof ROOM_TARGETS,
     { x: number; y: number; w: number; h: number },
   ][]) {
     const area = new Container();
@@ -553,11 +557,13 @@ export async function createPixiRenderer(
       ? withRoomExtras(addition, {
           releases: projection?.releases ?? 0,
           computeSlots: projection?.computeSlots ?? 0,
+          plant: projection?.plant ?? 'ok',
         })
       : addition;
   }
   let framesBuilt = 0;
   let computeBuilt = 0;
+  let plantBuilt = 'ok';
 
   function reconcile(): void {
     if (!projection) return;
@@ -582,7 +588,11 @@ export async function createPixiRenderer(
     }
     // A newly shipped release or bought compute slot: rebuild the room with it in place.
     const room = clusters.get(ROOM_ADDITION.id);
-    if (room && (framesBuilt !== projection.releases || computeBuilt !== projection.computeSlots)) {
+    const changedRoom =
+      framesBuilt !== projection.releases ||
+      computeBuilt !== projection.computeSlots ||
+      plantBuilt !== projection.plant;
+    if (room && changedRoom) {
       room.detail.parent?.destroy({ children: true });
       clusters.delete(ROOM_ADDITION.id);
       const addition = additionFor(ROOM_ADDITION.id);
@@ -591,6 +601,7 @@ export async function createPixiRenderer(
     }
     framesBuilt = projection.releases;
     computeBuilt = projection.computeSlots;
+    plantBuilt = projection.plant;
     const plan = planScene(new Set(clusters.keys()), projection, active);
     for (const id of plan.build) {
       const addition = additionFor(id);
@@ -631,6 +642,7 @@ export async function createPixiRenderer(
     data.sprites = String(sprites);
     data.releaseFrames = String(framesBuilt);
     data.computeSlots = String(computeBuilt);
+    data.plant = plantBuilt;
     // Screen centres of the tap targets (CSS px on the canvas), empty when not tappable.
     const at = (x: number, y: number) => {
       const p = root.toGlobal(new Point(x, y));
@@ -639,6 +651,10 @@ export async function createPixiRenderer(
     const roomVisible = hitLayer.visible;
     data.hitPoster = roomVisible ? at(-59, -33) : '';
     data.hitBowl = roomVisible ? at(57, 50) : '';
+    data.hitShelf = roomVisible ? at(-10, -42) : '';
+    data.hitWindow = roomVisible ? at(54, -35) : '';
+    data.hitMonitor = roomVisible ? at(26, -10) : '';
+    data.hitPlant = roomVisible ? at(69, 6) : '';
     data.hitCat =
       catSprite?.visible && catLevel === 'sprite' ? at(catPosition.x, catPosition.y - 5) : '';
   }

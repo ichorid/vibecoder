@@ -119,6 +119,41 @@ const scenes: Record<string, Scene> = {
     save: () => saveText(neglectedRun()),
     act: async (page) => page.getByRole('button', { name: 'HISTORY' }).click(),
   },
+  ...Object.fromEntries(
+    (['ok', 'thirsty', 'soggy', 'dead'] as const).map((look) => [
+      `room-${look}`,
+      {
+        width: 390,
+        height: 844,
+        save: () => {
+          const run = progressedRun(1, false, 41);
+          const water = { ok: 60, thirsty: 10, soggy: 110, dead: 0 }[look];
+          const releases = ([1, 2, 3, 4, 5] as const).map((window) => ({
+            window,
+            outcome: 'pivot' as const,
+            commentId: `c0${window}`,
+            catAlive: true,
+            activeMs: run.activeMs,
+          }));
+          return saveText({
+            ...run,
+            releases,
+            upgradeLevels: { ...run.upgradeLevels, 'compute-slot': 8 },
+            plant:
+              look === 'dead'
+                ? {
+                    water: 0,
+                    alive: false,
+                    diedAtActiveMs: 1,
+                    cause: 'dried' as const,
+                    warned: true,
+                  }
+                : { water, alive: true, diedAtActiveMs: null, cause: null, warned: false },
+          });
+        },
+      },
+    ]),
+  ),
   tech28Small: { width: 320, height: 568, save: () => saveText(progressedRun(28)) },
   stray: {
     width: 390,

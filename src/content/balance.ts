@@ -107,6 +107,15 @@ export const balance = {
   chatter: { minGapMs: 30_000, maxGapMs: 60_000, newestCount: 3, newestWeight: 3 },
   // Running at a loss borrows up to 3 minutes of costs, at 0.2 % interest per second.
   money: { creditSeconds: 180, interestPerSecond: 0.002 },
+  // Water it about every 4–6 minutes: twice in a row drowns it, forgetting it for ~8 dries it.
+  plant: {
+    start: 60,
+    drainPerMinute: 8,
+    perWatering: 35,
+    drownAbove: 120,
+    thirstyBelow: 25,
+    soggyAbove: 90,
+  },
   tokens: {
     perCodeBase: 6,
     packSeconds: 60,

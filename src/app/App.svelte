@@ -97,12 +97,43 @@
    * Taps on world objects are ordinary commands: the poster is a primary press, the bowl is FEED,
    * the cat is PET (its cooldown applies; a tap during it is only a meow).
    */
+  /** Room jokes, said in turn (the first one is the classic). */
+  const ROOM_JOKES = {
+    poster: [
+      '+1 motivation (does nothing)',
+      '+1 inspiration (expired)',
+      '+1 hustle (unpaid)',
+      '+0 code, +1 vibes',
+      '+1 grindset (non-refundable)',
+      'just one more. again.',
+    ],
+    shelf: ['no time for that', 'no time for that either', 'later. maybe. no.'],
+    window: ['maybe other time', 'maybe some other time', 'the sun can wait'],
+  } as const;
+  const jokeTurns: Record<keyof typeof ROOM_JOKES, number> = { poster: 0, shelf: 0, window: 0 };
+  function joke(target: keyof typeof ROOM_JOKES): string {
+    const lines = ROOM_JOKES[target];
+    const line = lines[jokeTurns[target] % lines.length] ?? lines[0];
+    jokeTurns[target] += 1;
+    return line;
+  }
+
   function onWorldTap(tap: WorldTap): string | null {
     switch (tap.target) {
-      case 'poster': {
+      case 'poster':
+      case 'shelf':
+      case 'window':
+        return joke(tap.target);
+      case 'monitor': {
+        // The monitor is where the work happens: tapping it is the main action.
         const gain = current().game.primaryAction.gain;
         if (api.dispatch({ type: 'primaryAction' }) !== 'applied' || !gain) return null;
         return gainText(gain, formatAmount);
+      }
+      case 'plant': {
+        if (api.dispatch({ type: 'waterPlant' }) !== 'applied') return 'too late for that';
+        const look = current().world.plant;
+        return look === 'dead' ? 'oops' : look === 'soggy' ? 'glug (soggy)' : 'glug';
       }
       case 'bowl': {
         if (api.dispatch({ type: 'feedCat' }) !== 'applied') return null;
