@@ -41,14 +41,23 @@ function shippedRun() {
   return applyCommand(run, { type: 'shipRelease' }, run.activeMs, catalog).run;
 }
 
-/** Current-format fixtures (schema 7), produced by the same real game paths. */
+/** A run that has shipped v0.1 and coded two demos. */
+function demoRun() {
+  let run = shippedRun();
+  run = { ...run, economy: { ...run.economy, output: run.economy.output + 10_000 } };
+  run = applyCommand(run, { type: 'makeDemo' }, run.activeMs, catalog).run;
+  return applyCommand(run, { type: 'makeDemo' }, run.activeMs, catalog).run;
+}
+
+/** Current-format fixtures (schema 8), produced by the same real game paths. */
 const BUILDERS: Record<string, () => string> = {
-  'v7-fresh': () => saveWithProfile(createRun(1, 'fixture-fresh'), []),
-  'v7-midgame': () => saveWithProfile(progressedRun(6, true), []),
-  'v7-dead-cat': () => saveWithProfile(neglectedRun(), []),
-  'v7-stray-cat': () => saveWithProfile(strayRun(), []),
-  'v7-shipped': () => saveWithProfile(shippedRun(), []),
-  'v7-ended': () => {
+  'v8-fresh': () => saveWithProfile(createRun(1, 'fixture-fresh'), []),
+  'v8-midgame': () => saveWithProfile(progressedRun(6, true), []),
+  'v8-dead-cat': () => saveWithProfile(neglectedRun(), []),
+  'v8-stray-cat': () => saveWithProfile(strayRun(), []),
+  'v8-shipped': () => saveWithProfile(shippedRun(), []),
+  'v8-demos': () => saveWithProfile(demoRun(), []),
+  'v8-ended': () => {
     const run = endedRun();
     return saveWithProfile(run, [
       { id: 'the-forgotten-project', runId: run.id, activeMs: run.activeMs, order: 1 },
@@ -95,6 +104,14 @@ const V6 = [
   'v6-stray-cat',
   'v6-shipped',
   'v6-ended',
+] as const;
+const V7 = [
+  'v7-fresh',
+  'v7-midgame',
+  'v7-dead-cat',
+  'v7-stray-cat',
+  'v7-shipped',
+  'v7-ended',
 ] as const;
 const file = (name: string) => readFileSync(`${DIR}/${name}.json`, 'utf8');
 
@@ -159,6 +176,21 @@ describe('released save fixtures', () => {
     });
   }
 
+  for (const name of [...V1, ...V2, ...V3, ...V4, ...V5, ...V6, ...V7]) {
+    it(`${name} gets no demos and a demo stream (7 → 8)`, () => {
+      const save = loaded(file(name));
+      expect(save.run.demos).toEqual([]);
+      expect(save.run.rng.demo).toBeGreaterThanOrEqual(0);
+      expect(save.run.rng.demo).not.toBe(save.run.rng.release);
+    });
+  }
+
+  it('coded demos round-trip with their seeds and History entries', () => {
+    const save = loaded(fixture('v8-demos'));
+    expect(save.run.demos.map((d) => d.number)).toEqual([1, 2]);
+    expect(save.run.history.filter((h) => h.kind === 'demo')).toHaveLength(2);
+  });
+
   it('a run that ended with the retired one-click ship keeps its legacy ending', () => {
     const save = loaded(file('v3-ended'));
     expect(save.run.status).toBe('ended');
@@ -167,14 +199,14 @@ describe('released save fixtures', () => {
   });
 
   it('a shipped release round-trips with its outcome, comment and cat', () => {
-    const save = loaded(fixture('v7-shipped'));
+    const save = loaded(fixture('v8-shipped'));
     expect(save.run.releases).toHaveLength(1);
     expect(save.run.releases[0]).toMatchObject({ window: 1, catAlive: true });
     expect(save.run.history.some((h) => h.kind === 'release')).toBe(true);
   });
 
   it('a stray cat stays gone and is not mistaken for a dead one', () => {
-    const stray = loaded(fixture('v7-stray-cat'));
+    const stray = loaded(fixture('v8-stray-cat'));
     expect(stray.run.cat.alive).toBe(false);
     expect(stray.run.cat.leftAtActiveMs).not.toBeNull();
     expect(stray.run.cat.diedAtActiveMs).toBeNull();
@@ -199,25 +231,25 @@ describe('released save fixtures', () => {
   });
 
   it('mid-game keeps RNG streams, the pending reveal and care cooldowns', () => {
-    const save = loaded(fixture('v7-midgame'));
-    const original = JSON.parse(fixture('v7-midgame')) as { run: { rng: unknown } };
+    const save = loaded(fixture('v8-midgame'));
+    const original = JSON.parse(fixture('v8-midgame')) as { run: { rng: unknown } };
     expect(save.run.rng).toEqual(original.run.rng);
     expect(save.run.pendingUnlockIds.length).toBeGreaterThan(0);
     expect(save.run.cat.lastFedAtActiveMs).not.toBeNull();
   });
 
   it('a dead cat stays dead and an ended run stays ended', () => {
-    const dead = loaded(fixture('v7-dead-cat'));
+    const dead = loaded(fixture('v8-dead-cat'));
     expect(dead.run.cat.alive).toBe(false);
     expect(dead.run.history.some((h) => h.kind === 'cat' && h.id === 'cat-died')).toBe(true);
-    const ended = loaded(fixture('v7-ended'));
+    const ended = loaded(fixture('v8-ended'));
     expect(ended.run.status).toBe('ended');
     expect(ended.run.ending?.id).toBe('the-forgotten-project');
     expect(ended.profile.endings.map((e) => e.id)).toEqual(['the-forgotten-project']);
   });
 
   it('a future schema, unknown IDs or out-of-range values are refused and never overwritten', () => {
-    const base = JSON.parse(fixture('v7-midgame')) as Record<string, unknown> & {
+    const base = JSON.parse(fixture('v8-midgame')) as Record<string, unknown> & {
       run: Record<string, unknown> & { cat: Record<string, unknown> };
     };
     const cases: [string, unknown, string][] = [

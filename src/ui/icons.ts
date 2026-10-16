@@ -336,6 +336,29 @@ export const releaseIcon: PixelMap = {
   palette: { k: 'var(--ink)', w: 'var(--panel)', c: '#59b7ff', r: '#e8483c', Y: '#f6c945' },
 };
 
+/** Code a demo: a floppy disk with a rainbow label (the demoscene's distribution format). */
+export const demoIcon: PixelMap = {
+  rows: [
+    'kkkkkkkk.',
+    'kbwwwwbkk',
+    'kbwwwwbbk',
+    'kbbbbbbbk',
+    'kbrrrrrbk',
+    'kbyyyyybk',
+    'kbgggggbk',
+    'kbbbbbbbk',
+    'kkkkkkkkk',
+  ],
+  palette: {
+    k: 'var(--ink)',
+    b: '#3d4a8c',
+    w: 'var(--panel)',
+    r: '#e8483c',
+    y: '#f6c945',
+    g: '#7ee2a8',
+  },
+};
+
 /** History: an achievement. */
 export const trophyIcon: PixelMap = {
   rows: [

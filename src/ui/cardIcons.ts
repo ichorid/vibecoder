@@ -41,3 +41,4 @@ export function cardIcon(id: UpgradeId): PixelMap {
 
 export const DECISION_ICON = icons.decisionIcon;
 export const RELEASE_ICON = icons.releaseIcon;
+export const DEMO_ICON = icons.demoIcon;

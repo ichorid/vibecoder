@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { HistoryIconViewModel, HistoryViewModel } from '../game/selectors';
-  import { RELEASE_ICON } from './cardIcons';
+  import { DEMO_ICON, RELEASE_ICON } from './cardIcons';
   import { formatActiveTime } from './format';
   import { flagIcon, palmIcon, trophyIcon } from './icons';
   import PixelIcon from './PixelIcon.svelte';
@@ -21,6 +21,7 @@
     ending: flagIcon,
     release: RELEASE_ICON,
     jackpot: palmIcon,
+    demo: DEMO_ICON,
   };
 </script>
 

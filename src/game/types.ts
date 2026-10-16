@@ -24,6 +24,8 @@ export interface RngStreams {
   narrative: number;
   /** Consumed only by shipping releases, so outcomes never depend on timing. */
   release: number;
+  /** Consumed only by coding demos: one seed per demo. */
+  demo: number;
 }
 
 export interface EconomyState {
@@ -107,7 +109,8 @@ export type HistoryEntry =
   | { kind: 'event'; textId: string; activeMs: number }
   | { kind: 'achievement'; id: string; activeMs: number }
   | { kind: 'ending'; id: EndingId; activeMs: number }
-  | { kind: 'release'; window: ReleaseWindow; outcome: ReleaseResult; activeMs: number };
+  | { kind: 'release'; window: ReleaseWindow; outcome: ReleaseResult; activeMs: number }
+  | { kind: 'demo'; number: number; activeMs: number };
 
 export interface PlantState {
   /** 0 = bone dry; above the drown line it rots. */
@@ -129,6 +132,19 @@ export interface ReleaseRecord {
   /** The top comment shown under the result (null for the jackpot). */
   commentId: string | null;
   /** Whether the cat was there when it shipped. */
+  catAlive: boolean;
+  activeMs: number;
+}
+
+/**
+ * One coded demo. Only the seed is stored: the picture (a lineage of mutated horn genomes, see
+ * src/demo/) and its texts are derived from the seeds of this and the earlier demos.
+ */
+export interface DemoRecord {
+  /** 1-based, in making order. */
+  number: number;
+  seed: number;
+  /** Whether the cat was there (its greeting changes). */
   catAlive: boolean;
   activeMs: number;
 }
@@ -224,6 +240,8 @@ export interface RunState {
   choices: Partial<Record<ChoiceId, ChoiceRecord>>;
   /** Shipped releases, in ship order. */
   releases: ReleaseRecord[];
+  /** Coded demos, in making order (cosmetic). */
+  demos: DemoRecord[];
   /** The corner plant: watered too often it drowns, too rarely it dries out. */
   plant: PlantState;
   /** Experience carried in from earlier runs' endings: +this much code yield (0.1 = +10 %). */
@@ -238,6 +256,7 @@ export type GameCommand =
   | { type: 'buyUpgrade'; id: UpgradeId }
   | { type: 'acknowledgeUnlock'; id: TechnologyId }
   | { type: 'shipRelease' }
+  | { type: 'makeDemo' }
   | { type: 'waterPlant' }
   | { type: 'feedCat' }
   | { type: 'petCat' }
@@ -254,6 +273,7 @@ export type GameFact =
   | { type: 'catDied' }
   | { type: 'catLeft' }
   | { type: 'releaseShipped'; window: ReleaseWindow; outcome: ReleaseResult }
+  | { type: 'demoMade'; number: number }
   | { type: 'catCared'; kind: 'feed' | 'pet' | 'play' }
   | { type: 'purchased'; id: UpgradeId }
   | { type: 'technologyDiscovered'; id: TechnologyId };

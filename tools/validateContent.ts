@@ -124,6 +124,7 @@ export function validateContent({
   if (cycle) issues.push({ message: `prerequisite cycle: ${cycle.join(' → ')}` });
 
   checkReleases(catalog, issues);
+  checkDemos(catalog, issues);
   checkChatter(catalog, issues);
   checkCatTexts(catalog, issues);
   return issues;
@@ -187,6 +188,38 @@ function checkReleases(catalog: Catalog, issues: ContentIssue[]): void {
   }
 }
 
+/** Demos: a real price ladder, enough names and lines that a demo never repeats one. */
+function checkDemos(catalog: Catalog, issues: ContentIssue[]): void {
+  const d = catalog.demos;
+  if (!catalog.technologies.some((t) => t.id === d.availableFrom)) {
+    issues.push({ message: `demos: unknown technology "${d.availableFrom}"` });
+  }
+  if (!(d.basePrice > 0) || !(d.priceGrowth > 1)) {
+    issues.push({ message: 'demos: price must be positive and grow' });
+  }
+  const minimum: [string, number, number][] = [
+    ['groups', d.groups.length, 4],
+    ['titleFirst', d.titleFirst.length, 4],
+    ['titleSecond', d.titleSecond.length, 4],
+    ['greetings', d.greetings.length, 5],
+    ['scroller', d.scroller.length, 3],
+  ];
+  for (const [name, count, min] of minimum) {
+    if (count < min) issues.push({ message: `demos: ${name} needs at least ${min} entries` });
+  }
+  const texts = [...d.greetings, ...d.scroller].flatMap((t) =>
+    typeof t === 'string' ? [t] : [t.alive, t.absent],
+  );
+  for (const text of [...texts, ...d.groups, ...d.titleFirst, ...d.titleSecond]) {
+    if (text.length === 0 || text.length > 140) {
+      issues.push({ message: `demos: "${text.slice(0, 30)}" is empty or over 140 characters` });
+    }
+  }
+  for (const id of duplicates([...d.groups, ...d.titleFirst, ...d.titleSecond])) {
+    issues.push({ message: `demos: "${id}" used twice` });
+  }
+}
+
 /** Console chatter: every technology talks, 10–15 short lines each, no line used twice. */
 function checkChatter(catalog: Catalog, issues: ContentIssue[]): void {
   const all: string[] = [];
@@ -228,6 +261,10 @@ function checkCatTexts(catalog: Catalog, issues: ContentIssue[]): void {
     ...Object.entries(catalog.chatter).flatMap(([id, lines]): [string, string][] =>
       (lines ?? []).map((line): [string, string] => [`chatter "${id}"`, line]),
     ),
+    ...[...catalog.demos.greetings, ...catalog.demos.scroller].flatMap((t): [string, string][] =>
+      typeof t === 'string' ? [['demo text', t]] : [],
+    ),
+    ['demo', `${catalog.demos.title} ${catalog.demos.notice} ${catalog.demos.madeText}`],
     ...catalog.choices.flatMap((c): [string, string][] =>
       typeof c.description === 'string'
         ? [[`choice "${c.id}"`, `${c.title} ${c.description}`]]

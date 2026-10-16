@@ -11,6 +11,7 @@ import {
 } from './progression';
 import { waterPlant } from './plant';
 import { shipRelease } from './releases';
+import { makeDemo } from './demos';
 import { appendLog } from './log';
 import type { Transition } from './simulation';
 import type { GameCommand, RunState } from './types';
@@ -111,6 +112,11 @@ export function applyCommand(
       const shipped = shipRelease(run, catalog);
       if (!shipped.accepted) return reject(run, shipped.reason);
       return { ...shipped.transition, result: 'applied' };
+    }
+    case 'makeDemo': {
+      const made = makeDemo(run, catalog);
+      if (!made.accepted) return reject(run, made.reason);
+      return { ...made.transition, result: 'applied' };
     }
     case 'feedCat': {
       const fed = feedCat(run.cat, run.rng.cat, activeTimestamp, catalog.balance.cat);

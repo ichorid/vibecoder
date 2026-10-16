@@ -2,6 +2,7 @@ import { evaluateChatter } from './chatter';
 import { creditNotices } from './money';
 import { updatePlant } from './plant';
 import { releaseNotices } from './releases';
+import { demoNotice } from './demos';
 import { updateAttention, updateCat } from './cat';
 import { advanceSession, sessionOf, withSession } from './catPlaySession';
 import type { Catalog } from './catalog';
@@ -76,6 +77,7 @@ export function stepRun(run: RunState, stepMs: number, catalog: Catalog): Transi
   next = updatePlant(next, stepMs, catalog);
   // A release that became available, and the credit line's milestones, get one line each.
   next = releaseNotices(next, catalog);
+  next = demoNotice(next, catalog);
   next = creditNotices(next, catalog);
   // Narrative events (quiet when something important happened this step).
   const linesBefore = next.log.length;

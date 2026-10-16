@@ -445,7 +445,31 @@ export interface ReleaseContent {
   readonly shippedText: string;
 }
 
+/** Code a demo (docs/feature_demo.md): a cosmetic code sink with generated titles. */
+export interface DemoContent {
+  /** Demos are possible once this technology exists. */
+  readonly availableFrom: TechnologyId;
+  readonly basePrice: number;
+  /** Each next demo costs this many times the last. */
+  readonly priceGrowth: number;
+  /** The strip's label. */
+  readonly title: string;
+  /** Logged once when demos become possible. */
+  readonly notice: string;
+  /** Logged per demo; `{n}`, `{title}`, `{group}` are replaced. */
+  readonly madeText: string;
+  readonly groups: readonly string[];
+  /** A title is one of each, e.g. "Infinite" + "Context". */
+  readonly titleFirst: readonly string[];
+  readonly titleSecond: readonly string[];
+  /** Who the scroller greets (three to five of them per demo). */
+  readonly greetings: readonly CatAwareText[];
+  /** Scroller lines (three per demo). */
+  readonly scroller: readonly CatAwareText[];
+}
+
 export interface Catalog {
+  readonly demos: DemoContent;
   /** Random console lines per technology (said once it is unlocked). */
   readonly chatter: Readonly<Partial<Record<TechnologyId, readonly string[]>>>;
   readonly choices: readonly ChoiceDefinition[];

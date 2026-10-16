@@ -29,6 +29,7 @@ import { upgradeImpact } from './setup';
 import { deriveSeed } from './random';
 import { catAware } from './catAware';
 import { jackpotHazard, nextRelease, releaseAt, releaseLabel } from './releases';
+import { demoLine, demoText, nextDemo } from './demos';
 import type {
   AttentionLevel,
   CareNote,
@@ -93,6 +94,26 @@ export interface WheelSliceViewModel {
   readonly id: string;
   readonly label: string;
   readonly gold: boolean;
+}
+
+/** The next demo, in its own strip (null before the project works or after the end). */
+export interface DemoOfferViewModel {
+  readonly number: number;
+  readonly title: string;
+  readonly price: number;
+  readonly affordable: boolean;
+  readonly shortfall: number;
+}
+
+/** A coded demo: what the popup shows; `seeds` is its whole lineage (demos 1…number). */
+export interface DemoViewModel {
+  readonly number: number;
+  readonly seeds: readonly number[];
+  readonly title: string;
+  readonly group: string;
+  readonly greetings: readonly string[];
+  readonly scroller: readonly string[];
+  readonly activeMs: number;
 }
 
 /** The wheel for a release that is already committed; the UI only animates toward it. */
@@ -165,6 +186,10 @@ export interface GameViewModel {
   readonly offers: readonly OfferViewModel[];
   /** The next release, in its own strip outside the three cards (null before the project works). */
   readonly release: ReleaseOfferViewModel | null;
+  /** The next demo, in its own strip next to Ship It. */
+  readonly demo: DemoOfferViewModel | null;
+  /** Demos coded in this run, in order (the popup and History replay them). */
+  readonly demos: readonly DemoViewModel[];
   readonly announcement: AnnouncementViewModel | null;
   readonly log: readonly LogLineViewModel[];
   readonly ending: EndingViewModel | null;
@@ -180,11 +205,14 @@ export type HistoryIconViewModel =
   | { readonly kind: 'emoji'; readonly text: string }
   | {
       readonly kind: 'symbol';
-      readonly id: 'cat-died' | 'cat-left' | 'achievement' | 'ending' | 'release' | 'jackpot';
+      readonly id:
+        'cat-died' | 'cat-left' | 'achievement' | 'ending' | 'release' | 'jackpot' | 'demo';
     };
 
 export interface HistoryEntryViewModel {
-  readonly kind: 'technology' | 'cat' | 'event' | 'achievement' | 'ending' | 'release';
+  readonly kind: 'technology' | 'cat' | 'event' | 'achievement' | 'ending' | 'release' | 'demo';
+  /** A demo entry: which demo to replay. */
+  readonly demo?: number;
   readonly title: string;
   readonly activeMs: number;
   readonly icon: HistoryIconViewModel;
@@ -470,6 +498,16 @@ export function selectGame(
         ],
       }
     : null;
+  const demoOffer = nextDemo(run, catalog);
+  const demo: DemoOfferViewModel | null = demoOffer
+    ? {
+        number: demoOffer.number,
+        title: catalog.demos.title,
+        price: demoOffer.price,
+        affordable: run.economy.output >= demoOffer.price,
+        shortfall: Math.max(0, demoOffer.price - run.economy.output),
+      }
+    : null;
   const pendingId = run.pendingUnlockIds[0];
   const pending = pendingId === undefined ? undefined : findTechnology(catalog, pendingId);
   return {
@@ -482,6 +520,8 @@ export function selectGame(
     stats: headerStats(run, catalog),
     offers,
     release,
+    demo,
+    demos: selectDemos(run, catalog),
     announcement: pending
       ? {
           id: pending.id,
@@ -495,6 +535,17 @@ export function selectGame(
     lastRelease: selectRelease(run, catalog, run.releases.length - 1),
     credit: creditState(run, catalog),
   };
+}
+
+/** Every demo of the run with its texts and lineage. */
+export function selectDemos(run: ReadonlyRun, catalog: Catalog): readonly DemoViewModel[] {
+  const seeds = run.demos.map((d) => d.seed);
+  return run.demos.map((record, i) => ({
+    number: record.number,
+    seeds: seeds.slice(0, i + 1),
+    ...demoText(record, catalog),
+    activeMs: record.activeMs,
+  }));
 }
 
 /** A lesson ending: new to the profile, or already learned in an earlier run. */
@@ -612,6 +663,16 @@ export function selectHistory(
               .replace('{label}', label),
             activeMs: entry.activeMs,
             icon: { kind: 'symbol', id: entry.outcome === 'jackpot' ? 'jackpot' : 'release' },
+          };
+        }
+        case 'demo': {
+          const record = run.demos.find((d) => d.number === entry.number);
+          return {
+            kind: 'demo',
+            title: record ? demoLine(record, catalog) : `Demo #${entry.number}`,
+            activeMs: entry.activeMs,
+            icon: { kind: 'symbol', id: 'demo' },
+            ...(record ? { demo: record.number } : {}),
           };
         }
       }

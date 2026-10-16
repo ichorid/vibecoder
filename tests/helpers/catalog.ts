@@ -1,5 +1,6 @@
 import { attentionBalance, balance, catBalance, catPlayBalance } from '../../src/content/balance';
 import { catText } from '../../src/content/catText';
+import { demos } from '../../src/content/demos';
 import { releases } from '../../src/content/releases';
 import type { Catalog } from '../../src/game/catalog';
 
@@ -12,6 +13,7 @@ export function createTestCatalog(): Catalog {
     events: [],
     achievements: [],
     releases: { ...releases, windows: [] },
+    demos,
 
     catText,
     balance: {

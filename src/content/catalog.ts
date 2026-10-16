@@ -3,6 +3,7 @@ import { achievements } from './achievements';
 import { balance } from './balance';
 import { catText } from './catText';
 import { chatter } from './chatter';
+import { demos } from './demos';
 import { choices, endings } from './endings';
 import { events } from './events';
 import { releases } from './releases';
@@ -17,6 +18,7 @@ export const catalog: Catalog = {
   choices,
   endings,
   releases,
+  demos,
   events,
   achievements,
   primaryActionLabels: {

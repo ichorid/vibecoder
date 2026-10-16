@@ -3,6 +3,7 @@ import {
   ENDING_IDS,
   RELEASE_OUTCOME_IDS,
   MAX_RELEASES,
+  MAX_DEMOS,
   TECHNOLOGY_IDS,
   type ReleaseWindow,
   UPGRADE_IDS,
@@ -13,6 +14,7 @@ import {
   CAT_HISTORY_IDS,
   type CatPlayState,
   type CatState,
+  type DemoRecord,
   type DiscoveredEnding,
   type EconomyState,
   type RunStats,
@@ -43,6 +45,16 @@ function decodePlant(value: unknown, path: string): RunState['plant'] {
     fail(path, 'a dead plant needs a time and a cause, a living one neither');
   }
   return plant;
+}
+
+function decodeDemo(value: unknown, path: string): DemoRecord {
+  const raw = record(value, path);
+  return {
+    number: num(raw.number, `${path}.number`, { min: 1, max: MAX_DEMOS, integer: true }),
+    seed: num(raw.seed, `${path}.seed`, { min: 0, max: 0xffffffff, integer: true }),
+    catAlive: bool(raw.catAlive, `${path}.catAlive`),
+    activeMs: num(raw.activeMs, `${path}.activeMs`, nonNegative),
+  };
 }
 
 function decodeRelease(value: unknown, path: string): ReleaseRecord {
@@ -326,6 +338,7 @@ function decodeHistoryEntry(value: unknown, path: string): HistoryEntry {
     'achievement',
     'ending',
     'release',
+    'demo',
   ] as const);
   switch (kind) {
     case 'cat':
@@ -343,6 +356,12 @@ function decodeHistoryEntry(value: unknown, path: string): HistoryEntry {
         kind,
         window: releaseWindow(raw.window, `${path}.window`),
         outcome: oneOf(raw.outcome, `${path}.outcome`, RELEASE_RESULTS),
+        activeMs,
+      };
+    case 'demo':
+      return {
+        kind,
+        number: num(raw.number, `${path}.number`, { min: 1, max: MAX_DEMOS, integer: true }),
         activeMs,
       };
   }
@@ -381,6 +400,7 @@ export function decodeRun(value: unknown, path = 'run'): RunState {
       cat: num(rng.cat, `${path}.rng.cat`, uint32),
       narrative: num(rng.narrative, `${path}.rng.narrative`, uint32),
       release: num(rng.release, `${path}.rng.release`, uint32),
+      demo: num(rng.demo, `${path}.rng.demo`, uint32),
     },
     visualSeed: num(raw.visualSeed, `${path}.visualSeed`, uint32),
     economy: decodeNumbers(economy, ECONOMY_FIELDS, `${path}.economy`),
@@ -407,6 +427,7 @@ export function decodeRun(value: unknown, path = 'run'): RunState {
     catPlaySeq: num(raw.catPlaySeq, `${path}.catPlaySeq`, { min: 0, integer: true }),
     choices: decodeChoices(raw.choices, `${path}.choices`),
     releases: list(raw.releases, `${path}.releases`, decodeRelease, MAX_RELEASES),
+    demos: list(raw.demos, `${path}.demos`, decodeDemo, MAX_DEMOS),
     plant: decodePlant(raw.plant, `${path}.plant`),
     experience: num(raw.experience, `${path}.experience`, { min: 0, max: 100 }),
     ending: raw.ending === null ? null : decodeEnding(raw.ending, `${path}.ending`),
@@ -419,6 +440,9 @@ export function decodeRun(value: unknown, path = 'run'): RunState {
   }
   if (new Set(run.releases.map((r) => r.window)).size !== run.releases.length) {
     fail(`${path}.releases`, 'two releases in one window');
+  }
+  if (run.demos.some((d, i) => d.number !== i + 1)) {
+    fail(`${path}.demos`, 'demos must be numbered 1, 2, … in order');
   }
   if (run.pendingUnlockIds.some((id) => !run.unlockedTechnologyIds.includes(id))) {
     fail(`${path}.pendingUnlockIds`, 'pending unlock that is not unlocked');

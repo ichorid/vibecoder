@@ -31,6 +31,7 @@ export function createRun(seed: number, runId: string, experience = 0): RunState
       cat: deriveSeed(seed, 'cat'),
       narrative: deriveSeed(seed, 'narrative'),
       release: deriveSeed(seed, 'release'),
+      demo: deriveSeed(seed, 'demo'),
     },
     visualSeed: deriveSeed(seed, 'visual'),
     economy: {
@@ -75,6 +76,7 @@ export function createRun(seed: number, runId: string, experience = 0): RunState
     catPlaySeq: 0,
     choices: {},
     releases: [],
+    demos: [],
     plant: { water: 60, alive: true, diedAtActiveMs: null, cause: null, warned: false },
     experience,
     ending: null,

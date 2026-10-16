@@ -135,6 +135,8 @@ export type ReleaseOutcomeId = (typeof RELEASE_OUTCOME_IDS)[number];
 export type ReleaseWindow = number;
 /** Upper bound for validation of saved releases. */
 export const MAX_RELEASES = 999;
+/** Demos one run may record (each costs ×2.2 the last; nobody reaches this). */
+export const MAX_DEMOS = 200;
 
 /** Manual responsibilities that technologies progressively automate. */
 export const RESPONSIBILITY_IDS = [

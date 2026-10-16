@@ -17,10 +17,11 @@
  * - 5 → 6: experience. Profile and run get `experience: 0` (no ending gave any before).
  * - 6 → 7: the "Review your token spending" card is gone (economy redesign E1); its level is
  *   dropped (its few percent of token rate go with it).
+ * - 7 → 8: Code a demo. Runs get `demos: []` and a demo RNG stream derived from the run ID.
  */
 import { deriveSeed } from '../game/random';
 
-export const CURRENT_SCHEMA_VERSION = 7;
+export const CURRENT_SCHEMA_VERSION = 8;
 
 /** 6 tokens/s × 300 s: what one old supply level gave over five minutes. */
 export const TOKENS_PER_OLD_SUPPLY_LEVEL = 1800;
@@ -147,6 +148,25 @@ function v6ToV7(envelope: Record<string, unknown>): MigrationResult {
   };
 }
 
+function v7ToV8(envelope: Record<string, unknown>): MigrationResult {
+  const run = envelope.run;
+  if (!isRecord(run) || !isRecord(run.rng) || typeof run.id !== 'string') {
+    return { ok: false, unsupported: false, reason: 'v7 save without a run' };
+  }
+  return {
+    ok: true,
+    value: {
+      ...envelope,
+      schemaVersion: 8,
+      run: {
+        ...run,
+        rng: { ...run.rng, demo: deriveSeed(deriveSeed(0, run.id), 'demo') },
+        demos: [],
+      },
+    },
+  };
+}
+
 const STEPS: Record<number, (envelope: Record<string, unknown>) => MigrationResult> = {
   1: v1ToV2,
   2: v2ToV3,
@@ -154,6 +174,7 @@ const STEPS: Record<number, (envelope: Record<string, unknown>) => MigrationResu
   4: v4ToV5,
   5: v5ToV6,
   6: v6ToV7,
+  7: v7ToV8,
 };
 
 export function migrate(envelope: Record<string, unknown>): MigrationResult {
