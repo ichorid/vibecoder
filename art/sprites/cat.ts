@@ -165,10 +165,27 @@ export const CAT_ANIMATIONS: Readonly<Record<string, { frameMs: number; poses: P
 function drawCat(pose: Pose, pal: Palette, round: boolean, sick: boolean): PixelCanvas {
   const c = createCanvas(CAT_FRAME.w, CAT_FRAME.h);
   const fur = sick ? pal.catSick : pal.cat;
-  const body = round
-    ? { ...pose.body, rx: pose.body.rx + 1.8, ry: pose.body.ry + 1.2, cy: pose.body.cy - 0.4 }
-    : pose.body;
-  stroke(c, pose.tail, 0.8, fur);
+  const lyingDown = pose.legs.length === 0;
+  // Overfed and lying down: a curled-up ball — the belly widens backwards and upwards (never past
+  // the ground), the head rests on its front edge, the tail wraps around the front.
+  const roundLying = round && lyingDown;
+  const body = roundLying
+    ? { cx: pose.body.cx - 1, cy: 12.4, rx: pose.body.rx + 0.8, ry: pose.body.ry + 1 }
+    : round
+      ? { ...pose.body, rx: pose.body.rx + 1.8, ry: pose.body.ry + 1.2, cy: pose.body.cy - 0.4 }
+      : pose.body;
+  const head = roundLying
+    ? { cx: pose.head.cx + 1.2, cy: pose.head.cy - 0.6, r: pose.head.r + 0.3 }
+    : pose.head;
+  const tail: readonly Point[] = roundLying
+    ? [
+        [3, 16.6],
+        [9, 17.2],
+        [14, 17],
+        [16.5, 15.6],
+      ]
+    : pose.tail;
+  stroke(c, tail, 0.8, fur);
   for (const leg of pose.legs) c.rect(leg.x, leg.top, 2, leg.bottom - leg.top, fur);
   ellipse(c, body.cx, body.cy, body.rx, body.ry, fur);
   // Stripes along the back.
@@ -176,19 +193,32 @@ function drawCat(pose: Pose, pal: Palette, round: boolean, sick: boolean): Pixel
     const x = Math.round(body.cx + i * 2.5);
     c.rect(x, Math.round(body.cy - body.ry), 1, 2, pal.catDark);
   }
-  // Pale chest/belly.
-  ellipse(
-    c,
-    body.cx + body.rx * 0.45,
-    body.cy + body.ry * 0.35,
-    Math.max(1, body.rx * 0.35),
-    1.2,
-    pal.catWhite,
-  );
+  // Pale chest/belly (a low, small patch on the curled-up ball).
+  if (roundLying) {
+    ellipse(
+      c,
+      body.cx + body.rx * 0.35,
+      body.cy + body.ry * 0.6,
+      body.rx * 0.28,
+      0.9,
+      pal.catWhite,
+    );
+  } else {
+    ellipse(
+      c,
+      body.cx + body.rx * 0.45,
+      body.cy + body.ry * 0.35,
+      Math.max(1, body.rx * 0.35),
+      1.2,
+      pal.catWhite,
+    );
+  }
   for (const leg of pose.legs) c.rect(leg.x, leg.bottom - 1, 2, 1, pal.catWhite);
   if (pose.paw) c.rect(pose.paw[0] - 1, pose.paw[1], 2, 2, pal.catWhite);
-  const { cx, cy, r } = pose.head;
+  const { cx, cy, r } = head;
   c.disc(Math.round(cx), Math.round(cy), Math.round(r), fur);
+  // Where the resting head meets the big belly, a fur seam keeps the face readable.
+  if (roundLying) c.rect(Math.round(cx - r), Math.round(cy - 1), 1, 3, pal.catDark);
   const earTop = pose.earsDown ? cy - r + 1 : cy - r - 2;
   triangle(c, [cx - r, cy - r + 1], [cx - r + 2, cy - r], [cx - r + 0.5, earTop], fur);
   triangle(c, [cx + r - 2, cy - r], [cx + r, cy - r + 1], [cx + r - 0.5, earTop], fur);
