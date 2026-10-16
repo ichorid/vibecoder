@@ -44,6 +44,10 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   listed in progress P07.5. Tune with `npx vite-node tools/tune.ts -- <seed> <minutes>`.
 - D14 (P08) LOD thresholds 32/8 px (plan start 96/16) after visual review. Release content
   check is part of `npm run check`. Revenue-priced upgrades use `currency: 'revenue'`.
+- D15 (P09) Decision cards share the ≤3 card surface (priority: progression 10, recovery 20,
+  choices 30, repeatables 50+); max two choices while a progression card shows. Choices have
+  windows (see content_catalog "Endings"). `restart` is an app command (createGame `newRun`).
+  P09.6 extension endings skipped for now (optional per plan).
 - D5 (P02) App-level commands (`retrySave`, `setTheme`) go through the same public
   `dispatch` as game commands, so UI still sees only `{subscribe, dispatch}`.
 
@@ -96,3 +100,6 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   Next P08.2 (infrastructure techs 13–17).
 - 2026-10-16: P08 done (28 techs, revenue/costs, OPTIMIZE/OBSERVE, release validator, main route
   31.7 active min). 305 unit + 28 browser. Next P09 (narrative/achievements, 10 endings).
+- 2026-10-16: P09 done (achievements, resolver, 10 endings with command-driven routes, ending
+  panel, restart, profile discoveries). 330 unit + 30 browser. Next: sound plan S00→S07, then
+  P10 (P10.6 needs S04+S07).

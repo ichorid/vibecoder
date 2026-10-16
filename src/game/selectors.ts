@@ -2,20 +2,39 @@ import { catConditions, visibleAttention, type CatConditions } from './cat';
 import type { ReadonlyPlay } from './catPlaySession';
 import type { CatPresentation, Catalog, StatId, UpgradeDefinition } from './catalog';
 import { automationFraction, upgradeLevel, upgradePrice } from './economy';
-import type { PrimaryActionId, TechnologyId, UpgradeId } from './ids';
+import type { ChoiceId, EndingId, PrimaryActionId, TechnologyId, UpgradeId } from './ids';
+import { isChoiceOffered } from './endings';
 import { currentPrimaryAction, findTechnology, isUpgradeOffered } from './progression';
-import type { AttentionLevel, ReadonlyRun } from './types';
+import type { AttentionLevel, DeepReadonly, DiscoveredEnding, ReadonlyRun } from './types';
 
 /** Maximum number of current upgrade/choice cards shown in Game. */
 export const MAX_OFFERS = 3;
 
-export interface OfferViewModel {
+export interface UpgradeOfferViewModel {
+  readonly kind: 'upgrade';
   readonly id: UpgradeId;
   readonly title: string;
   readonly description: string;
   readonly price: number;
   readonly currency: 'output' | 'revenue';
   readonly affordable: boolean;
+}
+
+/** A decision card on the same surface as upgrades; no price, maybe a confirmation. */
+export interface ChoiceOfferViewModel {
+  readonly kind: 'choice';
+  readonly id: ChoiceId;
+  readonly title: string;
+  readonly description: string;
+  readonly confirm: string | null;
+}
+
+export type OfferViewModel = UpgradeOfferViewModel | ChoiceOfferViewModel;
+
+export interface EndingViewModel {
+  readonly id: EndingId;
+  readonly title: string;
+  readonly paragraphs: readonly string[];
 }
 
 export interface StatViewModel {
@@ -42,20 +61,36 @@ export interface GameViewModel {
   readonly offers: readonly OfferViewModel[];
   readonly announcement: AnnouncementViewModel | null;
   readonly log: readonly LogLineViewModel[];
+  readonly ending: EndingViewModel | null;
 }
 
 export interface HistoryEntryViewModel {
-  readonly kind: 'technology' | 'cat' | 'event';
+  readonly kind: 'technology' | 'cat' | 'event' | 'achievement' | 'ending';
   readonly title: string;
   readonly activeMs: number;
 }
 
+export interface DiscoveredEndingViewModel {
+  readonly id: EndingId;
+  readonly title: string;
+  readonly activeMs: number;
+  readonly order: number;
+}
+
 export interface HistoryViewModel {
   readonly entries: readonly HistoryEntryViewModel[];
+  /** Endings discovered in this or earlier runs (profile), in discovery order. */
+  readonly endings: readonly DiscoveredEndingViewModel[];
+}
+
+function findUpgradeDefinition(catalog: Catalog, id: string): UpgradeDefinition | undefined {
+  return catalog.upgrades.find((upgrade) => upgrade.id === id);
 }
 
 /** Progression first; a satisfied recovery rule outranks optional repeatables. */
 const RECOVERY_PRIORITY = 20;
+/** Decision cards come after progression/recovery and before optional repeatables. */
+const CHOICE_PRIORITY = 30;
 
 function offerPriority(run: ReadonlyRun, upgrade: UpgradeDefinition): number {
   const rule = upgrade.recovery;
@@ -97,14 +132,12 @@ function headerStats(run: ReadonlyRun, catalog: Catalog): StatViewModel[] {
 /** Only what the current Game view may show: current offers, never future definitions. */
 export function selectGame(run: ReadonlyRun, catalog: Catalog): GameViewModel {
   const action = currentPrimaryAction(run, catalog);
-  const offers = catalog.upgrades
-    .map((upgrade, order) => ({ upgrade, order, priority: offerPriority(run, upgrade) }))
-    .filter(({ upgrade }) => isUpgradeOffered(run, upgrade))
-    .sort((a, b) => a.priority - b.priority || a.order - b.order)
-    .slice(0, MAX_OFFERS)
-    .map(({ upgrade }): OfferViewModel => {
+  const upgradeCards = catalog.upgrades
+    .filter((upgrade) => isUpgradeOffered(run, upgrade))
+    .map((upgrade, order) => {
       const price = upgradePrice(upgrade, upgradeLevel(run, upgrade.id));
-      return {
+      const card: UpgradeOfferViewModel = {
+        kind: 'upgrade',
         id: upgrade.id,
         title: upgrade.title,
         description: upgrade.description,
@@ -113,7 +146,29 @@ export function selectGame(run: ReadonlyRun, catalog: Catalog): GameViewModel {
         affordable:
           (upgrade.currency === 'revenue' ? run.economy.revenue : run.economy.output) >= price,
       };
+      return { card, order, priority: offerPriority(run, upgrade) };
     });
+  const choiceCards = catalog.choices
+    .filter((choice) => isChoiceOffered(run, choice))
+    .map((choice, order) => {
+      const card: ChoiceOfferViewModel = {
+        kind: 'choice',
+        id: choice.id,
+        title: choice.title,
+        description: choice.description,
+        confirm: choice.confirm ?? null,
+      };
+      return { card, order: 1000 + order, priority: CHOICE_PRIORITY };
+    });
+  // While a progression card is showing, at most two decision cards share the surface so the
+  // route keeps room for the next discovery; at the end decisions may fill all three.
+  const progressionShown = upgradeCards.some(
+    ({ card }) => findUpgradeDefinition(catalog, card.id)?.discovers,
+  );
+  const offers = [...upgradeCards, ...choiceCards.slice(0, progressionShown ? 2 : MAX_OFFERS)]
+    .sort((a, b) => a.priority - b.priority || a.order - b.order)
+    .slice(0, MAX_OFFERS)
+    .map(({ card }) => card);
   const pendingId = run.pendingUnlockIds[0];
   const pending = pendingId === undefined ? undefined : findTechnology(catalog, pendingId);
   return {
@@ -129,12 +184,38 @@ export function selectGame(run: ReadonlyRun, catalog: Catalog): GameViewModel {
         }
       : null,
     log: run.log.slice(-catalog.balance.logVisibleLines),
+    ending: selectEnding(run, catalog),
+  };
+}
+
+/** The ending panel: stored ending ID and the fate captured when it happened. */
+function selectEnding(run: ReadonlyRun, catalog: Catalog): EndingViewModel | null {
+  const record = run.ending;
+  if (!record) return null;
+  const definition = catalog.endings.find((e) => e.id === record.id);
+  if (!definition) return { id: record.id, title: record.id, paragraphs: [] };
+  return {
+    id: record.id,
+    title: definition.title,
+    paragraphs: record.catAlive ? definition.text.alive : definition.text.dead,
   };
 }
 
 /** Chronological record of what actually happened in this run. */
-export function selectHistory(run: ReadonlyRun, catalog: Catalog): HistoryViewModel {
+export function selectHistory(
+  run: ReadonlyRun,
+  catalog: Catalog,
+  discovered: readonly DeepReadonly<DiscoveredEnding>[] = [],
+): HistoryViewModel {
   return {
+    endings: [...discovered]
+      .sort((a, b) => a.order - b.order)
+      .map((ending) => ({
+        id: ending.id,
+        title: catalog.endings.find((e) => e.id === ending.id)?.title ?? ending.id,
+        activeMs: ending.activeMs,
+        order: ending.order,
+      })),
     entries: run.history.map((entry): HistoryEntryViewModel => {
       switch (entry.kind) {
         case 'technology':
@@ -147,6 +228,18 @@ export function selectHistory(run: ReadonlyRun, catalog: Catalog): HistoryViewMo
           return {
             kind: 'cat',
             title: catalog.catText.history[entry.id],
+            activeMs: entry.activeMs,
+          };
+        case 'ending':
+          return {
+            kind: 'ending',
+            title: catalog.endings.find((e) => e.id === entry.id)?.title ?? entry.id,
+            activeMs: entry.activeMs,
+          };
+        case 'achievement':
+          return {
+            kind: 'achievement',
+            title: catalog.achievements.find((a) => a.id === entry.id)?.title ?? entry.id,
             activeMs: entry.activeMs,
           };
         case 'event':

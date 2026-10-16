@@ -20,6 +20,8 @@ function meets(run: ReadonlyRun, requires: Requirements): boolean {
 export function isUpgradeOffered(run: ReadonlyRun, upgrade: UpgradeDefinition): boolean {
   if (upgradeLevel(run, upgrade.id) >= upgrade.maxLevel) return false;
   if (upgrade.discovers !== undefined && run.pendingUnlockIds.length > 0) return false;
+  // Choosing to keep manual work hides further automation for the rest of the run.
+  if (upgrade.discovers !== undefined && run.choices['keep-manual'] !== undefined) return false;
   if (!meets(run, upgrade.requires)) return false;
   return upgrade.extraCondition ? upgrade.extraCondition(run) : true;
 }
@@ -77,6 +79,8 @@ export function resolveDiscoveries(run: RunState, catalog: Catalog): Transition 
 
 /** The latest discovered technology that defines a primary action decides the current one. */
 export function currentPrimaryAction(run: ReadonlyRun, catalog: Catalog): PrimaryActionId {
+  // The manual branch really returns the old action (not a relabelled automated one).
+  if (run.choices['keep-manual'] !== undefined) return 'writeCode';
   let action: PrimaryActionId = 'writeCode';
   for (const id of run.unlockedTechnologyIds) {
     const definition = findTechnology(catalog, id);

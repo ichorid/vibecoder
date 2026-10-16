@@ -49,6 +49,8 @@ export interface GameOptions {
   clock: MonotonicClock;
   scheduler: IntervalScheduler;
   run: RunState;
+  /** Factory for a deliberate restart (new ID and seed come from the app boundary). */
+  newRun?: () => RunState;
   persistence?: PersistenceOptions;
   freezeSnapshots?: boolean;
 }
@@ -74,14 +76,16 @@ function needsImmediateSave(facts: readonly GameFact[]): boolean {
       fact.type === 'purchased' ||
       fact.type === 'technologyDiscovered' ||
       fact.type === 'catCared' ||
-      fact.type === 'catDied',
+      fact.type === 'catDied' ||
+      fact.type === 'endingReached' ||
+      fact.type === 'choiceMade',
   );
 }
 
 export function createGame(options: GameOptions): Game {
   const { catalog, persistence } = options;
   let run = options.run;
-  let profile: ProfileState = persistence?.profile ?? { theme: 'light' };
+  let profile: ProfileState = persistence?.profile ?? { theme: 'light', endings: [] };
   let revision = persistence?.revision ?? 0;
   let saveStatus: SaveStatus = persistence ? 'ok' : 'disabled';
   let lastSavedRun: RunState | null = run;
@@ -90,7 +94,7 @@ export function createGame(options: GameOptions): Game {
   const snapshot = (): GameSnapshot => ({
     run,
     game: selectGame(run, catalog),
-    history: selectHistory(run, catalog),
+    history: selectHistory(run, catalog, profile.endings),
     cat: selectCat(run, catalog),
     world: selectWorld(run, catalog),
     profile,
@@ -118,6 +122,21 @@ export function createGame(options: GameOptions): Game {
     }
   }
 
+  /** Add each newly reached ending to the profile once, in first-discovery order. */
+  function recordDiscoveries(facts: readonly GameFact[]): void {
+    for (const fact of facts) {
+      if (fact.type !== 'endingReached') continue;
+      if (profile.endings.some((e) => e.id === fact.id)) continue;
+      profile = {
+        ...profile,
+        endings: [
+          ...profile.endings,
+          { id: fact.id, runId: run.id, activeMs: run.activeMs, order: profile.endings.length + 1 },
+        ],
+      };
+    }
+  }
+
   function saveIfDue(): void {
     if (run !== lastSavedRun && run.activeMs - lastSaveActiveMs >= PERIODIC_SAVE_MS) write();
   }
@@ -132,6 +151,7 @@ export function createGame(options: GameOptions): Game {
       for (let i = 0; i < count; i += 1) {
         const transition = stepRun(run, STEP_MS, catalog);
         run = transition.run;
+        recordDiscoveries(transition.facts);
         if (needsImmediateSave(transition.facts)) urgent = true;
       }
       if (urgent) write();
@@ -149,6 +169,15 @@ export function createGame(options: GameOptions): Game {
         profile = { ...profile, theme: command.theme };
         write();
         break;
+      case 'restart': {
+        if (!options.newRun) return 'unavailable';
+        runtime.settle();
+        run = options.newRun();
+        lastSavedRun = null;
+        lastSaveActiveMs = run.activeMs;
+        write();
+        break;
+      }
     }
     publish();
     return 'applied';
@@ -160,7 +189,9 @@ export function createGame(options: GameOptions): Game {
    * interval, so timing input is judged when it happened, not at the last drawn frame.
    */
   function dispatch(command: GameCommand | AppCommand, input?: InputTiming): CommandResult {
-    if (command.type === 'retrySave' || command.type === 'setTheme') return dispatchApp(command);
+    if (command.type === 'retrySave' || command.type === 'setTheme' || command.type === 'restart') {
+      return dispatchApp(command);
+    }
     dispatching = true;
     try {
       runtime.settle();
@@ -168,6 +199,7 @@ export function createGame(options: GameOptions): Game {
       const at = Math.max(0, run.activeMs + runtime.remainderMs() - lag);
       const transition = applyCommand(run, command, at, catalog);
       run = transition.run;
+      recordDiscoveries(transition.facts);
       if (needsImmediateSave(transition.facts)) write();
       publish();
       return transition.result;

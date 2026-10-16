@@ -1,8 +1,16 @@
-import { TECHNOLOGY_IDS, UPGRADE_IDS, isUpgradeId, type UpgradeId } from '../game/ids';
+import {
+  CHOICE_IDS,
+  ENDING_IDS,
+  TECHNOLOGY_IDS,
+  UPGRADE_IDS,
+  isUpgradeId,
+  type UpgradeId,
+} from '../game/ids';
 import {
   CAT_HISTORY_IDS,
   type CatPlayState,
   type CatState,
+  type DiscoveredEnding,
   type EconomyState,
   type RunStats,
   type HistoryEntry,
@@ -43,6 +51,7 @@ export type Theme = (typeof THEMES)[number];
 /** Survives a new run. */
 export interface ProfileState {
   theme: Theme;
+  endings: DiscoveredEnding[];
 }
 
 /** One envelope holds profile and run so a restart or ending never saves half a change. */
@@ -68,7 +77,7 @@ export interface StorageLike {
 export type WriteResult = { ok: true } | { ok: false; error: string };
 
 export function createProfile(): ProfileState {
-  return { theme: 'light' };
+  return { theme: 'light', endings: [] };
 }
 
 export function encodeSave(save: SaveData): string {
@@ -107,7 +116,16 @@ const ECONOMY_FIELDS = [
   'revenuePerSecond',
   'costPerSecond',
 ] as const satisfies readonly (keyof EconomyState)[];
-const STATS_FIELDS = ['lifetimeOutput'] as const satisfies readonly (keyof RunStats)[];
+const STATS_FIELDS = [
+  'lifetimeOutput',
+  'feeds',
+  'pets',
+  'playHits',
+  'manualActions',
+  'lowDebtMs',
+  'positiveMarginMs',
+  'negativeMarginMs',
+] as const satisfies readonly (keyof RunStats)[];
 
 // Compile-time proof that the field lists cover the whole state shape.
 type Missing<T, K extends readonly (keyof T)[]> = Exclude<keyof T, K[number]>;
@@ -135,6 +153,30 @@ function decodeNarrative(value: unknown, path: string): RunState['narrative'] {
     lastAt[str(id, `${path}.lastAt`, 80)] = num(at, `${path}.lastAt.${id}`, nonNegative);
   }
   return { fired: list(raw.fired, `${path}.fired`, (e, p) => str(e, p, 80), 500), lastAt };
+}
+
+function decodeChoices(value: unknown, path: string): RunState['choices'] {
+  const raw = record(value, path);
+  const choices: RunState['choices'] = {};
+  for (const [id, entry] of Object.entries(raw)) {
+    const choice = oneOf(id, `${path}`, CHOICE_IDS);
+    const fields = record(entry, `${path}.${id}`);
+    choices[choice] = {
+      atActiveMs: num(fields.atActiveMs, `${path}.${id}.atActiveMs`, nonNegative),
+      manualActions: num(fields.manualActions, `${path}.${id}.manualActions`, nonNegative),
+      overhead: num(fields.overhead, `${path}.${id}.overhead`, nonNegative),
+    };
+  }
+  return choices;
+}
+
+function decodeEnding(value: unknown, path: string): NonNullable<RunState['ending']> {
+  const raw = record(value, path);
+  return {
+    id: oneOf(raw.id, `${path}.id`, ENDING_IDS),
+    catAlive: bool(raw.catAlive, `${path}.catAlive`),
+    activeMs: num(raw.activeMs, `${path}.activeMs`, nonNegative),
+  };
 }
 
 function decodeAttention(value: unknown, path: string): RunState['attention'] {
@@ -215,7 +257,13 @@ function decodeCat(value: unknown, path: string): CatState {
 function decodeHistoryEntry(value: unknown, path: string): HistoryEntry {
   const raw = record(value, path);
   const activeMs = num(raw.activeMs, `${path}.activeMs`, nonNegative);
-  const kind = oneOf(raw.kind, `${path}.kind`, ['technology', 'cat', 'event'] as const);
+  const kind = oneOf(raw.kind, `${path}.kind`, [
+    'technology',
+    'cat',
+    'event',
+    'achievement',
+    'ending',
+  ] as const);
   switch (kind) {
     case 'cat':
       return { kind, id: oneOf(raw.id, `${path}.id`, CAT_HISTORY_IDS), activeMs };
@@ -223,6 +271,10 @@ function decodeHistoryEntry(value: unknown, path: string): HistoryEntry {
       return { kind, id: oneOf(raw.id, `${path}.id`, TECHNOLOGY_IDS), activeMs };
     case 'event':
       return { kind, textId: str(raw.textId, `${path}.textId`), activeMs };
+    case 'achievement':
+      return { kind, id: str(raw.id, `${path}.id`, 80), activeMs };
+    case 'ending':
+      return { kind, id: oneOf(raw.id, `${path}.id`, ENDING_IDS), activeMs };
   }
 }
 
@@ -271,13 +323,22 @@ export function decodeRun(value: unknown, path = 'run'): RunState {
       TECHNOLOGY_IDS,
     ),
     upgradeLevels: decodeUpgradeLevels(raw.upgradeLevels, `${path}.upgradeLevels`),
+    achievementIds: list(
+      raw.achievementIds,
+      `${path}.achievementIds`,
+      (e, p) => str(e, p, 80),
+      200,
+    ),
     pendingUnlockIds: uniqueList(raw.pendingUnlockIds, `${path}.pendingUnlockIds`, TECHNOLOGY_IDS),
     catPlay: decodeCatPlay(raw.catPlay, `${path}.catPlay`),
     narrative: decodeNarrative(raw.narrative, `${path}.narrative`),
     attention: decodeAttention(raw.attention, `${path}.attention`),
     catPlaySeq: num(raw.catPlaySeq, `${path}.catPlaySeq`, { min: 0, integer: true }),
-    ending: raw.ending === null ? null : fail(`${path}.ending`, 'expected null'),
+    choices: decodeChoices(raw.choices, `${path}.choices`),
+    ending: raw.ending === null ? null : decodeEnding(raw.ending, `${path}.ending`),
   };
+  if ((run.status === 'ended') !== (run.ending !== null))
+    fail(`${path}.ending`, 'status and ending disagree');
   if (run.catPlay && !run.cat.alive) fail(`${path}.catPlay`, 'play session with a dead cat');
   if (run.catPlay && run.catPlay.attemptId > run.catPlaySeq) {
     fail(`${path}.catPlay`, 'attempt ID ahead of sequence');
@@ -290,7 +351,23 @@ export function decodeRun(value: unknown, path = 'run'): RunState {
 
 function decodeProfile(value: unknown, path = 'profile'): ProfileState {
   const raw = record(value, path);
-  return { theme: oneOf(raw.theme, `${path}.theme`, THEMES) };
+  const endings = list(
+    raw.endings,
+    `${path}.endings`,
+    (entry, p) => {
+      const e = record(entry, p);
+      return {
+        id: oneOf(e.id, `${p}.id`, ENDING_IDS),
+        runId: str(e.runId, `${p}.runId`),
+        activeMs: num(e.activeMs, `${p}.activeMs`, nonNegative),
+        order: num(e.order, `${p}.order`, { min: 1, integer: true }),
+      };
+    },
+    100,
+  );
+  if (new Set(endings.map((e) => e.id)).size !== endings.length)
+    fail(`${path}.endings`, 'duplicate ending');
+  return { theme: oneOf(raw.theme, `${path}.theme`, THEMES), endings };
 }
 
 /** Validate untrusted saved data. Never repairs, never falls back to an older or new run. */

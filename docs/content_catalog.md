@@ -103,3 +103,23 @@ current progression card is always first; at most three cards.
 
 start: Code · 04: Code, Tokens · 05: Code, Tokens, Debt · 20: Code, Debt, Automation ·
 24: Revenue, Code, Automation · 26: Revenue, Margin, Automation.
+
+## Endings (P09) — offer conditions and decision
+
+| Ending | Card appears when | Decision | Route test |
+| --- | --- | --- | --- |
+| three-users | terminal-agent, before reviewer, lifetime output ≥ 1 000 | Ship the original project | early-routes |
+| the-last-programmer | after `keep-manual` (reviewer..manager window) ≥ 120 manual presses, project ready | Finish it yourself | early-routes |
+| the-great-merge-conflict | parallel-agents and debt ≥ 150 | Force-merge every branch | early-routes |
+| the-greenest-pipeline | evaluations (before repositories), debt ≤ 5 for 120 s | Freeze feature work | early-routes |
+| the-forgotten-project | custom-harness, before evaluations | Archive the original project | late-routes |
+| the-perfect-saas | product-management (before company), margin > 0 for 120 s, debt ≤ 20 | Keep it small and profitable | late-routes |
+| acquired-by-yourself | finance, before company | Accept the acquisition offer | late-routes |
+| fully-automated-bankruptcy | after `expand-anyway` (fixed overhead = max(20, 2 × revenue/s)), margin < 0 for 120 s | Close the company | late-routes |
+| the-human-approval-api | autonomous-company | Keep mandatory human approval | late-routes |
+| you-have-been-optimized | autonomous-company (standard resolution, always available) | Remove human oversight | late-routes |
+
+`keep-manual` returns WRITE CODE and hides further progression; `expand-anyway` commits a
+loss-making overhead. While a progression card shows, at most two decision cards share the three
+slots; later-stage decisions are authored first. Margin uses owed costs (spending is capped so
+revenue never goes negative). Every ending has alive/dead text.

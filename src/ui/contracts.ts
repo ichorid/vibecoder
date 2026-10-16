@@ -15,7 +15,8 @@ export type SaveStatus = 'ok' | 'failed' | 'disabled';
 export type ViewId = 'game' | 'history' | 'cat';
 
 /** Commands handled by app composition rather than the simulation. */
-export type AppCommand = { type: 'retrySave' } | { type: 'setTheme'; theme: Theme };
+export type AppCommand =
+  { type: 'retrySave' } | { type: 'setTheme'; theme: Theme } | { type: 'restart' };
 
 export type UiCommand = GameCommand | AppCommand;
 

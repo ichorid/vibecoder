@@ -49,3 +49,20 @@ export function evaluateNarrative(
   }
   return run;
 }
+
+/** Record newly earned achievements once each (History entry; no gameplay effect). */
+export function evaluateAchievements(run: RunState, catalog: Catalog): RunState {
+  let next = run;
+  for (const achievement of catalog.achievements) {
+    if (next.achievementIds.includes(achievement.id) || !achievement.when(next)) continue;
+    next = {
+      ...next,
+      achievementIds: [...next.achievementIds, achievement.id],
+      history: [
+        ...next.history,
+        { kind: 'achievement', id: achievement.id, activeMs: next.activeMs },
+      ],
+    };
+  }
+  return next;
+}

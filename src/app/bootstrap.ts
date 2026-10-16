@@ -77,6 +77,7 @@ export function bootGame(): Boot {
     clock: browserClock,
     scheduler: browserScheduler,
     run: save?.run ?? createRun(newSeed(), newRunId()),
+    newRun: () => createRun(newSeed(), newRunId()),
     ...(adapter
       ? {
           persistence: {

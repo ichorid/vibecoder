@@ -3,8 +3,12 @@ import { advanceSession, sessionOf, withSession } from './catPlaySession';
 import type { Catalog } from './catalog';
 import { deriveRates, roundAmount, stepEconomy } from './economy';
 import { appendLog } from './log';
-import { evaluateNarrative } from './narrative';
+import { resolveAutomaticEnding } from './endings';
+import { evaluateAchievements, evaluateNarrative } from './narrative';
 import type { GameFact, RunState } from './types';
+
+/** Debt at or below this counts as a clean pipeline. */
+const LOW_DEBT = 5;
 
 export interface Transition {
   readonly run: RunState;
@@ -23,6 +27,8 @@ export function stepRun(run: RunState, stepMs: number, catalog: Catalog): Transi
 
   // 2. Production, costs and capacity constraints.
   const economy = stepEconomy(run.economy, deriveRates(run, catalog), stepMs, catalog.balance);
+  const margin = economy.economy.revenuePerSecond - economy.economy.costPerSecond;
+  const monetized = economy.economy.revenuePerSecond > 0 || economy.economy.costPerSecond > 0;
   let next: RunState = {
     ...run,
     activeMs,
@@ -30,6 +36,9 @@ export function stepRun(run: RunState, stepMs: number, catalog: Catalog): Transi
     stats: {
       ...run.stats,
       lifetimeOutput: roundAmount(run.stats.lifetimeOutput + economy.produced),
+      lowDebtMs: economy.economy.debt <= LOW_DEBT ? run.stats.lowDebtMs + stepMs : 0,
+      positiveMarginMs: monetized && margin > 0 ? run.stats.positiveMarginMs + stepMs : 0,
+      negativeMarginMs: monetized && margin < 0 ? run.stats.negativeMarginMs + stepMs : 0,
     },
   };
 
@@ -40,8 +49,13 @@ export function stepRun(run: RunState, stepMs: number, catalog: Catalog): Transi
   else if (next.catPlay) {
     next = withSession(next, advanceSession(sessionOf(next), activeMs, catalog.balance.catPlay));
   }
-  // 5. Narrative events (quiet when something important happened this step).
+  // 5. Automatic endings (after the cat, so the fate variant is unambiguous), then narrative.
+  const automatic = resolveAutomaticEnding(next, catalog);
+  next = automatic.run;
+  facts.push(...automatic.facts);
+  // Narrative events (quiet when something important happened this step).
   next = evaluateNarrative(next, catalog, facts);
+  next = evaluateAchievements(next, catalog);
   const attention = updateAttention(next.attention, next.cat, activeMs, catalog.balance.attention);
   if (attention !== next.attention) next = { ...next, attention };
 

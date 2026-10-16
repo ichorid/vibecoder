@@ -37,5 +37,7 @@ test('the reviewer appears with debt in the header and can be bought', async ({ 
   await reviewer.click();
   await expect(page.getByTestId('announcement')).toContainText('Reviewer Agent');
   await page.getByRole('button', { name: 'CONTINUE' }).click();
-  await expect(page.getByRole('button', { name: /Review capacity/ })).toBeVisible();
+  // The reviewer opens a new decision (keep writing by hand) on the same card surface.
+  await expect(page.locator('[data-choice="keep-manual"]')).toBeVisible();
+  await expect(page.locator('.offers li')).toHaveCount(3);
 });

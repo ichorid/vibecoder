@@ -70,8 +70,8 @@ export const acknowledgeReveals: Policy = ({ run }) =>
 
 /** Buy the first currently offered, affordable card. */
 export const buyFirstAffordable: Policy = ({ run, catalog }) => {
-  const offer = selectGame(run, catalog).offers.find((o) => o.affordable);
-  return offer ? [{ type: 'buyUpgrade', id: offer.id }] : [];
+  const offer = selectGame(run, catalog).offers.find((o) => o.kind === 'upgrade' && o.affordable);
+  return offer?.kind === 'upgrade' ? [{ type: 'buyUpgrade', id: offer.id }] : [];
 };
 
 /** Baseline care from the implementation plan: feed every 180 s below 70, pet every 60 s. */
@@ -88,7 +88,7 @@ export const baselineCare: Policy[] = [
  * price (so repeatables never delay the next discovery much). Uses current offers only.
  */
 export const baselineBuyer: Policy = ({ run, catalog }) => {
-  const offers = selectGame(run, catalog).offers;
+  const offers = selectGame(run, catalog).offers.flatMap((o) => (o.kind === 'upgrade' ? [o] : []));
   const progression = offers.find((o) => catalog.upgrades.find((u) => u.id === o.id)?.discovers);
   if (progression?.affordable) return [{ type: 'buyUpgrade', id: progression.id }];
   const limit = progression ? progression.price / 4 : Infinity;

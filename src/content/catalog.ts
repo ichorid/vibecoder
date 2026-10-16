@@ -1,6 +1,8 @@
 import type { Catalog } from '../game/catalog';
+import { achievements } from './achievements';
 import { balance } from './balance';
 import { catText } from './catText';
+import { choices, endings } from './endings';
 import { events } from './events';
 import { technologies } from './technologies';
 import { upgrades } from './upgrades';
@@ -9,7 +11,10 @@ import { upgrades } from './upgrades';
 export const catalog: Catalog = {
   balance,
   catText,
+  choices,
+  endings,
   events,
+  achievements,
   primaryActionLabels: {
     writeCode: 'WRITE CODE',
     prompt: 'PROMPT',

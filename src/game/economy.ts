@@ -36,6 +36,8 @@ export interface DerivedRates {
   readonly efficiency: number;
   readonly monetization: number;
   readonly operatingCostPerAgent: number;
+  /** Fixed operating cost per second committed by choices (e.g. a loss-making expansion). */
+  readonly fixedOverheadPerSecond: number;
   readonly automated: ReadonlySet<ResponsibilityId>;
 }
 
@@ -174,6 +176,10 @@ export function deriveRates(run: ReadonlyRun, catalog: Catalog): DerivedRates {
     efficiency,
     monetization: monetization * monetizationMultiplier,
     operatingCostPerAgent,
+    fixedOverheadPerSecond: Object.values(run.choices).reduce(
+      (sum, c) => sum + (c?.overhead ?? 0),
+      0,
+    ),
     automated,
   };
 }
@@ -204,7 +210,7 @@ export function stepEconomy(
   const dt = stepMs / 1000;
   const agents = Math.min(rates.agents, rates.compute);
   // Operating costs: unfunded capacity idles instead of driving revenue negative.
-  const costRate = agents * rates.operatingCostPerAgent;
+  const costRate = agents * rates.operatingCostPerAgent + rates.fixedOverheadPerSecond;
   const affordable =
     costRate > 0
       ? Math.min(1, (economy.revenue + economy.revenuePerSecond * dt) / (costRate * dt))
@@ -269,7 +275,8 @@ export function stepEconomy(
       ),
       revenue: roundAmount(Math.max(0, economy.revenue + earned - spent)),
       revenuePerSecond: roundAmount(earned / dt),
-      costPerSecond: roundAmount(spent / dt),
+      // Costs owed, even when only part could be paid: the margin shows the real loss.
+      costPerSecond: roundAmount(costRate),
     },
   };
 }

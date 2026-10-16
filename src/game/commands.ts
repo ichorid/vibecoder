@@ -1,4 +1,5 @@
 import { feedCat, noteMeaningfulAction, petCat } from './cat';
+import { endRun, isChoiceOffered } from './endings';
 import type { Catalog } from './catalog';
 import { catchMouse, resumeSession, sessionOf, startSession, withSession } from './catPlaySession';
 import { deriveRates, roundAmount, upgradeLevel, upgradePrice } from './economy';
@@ -57,8 +58,10 @@ export function applyCommand(
         catalog.balance.catPlay,
       );
       if (!caught.accepted) return reject(run, 'unavailable');
+      const hit = caught.state.play?.outcome?.kind === 'hit' ? 1 : 0;
+      const played = withSession(run, caught.state);
       return {
-        run: withSession(run, caught.state),
+        run: { ...played, stats: { ...played.stats, playHits: played.stats.playHits + hit } },
         facts: [{ type: 'catCared', kind: 'play' }],
         result: 'applied',
       };
@@ -71,11 +74,39 @@ export function applyCommand(
       const resumed = resumeSession(sessionOf(run), activeTimestamp, catalog.balance.catPlay);
       return { run: withSession(run, resumed), facts: [], result: 'applied' };
     }
+    case 'choose': {
+      const choice = catalog.choices.find((c) => c.id === command.id);
+      if (!choice || !isChoiceOffered(run, choice)) return reject(run, 'unavailable');
+      const chosen: RunState = {
+        ...run,
+        choices: {
+          ...run.choices,
+          [choice.id]: {
+            atActiveMs: activeTimestamp,
+            manualActions: run.stats.manualActions,
+            overhead: choice.overhead?.(run) ?? 0,
+          },
+        },
+      };
+      if (!choice.ends)
+        return { run: chosen, facts: [{ type: 'choiceMade', id: choice.id }], result: 'applied' };
+      const ended = endRun(chosen, choice.ends);
+      return {
+        run: ended.run,
+        facts: [{ type: 'choiceMade', id: choice.id }, ...ended.facts],
+        result: 'applied',
+      };
+    }
     case 'feedCat': {
       const fed = feedCat(run.cat, run.rng.cat, activeTimestamp, catalog.balance.cat);
       if (!fed.accepted) return reject(run, fed.reason);
       return {
-        run: { ...run, cat: fed.cat, rng: { ...run.rng, cat: fed.rng } },
+        run: {
+          ...run,
+          cat: fed.cat,
+          rng: { ...run.rng, cat: fed.rng },
+          stats: { ...run.stats, feeds: run.stats.feeds + 1 },
+        },
         facts: [{ type: 'catCared', kind: 'feed' }],
         result: 'applied',
       };
@@ -84,7 +115,7 @@ export function applyCommand(
       const petted = petCat(run.cat, activeTimestamp, catalog.balance.cat);
       if (!petted.accepted) return reject(run, petted.reason);
       return {
-        run: { ...run, cat: petted.cat },
+        run: { ...run, cat: petted.cat, stats: { ...run.stats, pets: run.stats.pets + 1 } },
         facts: [{ type: 'catCared', kind: 'pet' }],
         result: 'applied',
       };
@@ -128,6 +159,7 @@ function primaryAction(run: RunState, catalog: Catalog): CommandTransition {
   const rates = deriveRates(run, catalog);
   const action = currentPrimaryAction(run, catalog);
   let economy = { ...run.economy, actionCharges: run.economy.actionCharges - 1 };
+  const stats = { ...run.stats, manualActions: run.stats.manualActions + 1 };
   switch (action) {
     case 'writeCode':
       economy = { ...economy, pendingManualWork: economy.pendingManualWork + rates.manualOutput };
@@ -168,5 +200,5 @@ function primaryAction(run: RunState, catalog: Catalog): CommandTransition {
       void unknown;
     }
   }
-  return { run: { ...run, cat, economy }, facts: [], result: 'applied' };
+  return { run: { ...run, cat, economy, stats }, facts: [], result: 'applied' };
 }

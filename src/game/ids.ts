@@ -81,6 +81,38 @@ export const PRIMARY_ACTION_IDS = [
 ] as const;
 export type PrimaryActionId = (typeof PRIMARY_ACTION_IDS)[number];
 
+/** Endings (IDs only; texts and conditions are content). */
+export const ENDING_IDS = [
+  'three-users',
+  'the-last-programmer',
+  'the-great-merge-conflict',
+  'the-greenest-pipeline',
+  'the-forgotten-project',
+  'the-perfect-saas',
+  'acquired-by-yourself',
+  'fully-automated-bankruptcy',
+  'the-human-approval-api',
+  'you-have-been-optimized',
+] as const;
+export type EndingId = (typeof ENDING_IDS)[number];
+
+/** Player decisions offered as cards (some end the run, some commit a path). */
+export const CHOICE_IDS = [
+  'ship-original',
+  'keep-manual',
+  'finish-by-hand',
+  'force-merge',
+  'freeze-features',
+  'archive-original',
+  'small-saas',
+  'self-acquisition',
+  'expand-anyway',
+  'close-company',
+  'keep-approval',
+  'remove-oversight',
+] as const;
+export type ChoiceId = (typeof CHOICE_IDS)[number];
+
 /** Manual responsibilities that technologies progressively automate. */
 export const RESPONSIBILITY_IDS = [
   'writing',

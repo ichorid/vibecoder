@@ -337,3 +337,32 @@ RED: 7/8 failed against an empty validator. GREEN: rejects declared placeholders
 `npm run check` OK (incl. release content); `test:game` 305/305; `test:browser` 28/28; build within budgets (entry 46.5 KiB gzip, all JS 223 KiB, art 34 KiB).
 Not verified: human review of all 28 illustrations in both themes; real-device late-world performance.
 Next: P09.1.
+
+## Task: P09 (events, ten endings, replay)
+
+Status: **done** (P09.6 extension endings not implemented)
+
+### P09.1 events and achievements
+
+Files: `src/game/narrative.ts` (`evaluateAchievements`), `src/content/{events,achievements}.ts`, `achievements.test.ts`; care stats (`feeds`, `pets`, `playHits`).
+RED: 3/4 failed with a no-op evaluator. GREEN: achievements recorded once with a History entry and no rate change; nothing locked or counted is exposed; care counts never feed production; later ominous events (oversight, board, harness) added. Narrative from P07.5 covers once/cooldown/priority/bounded log.
+
+### P09.2 resolver and terminal transaction
+
+Files: `src/game/endings.ts`, `endings.test.ts`, `src/content/endings.ts`, choices/endings in the catalog, `choose` command, `src/app/endingSave.test.ts`, profile `endings` in the save envelope, `restart` app command.
+RED: 5/5 resolver tests and the persistence tests failed before the contract existed. GREEN: choosing an ending freezes time/needs/commands; repeated choice rejected; automatic candidates resolve by explicit priority; fate captured after the same step's cat update; ending + History + profile discovery saved in one envelope; rediscovery not duplicated.
+
+### P09.3–P09.4 ten routes
+
+`tests/scenarios/endings/{early,late}-routes.test.ts` with `tests/helpers/endingRoute.ts`: every route starts at `createRun`, uses only current offers and public commands, and asserts one ending + History entry + the fate-matching text. RED: 9/11 failed (only the standard ending existed). Two fixes after the first GREEN attempt: (a) Perfect SaaS and Acquisition competed for a single decision slot → up to two decision cards while a progression card shows; (b) the bankruptcy margin read ≈0 because reported costs were capped by what could be paid → `costPerSecond` now reports owed costs. Merge conflict reached debt ≥150 through real reckless purchases (no content change needed). Release check now fails if an ending lacks a route scenario reference, a reachable choice/rule, or text for both fates.
+
+### P09.5 fate variants, ending panel, restart
+
+Files: `ui/EndingPanel.svelte`, `GameView.svelte` (decision cards with inline YES/NO confirmation, NEW RUN… → START NEW RUN/CANCEL), `HistoryView.svelte` (profile endings + this run), `tests/browser/endings.spec.ts`.
+GREEN: success with living and dead cat (`you-have-been-optimized` route test runs both); ending panel inside Game; Cat/History open with frozen needs; restart creates a new ID/seed, living cat, clean run, keeps theme and discoveries; cancel changes nothing; second ending added without duplicates.
+
+### Exit gate
+
+`npm run check` OK; `test:game` 330/330; `test:browser` 30/30; build within budgets (entry 51.9 KiB gzip). Main route still 31.8 active min.
+Not done: P09.6 extension endings (optional).
+Next: sound plan S00 (P10 depends on S07), then P10.

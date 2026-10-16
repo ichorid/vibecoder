@@ -63,9 +63,10 @@ export function progressedRun(count: number, leavePending = false, seed = 41): R
     if (run.activeMs % 1000 === 0) {
       run = applyCommand(run, { type: 'primaryAction' }, run.activeMs, catalog).run;
     }
-    const offer = selectGame(run, catalog).offers.find((o) => o.affordable);
-    if (offer)
+    const offer = selectGame(run, catalog).offers.find((o) => o.kind === 'upgrade' && o.affordable);
+    if (offer?.kind === 'upgrade') {
       run = applyCommand(run, { type: 'buyUpgrade', id: offer.id }, run.activeMs, catalog).run;
+    }
     if (run.activeMs % 180_000 === 0 && run.cat.fullness < 70) {
       run = applyCommand(run, { type: 'feedCat' }, run.activeMs, catalog).run;
     }
@@ -75,4 +76,45 @@ export function progressedRun(count: number, leavePending = false, seed = 41): R
     run = stepRun(run, 100, catalog).run;
   }
   throw new Error(`could not reach ${count} technologies`);
+}
+
+import type { ChoiceId } from '../../src/game/ids';
+import type { DiscoveredEnding } from '../../src/game/types';
+import {
+  acknowledgeReveals,
+  baselineBuyer,
+  baselineCare,
+  baselinePrimary,
+  playEvery,
+} from '../helpers/scenario';
+
+/** Play the baseline route until a decision card is offered (command-driven fixture). */
+export function untilChoice(id: ChoiceId, seed = 51): RunState {
+  let run = createRun(seed, `choice-${seed}`);
+  const policies = [
+    baselinePrimary,
+    baselineBuyer,
+    acknowledgeReveals,
+    ...baselineCare,
+    playEvery(270_000),
+  ];
+  for (let i = 0; i < 60 * 600; i += 1) {
+    if (selectGame(run, catalog).offers.some((o) => o.kind === 'choice' && o.id === id)) return run;
+    for (const policy of policies) {
+      for (const command of policy({ run, catalog }))
+        run = applyCommand(run, command, run.activeMs, catalog).run;
+    }
+    run = stepRun(run, 100, catalog).run;
+  }
+  throw new Error(`choice ${id} never offered`);
+}
+
+export function saveWithProfile(run: RunState, endings: DiscoveredEnding[]): string {
+  return encodeSave({
+    schemaVersion: CURRENT_SCHEMA_VERSION,
+    contentVersion: 1,
+    revision: 1,
+    profile: { ...createProfile(), endings },
+    run,
+  });
 }

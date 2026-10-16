@@ -18,6 +18,9 @@ export interface ReleaseInput {
   readonly worldAdditions: readonly WorldAddition[];
   readonly files: AssetFiles & { readBytes(file: string): Uint8Array | null };
   readonly requiredTechnologies: number;
+  /** Concatenated text of the ending route scenarios (each ending must be exercised). */
+  readonly scenarioText: string;
+  readonly requiredEndings: number;
 }
 
 function contains(outer: WorldAddition['envelope'], inner: WorldAddition['envelope']): boolean {
@@ -88,6 +91,23 @@ export function validateRelease(input: ReleaseInput): string[] {
     }
     if (!atlas?.animations[addition.lodSprite])
       problems.push(`${addition.id}: unknown LOD tag "${addition.lodSprite}"`);
+  }
+  // Endings: enough of them, each reachable by a choice or rule, each with a route scenario.
+  if (catalog.endings.length < input.requiredEndings) {
+    problems.push(
+      `catalog has ${catalog.endings.length} endings, release needs ${input.requiredEndings}`,
+    );
+  }
+  for (const ending of catalog.endings) {
+    const reachable =
+      ending.automatic !== undefined || catalog.choices.some((c) => c.ends === ending.id);
+    if (!reachable) problems.push(`ending ${ending.id}: no choice or rule leads to it`);
+    if (!input.scenarioText.includes(`'${ending.id}'`)) {
+      problems.push(`ending ${ending.id}: no route scenario references it`);
+    }
+    if (ending.text.alive.length === 0 || ending.text.dead.length === 0) {
+      problems.push(`ending ${ending.id}: needs text for both fates of the cat`);
+    }
   }
   const last = worldAdditions.find((a) => a.final);
   if (!last) problems.push('no final framing addition');

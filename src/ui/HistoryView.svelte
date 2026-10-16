@@ -10,6 +10,17 @@
     <button type="button" class="return" onclick={onReturn}>← GAME</button>
     <h2 id="history-title">HISTORY</h2>
   </div>
+  {#if history.endings.length > 0}
+    <section class="endings" aria-labelledby="endings-title">
+      <h3 id="endings-title">Endings discovered</h3>
+      <ol>
+        {#each history.endings as ending (ending.id)}
+          <li><span class="time">#{ending.order}</span> {ending.title}</li>
+        {/each}
+      </ol>
+    </section>
+  {/if}
+  <h3 class="run-title">This run</h3>
   {#if history.entries.length === 0}
     <p class="empty">Nothing has happened yet.</p>
   {:else}
@@ -72,6 +83,26 @@
     height: 9px;
     background: var(--accent);
     border: 2px solid var(--border);
+  }
+  .entry.ending::before {
+    background: var(--health);
+  }
+  .entry.achievement::before {
+    background: var(--gold, #e7b42f);
+  }
+  h3 {
+    margin: 14px 0 0;
+    font-size: 14px;
+    letter-spacing: 0.06em;
+  }
+  .endings ol {
+    list-style: none;
+    margin: 6px 0 0;
+    padding: 0;
+  }
+  .endings li {
+    padding: 4px 0;
+    font-weight: 700;
   }
   .entry.cat::before {
     background: #e8892f;

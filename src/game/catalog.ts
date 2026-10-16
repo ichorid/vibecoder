@@ -1,4 +1,11 @@
-import type { PrimaryActionId, ResponsibilityId, TechnologyId, UpgradeId } from './ids';
+import type {
+  ChoiceId,
+  EndingId,
+  PrimaryActionId,
+  ResponsibilityId,
+  TechnologyId,
+  UpgradeId,
+} from './ids';
 import type { CareNote, CatHistoryId, ReadonlyRun } from './types';
 
 /**
@@ -250,8 +257,40 @@ export interface EventDefinition {
   readonly significant?: boolean;
 }
 
+/** A discovered-only record: never shown before it happens, never a productivity bonus. */
+export interface AchievementDefinition {
+  readonly id: string;
+  readonly title: string;
+  readonly when: (run: ReadonlyRun) => boolean;
+}
+
+/** A decision card. `ends` makes it an ending choice; otherwise it commits a path. */
+export interface ChoiceDefinition {
+  readonly id: ChoiceId;
+  readonly title: string;
+  readonly description: string;
+  /** Destructive commitments ask for an inline confirmation with this text. */
+  readonly confirm?: string;
+  readonly available: (run: ReadonlyRun) => boolean;
+  readonly ends?: EndingId;
+  /** Fixed extra operating cost per second this commitment adds (loss-making expansion). */
+  readonly overhead?: (run: ReadonlyRun) => number;
+}
+
+export interface EndingDefinition {
+  readonly id: EndingId;
+  readonly title: string;
+  /** Paragraphs by the cat's fate when the run ended. */
+  readonly text: { readonly alive: readonly string[]; readonly dead: readonly string[] };
+  /** Optional automatic resolution; simultaneous candidates resolve by highest priority. */
+  readonly automatic?: { readonly priority: number; readonly when: (run: ReadonlyRun) => boolean };
+}
+
 export interface Catalog {
+  readonly choices: readonly ChoiceDefinition[];
+  readonly endings: readonly EndingDefinition[];
   readonly events: readonly EventDefinition[];
+  readonly achievements: readonly AchievementDefinition[];
   readonly catText: CatText;
   readonly balance: BalanceDefinition;
   readonly primaryActionLabels: Readonly<Record<PrimaryActionId, string>>;

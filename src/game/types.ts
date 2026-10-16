@@ -1,4 +1,4 @@
-import type { TechnologyId, UpgradeId } from './ids';
+import type { ChoiceId, EndingId, TechnologyId, UpgradeId } from './ids';
 
 export type RunStatus = 'playing' | 'ended';
 
@@ -42,6 +42,16 @@ export interface EconomyState {
 
 export interface RunStats {
   lifetimeOutput: number;
+  /** Care counts: narrative/achievement/ending facts only, never production inputs. */
+  feeds: number;
+  pets: number;
+  playHits: number;
+  /** Accepted primary presses (with a charge) over the run. */
+  manualActions: number;
+  /** Continuous active time with debt ≤ 5 / margin > 0 / margin < 0 (ending conditions). */
+  lowDebtMs: number;
+  positiveMarginMs: number;
+  negativeMarginMs: number;
 }
 
 /** Last accepted care, for contextual Cat messages; cosmetic responses are not stored. */
@@ -70,7 +80,35 @@ export type CatHistoryId = (typeof CAT_HISTORY_IDS)[number];
 export type HistoryEntry =
   | { kind: 'technology'; id: TechnologyId; activeMs: number }
   | { kind: 'cat'; id: CatHistoryId; activeMs: number }
-  | { kind: 'event'; textId: string; activeMs: number };
+  | { kind: 'event'; textId: string; activeMs: number }
+  | { kind: 'achievement'; id: string; activeMs: number }
+  | { kind: 'ending'; id: EndingId; activeMs: number };
+
+/** A committed decision with the facts later conditions need. */
+export interface ChoiceRecord {
+  atActiveMs: number;
+  /** Accepted manual presses when the choice was made (for "after the choice" counts). */
+  manualActions: number;
+  /** Fixed extra operating cost per second committed by this choice (0 if none). */
+  overhead: number;
+}
+
+/** A profile record of an ending discovered in some run (survives restarts). */
+export interface DiscoveredEnding {
+  id: EndingId;
+  runId: string;
+  /** Active time of that run when the ending happened. */
+  activeMs: number;
+  /** First-discovery order across runs (1, 2, …). */
+  order: number;
+}
+
+export interface EndingRecord {
+  id: EndingId;
+  /** The cat's fate when the run ended; ending text never recomputes it later. */
+  catAlive: boolean;
+  activeMs: number;
+}
 
 export type AttemptOutcomeKind = 'hit' | 'near' | 'miss';
 
@@ -124,6 +162,7 @@ export interface RunState {
   log: LogEntry[];
   unlockedTechnologyIds: TechnologyId[];
   upgradeLevels: Partial<Record<UpgradeId, number>>;
+  achievementIds: string[];
   pendingUnlockIds: TechnologyId[];
   catPlay: CatPlayState | null;
   /** Which narrative events fired, and when each repeating one last fired. */
@@ -131,7 +170,8 @@ export interface RunState {
   attention: AttentionState;
   /** Last issued PLAY attempt ID. */
   catPlaySeq: number;
-  ending: null;
+  choices: Partial<Record<ChoiceId, ChoiceRecord>>;
+  ending: EndingRecord | null;
 }
 
 export type ReadonlyRun = DeepReadonly<RunState>;
@@ -145,10 +185,13 @@ export type GameCommand =
   | { type: 'startCatPlay' }
   | { type: 'catchMouse'; attemptId: number }
   | { type: 'leaveCatPlay' }
-  | { type: 'resumeCatPlay' };
+  | { type: 'resumeCatPlay' }
+  | { type: 'choose'; id: ChoiceId };
 
 /** Typed facts returned with a transition for app wiring (saving, presentation). No event bus. */
 export type GameFact =
+  | { type: 'endingReached'; id: EndingId }
+  | { type: 'choiceMade'; id: ChoiceId }
   | { type: 'catDied' }
   | { type: 'catCared'; kind: 'feed' | 'pet' | 'play' }
   | { type: 'purchased'; id: UpgradeId }

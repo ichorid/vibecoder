@@ -1,10 +1,11 @@
 <script lang="ts">
   import { tick, type Snippet } from 'svelte';
-  import type { TechnologyId, UpgradeId } from '../game/ids';
-  import type { GameViewModel } from '../game/selectors';
+  import type { ChoiceId, TechnologyId, UpgradeId } from '../game/ids';
+  import type { GameViewModel, OfferViewModel } from '../game/selectors';
   import type { Dispatch, DomSpriteSheet } from './contracts';
   import { formatActiveTime, formatAmount } from './format';
   import CatOverlay from './CatOverlay.svelte';
+  import EndingPanel from './EndingPanel.svelte';
   import UnlockAnnouncement from './UnlockAnnouncement.svelte';
   import type { AttentionLevel } from '../game/types';
 
@@ -45,6 +46,28 @@
     }
   }
 
+  /** Decision cards with a confirmation text ask once, inline, before committing. */
+  let confirming = $state<ChoiceId | null>(null);
+  let confirmingRestart = $state(false);
+
+  function choose(id: ChoiceId, confirm: string | null) {
+    if (confirm && confirming !== id) {
+      confirming = id;
+      return;
+    }
+    confirming = null;
+    dispatch({ type: 'choose', id });
+  }
+
+  function chooseOffer(offer: OfferViewModel) {
+    if (offer.kind === 'choice') choose(offer.id, offer.confirm);
+  }
+
+  function restart() {
+    confirmingRestart = false;
+    dispatch({ type: 'restart' });
+  }
+
   function acknowledge(id: TechnologyId) {
     dispatch({ type: 'acknowledgeUnlock', id });
   }
@@ -53,7 +76,9 @@
 <section class="game-view" aria-label="Game">
   <div class="world" data-testid="world">
     {@render world?.()}
-    {#if game.announcement}
+    {#if game.ending}
+      <EndingPanel ending={game.ending} />
+    {:else if game.announcement}
       {@const announcement = game.announcement}
       <UnlockAnnouncement
         {announcement}
@@ -74,28 +99,71 @@
         />
       {/key}
     {/if}
-    <button type="button" class="primary" data-testid="primary-action" onclick={primary}>
-      {game.primaryAction.label}
-    </button>
-    {#if game.offers.length > 0}
+    {#if game.ending}
+      {#if confirmingRestart}
+        <div class="confirm" role="group" aria-label="Confirm new run">
+          <p>This replaces the current run with a new one. Discovered endings are kept.</p>
+          <button type="button" class="primary" onclick={restart}>START NEW RUN</button>
+          <button type="button" class="cancel" onclick={() => (confirmingRestart = false)}
+            >CANCEL</button
+          >
+        </div>
+      {:else}
+        <button type="button" class="primary" onclick={() => (confirmingRestart = true)}>
+          NEW RUN…
+        </button>
+      {/if}
+    {:else}
+      <button type="button" class="primary" data-testid="primary-action" onclick={primary}>
+        {game.primaryAction.label}
+      </button>
+    {/if}
+    {#if game.offers.length > 0 && !game.ending}
       <ul class="offers" aria-label="Upgrades">
         {#each game.offers as offer (offer.id)}
           <li>
-            <button
-              type="button"
-              class="offer"
-              disabled={!offer.affordable}
-              aria-describedby="offer-{offer.id}-desc"
-              onclick={() => buy(offer.id)}
-            >
-              <span class="offer-text">
-                <span class="offer-title">{offer.title}</span>
-                <span class="offer-desc" id="offer-{offer.id}-desc">{offer.description}</span>
-              </span>
-              <span class="price"
-                >{offer.currency === 'revenue' ? '$' : ''}{formatAmount(offer.price)}</span
+            {#if offer.kind === 'upgrade'}
+              <button
+                type="button"
+                class="offer"
+                disabled={!offer.affordable}
+                aria-describedby="offer-{offer.id}-desc"
+                onclick={() => buy(offer.id)}
               >
-            </button>
+                <span class="offer-text">
+                  <span class="offer-title">{offer.title}</span>
+                  <span class="offer-desc" id="offer-{offer.id}-desc">{offer.description}</span>
+                </span>
+                <span class="price"
+                  >{offer.currency === 'revenue' ? '$' : ''}{formatAmount(offer.price)}</span
+                >
+              </button>
+            {:else if confirming === offer.id}
+              <div class="offer choice confirm" role="group" aria-label="Confirm {offer.title}">
+                <span class="offer-text">
+                  <span class="offer-title">{offer.title}</span>
+                  <span class="offer-desc">{offer.confirm}</span>
+                </span>
+                <span class="confirm-actions">
+                  <button type="button" class="yes" onclick={() => chooseOffer(offer)}>YES</button>
+                  <button type="button" class="no" onclick={() => (confirming = null)}>NO</button>
+                </span>
+              </div>
+            {:else}
+              <button
+                type="button"
+                class="offer choice"
+                data-choice={offer.id}
+                aria-describedby="choice-{offer.id}-desc"
+                onclick={() => chooseOffer(offer)}
+              >
+                <span class="offer-text">
+                  <span class="offer-title">{offer.title}</span>
+                  <span class="offer-desc" id="choice-{offer.id}-desc">{offer.description}</span>
+                </span>
+                <span class="price choose">DECIDE</span>
+              </button>
+            {/if}
           </li>
         {/each}
       </ul>
@@ -197,6 +265,39 @@
     font-weight: 900;
     border: 2px solid var(--border);
     background: var(--panel-strong);
+  }
+  .offer.choice {
+    border-style: dashed;
+  }
+  .choose {
+    font-size: 11px;
+  }
+  .confirm {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+  }
+  .confirm p {
+    margin: 0;
+    font-size: 13px;
+  }
+  .confirm-actions {
+    display: flex;
+    gap: 6px;
+  }
+  .confirm-actions button,
+  .cancel {
+    min-height: 44px;
+    min-width: 56px;
+    border: 3px solid var(--border);
+    background: var(--panel-strong);
+    font-weight: 900;
+    cursor: pointer;
+  }
+  .yes {
+    background: var(--health) !important;
+    color: #fff;
   }
   .log {
     list-style: none;

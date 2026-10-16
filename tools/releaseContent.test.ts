@@ -12,6 +12,8 @@ function input(overrides: Partial<ReleaseInput> = {}): ReleaseInput {
     worldAdditions,
     files: nodeAssetFiles('public/assets'),
     requiredTechnologies: 28,
+    requiredEndings: 10,
+    scenarioText: catalog.endings.map((e) => `'${e.id}'`).join(' '),
     ...overrides,
   };
 }
@@ -71,6 +73,11 @@ describe('release content check', () => {
       i === 5 ? { ...a, envelope: { x: -10, y: -10, w: 20, h: 20 } } : a,
     );
     expect(text({ worldAdditions: shrinking })).toMatch(/envelope/);
+  });
+
+  it('rejects an ending without a route scenario or with too few endings', () => {
+    expect(text({ scenarioText: '' })).toMatch(/no route scenario/);
+    expect(text({ requiredEndings: 11 })).toMatch(/11/);
   });
 
   it('rejects placements outside their framing envelope', () => {
