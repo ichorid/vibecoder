@@ -36,79 +36,79 @@
       {
         "type": "note",
         "step": 0,
-        "length": 4,
-        "pitch": "A5",
-        "velocity": 0.76
-      },
-      {
-        "type": "note",
-        "step": 4,
-        "length": 4,
-        "pitch": "G5",
-        "velocity": 0.76
-      },
-      {
-        "type": "note",
-        "step": 8,
-        "length": 4,
-        "pitch": "A5",
+        "length": 6,
+        "pitch": "F4",
         "velocity": 0.76
       },
       {
         "type": "note",
         "step": 12,
         "length": 4,
-        "pitch": "Bb5",
+        "pitch": "G4",
         "velocity": 0.76
       },
       {
         "type": "note",
         "step": 16,
-        "length": 15,
-        "pitch": "C6",
+        "length": 4,
+        "pitch": "A4",
+        "velocity": 0.76
+      },
+      {
+        "type": "note",
+        "step": 20,
+        "length": 4,
+        "pitch": "G4",
+        "velocity": 0.76
+      },
+      {
+        "type": "note",
+        "step": 24,
+        "length": 4,
+        "pitch": "A4",
+        "velocity": 0.76
+      },
+      {
+        "type": "note",
+        "step": 28,
+        "length": 4,
+        "pitch": "Bb4",
         "velocity": 0.76
       },
       {
         "type": "note",
         "step": 32,
-        "length": 8,
+        "length": 6,
         "pitch": "C5",
         "velocity": 0.76
       },
       {
         "type": "note",
-        "step": 40,
-        "length": 4,
-        "pitch": "Db5",
-        "velocity": 0.76
-      },
-      {
-        "type": "note",
-        "step": 44,
-        "length": 4,
-        "pitch": "Eb5",
-        "velocity": 0.76
-      },
-      {
-        "type": "note",
         "step": 48,
-        "length": 11,
-        "pitch": "F5",
+        "length": 6,
+        "pitch": "C4",
+        "velocity": 0.76
+      },
+      {
+        "type": "note",
+        "step": 56,
+        "length": 4,
+        "pitch": "Db4",
         "velocity": 0.76
       },
       {
         "type": "note",
         "step": 60,
         "length": 4,
-        "pitch": "G5",
+        "pitch": "Eb4",
         "velocity": 0.76
       }
     ],
     "bass": [
       {
         "type": "note",
-        "step": 32,
-        "length": 32,
+        "step": 48,
+        "length": 16,
         "pitch": "C3",
         "velocity": 0.63
       }
@@ -221,6 +221,13 @@
       },
       {
         "type": "note",
+        "step": 30,
+        "length": 2,
+        "pitch": "C5",
+        "velocity": 0.55
+      },
+      {
+        "type": "note",
         "step": 32,
         "length": 2,
         "pitch": "C4",
@@ -266,13 +273,6 @@
         "step": 44,
         "length": 2,
         "pitch": "C4",
-        "velocity": 0.55
-      },
-      {
-        "type": "note",
-        "step": 46,
-        "length": 2,
-        "pitch": "C5",
         "velocity": 0.55
       },
       {
@@ -335,35 +335,35 @@
     "percussion": [
       {
         "type": "drum",
-        "step": 28,
+        "step": 44,
         "length": 1,
         "sound": "snare",
         "velocity": 0.57
       },
       {
         "type": "drum",
-        "step": 29,
+        "step": 45,
         "length": 1,
         "sound": "snare",
         "velocity": 0.57
       },
       {
         "type": "drum",
-        "step": 31,
+        "step": 47,
         "length": 1,
         "sound": "snare",
         "velocity": 0.57
       },
       {
         "type": "drum",
-        "step": 32,
+        "step": 48,
         "length": 1,
         "sound": "kick",
         "velocity": 0.57
       },
       {
         "type": "drum",
-        "step": 32,
+        "step": 48,
         "length": 1,
         "sound": "snare",
         "velocity": 0.57
@@ -382,7 +382,7 @@
   "attribution": "Aureolus_Omicron — \"15 Melodic RPG Chiptunes\" (https://opengameart.org/content/15-melodic-rpg-chiptunes)",
   "demo": false,
   "metadata": {
-    "description": "From rpgchip08_castle_on_the_mountain.mid, source bars 11–14. Bb minor → C phrygian; one source bar = one bar at the era tempo (source 96 bpm). Roles: lead = ch1, bass = ch3, arp = pads arpeggiated. Mood: B♭ minor, one bass note every four bars, 1.6 notes per beat: cold and minimal. Does not quote the motif (imported material).",
+    "description": "From rpgchip08_castle_on_the_mountain.mid, source bars 10–13. Bb minor → C phrygian; one source bar = one bar at the era tempo (source 96 bpm). Roles: lead = ch1, bass = ch3, arp = pads arpeggiated. Mood: B♭ minor, one bass note every four bars, 1.6 notes per beat: cold and minimal. Does not quote the motif (imported material).",
     "composer": "Aureolus_Omicron (OpenGameArt, CC0); adapted by tools/music/importMidi.ts"
   }
 }

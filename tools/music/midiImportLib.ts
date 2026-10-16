@@ -17,6 +17,14 @@ import { analyzePattern, type NormalizedPattern } from '../../src/music/core/val
 import type { PatternDocument } from '../../src/music/data/patterns.generated';
 import type { MidiFile, MidiNote } from './midiFile';
 
+/** How the main tone is placed and articulated (null = keep the source). */
+export interface LeadStyle {
+  /** Longest held lead note in steps; longer ones are cut (pulse leads whine when held). */
+  readonly maxSteps: number | null;
+  /** The lead line's octave is chosen so it averages nearest this pitch, e.g. "C5". */
+  readonly centre: string | null;
+}
+
 export interface SongPlan {
   readonly file: string;
   /** Pattern ids are `<id>-a`, `<id>-b`, … */
@@ -31,6 +39,8 @@ export interface SongPlan {
   readonly sourceTonic?: string;
   /** Channel overrides when the role heuristic is wrong. */
   readonly roles?: Partial<Record<'lead' | 'bass' | 'arp', number>>;
+  /** Overrides the plan's lead style for this song. */
+  readonly lead?: LeadStyle;
 }
 
 export interface ImportPlan {
@@ -41,6 +51,8 @@ export interface ImportPlan {
     readonly license: 'CC0-1.0';
   };
   readonly maxPerSong: number;
+  /** Default lead style for every song (default: keep the source). */
+  readonly lead?: LeadStyle;
   readonly songs: readonly SongPlan[];
   readonly skipped: readonly { readonly file: string; readonly reason: string }[];
 }
@@ -489,20 +501,33 @@ function chordOfBar(
   return [best.root, best.quality];
 }
 
-/** Octave-shift a role so its notes fit the preset range (fold the stragglers). */
-function fitRange(notes: readonly Placed[], low: number, high: number): Placed[] {
+/**
+ * Octave-shift a role so its notes fit the preset range (fold the stragglers). Without a centre,
+ * the shift with the most notes in range (nearest the source first); with one, the shift whose
+ * line averages nearest the centre among those keeping ≥ 75 % of the notes in range.
+ */
+function fitRange(
+  notes: readonly Placed[],
+  low: number,
+  high: number,
+  centre: number | null = null,
+): Placed[] {
   if (notes.length === 0) return [];
-  let bestShift = 0;
-  let bestFit = -1;
-  for (const shift of [0, 12, -12, 24, -24, 36, -36]) {
-    const fit = notes.filter((n) => n.midi + shift >= low && n.midi + shift <= high).length;
-    if (fit > bestFit) {
-      bestFit = fit;
-      bestShift = shift;
-    }
-  }
+  const mean = notes.reduce((sum, n) => sum + n.midi, 0) / notes.length;
+  const shifts = [0, 12, -12, 24, -24, 36, -36].map((shift) => ({
+    shift,
+    fit: notes.filter((n) => n.midi + shift >= low && n.midi + shift <= high).length,
+  }));
+  const most = Math.max(...shifts.map((c) => c.fit));
+  const enough = shifts.filter((c) => c.fit >= notes.length * 0.75);
+  const pool =
+    centre === null || enough.length === 0 ? shifts.filter((c) => c.fit === most) : enough;
+  const best = [...pool].sort((a, b) =>
+    centre === null ? 0 : Math.abs(mean + a.shift - centre) - Math.abs(mean + b.shift - centre),
+  )[0];
+  const shift = best?.shift ?? 0;
   return notes.map((n) => {
-    let midi = n.midi + bestShift;
+    let midi = n.midi + shift;
     while (midi < low) midi += 12;
     while (midi > high) midi -= 12;
     return { ...n, midi };
@@ -564,12 +589,16 @@ function buildPattern(
 ): PatternDocument | null {
   const era = song.plan.era;
   const tracks: Record<string, Event[]> = {};
+  const style = { maxSteps: null, centre: null, ...plan.lead, ...song.plan.lead };
   for (const role of ['lead', 'bass', 'arp'] as const) {
     const [low, high] = rangeOf(catalog, era, role);
+    const lead = role === 'lead';
+    const centre = lead && style.centre !== null ? (Note.midi(style.centre) ?? null) : null;
+    const cap = lead && style.maxSteps !== null ? style.maxSteps : Infinity;
     const notes = monophonic(
-      fitRange(windowNotes(song.lines[role], start), low, high),
+      fitRange(windowNotes(song.lines[role], start), low, high, centre),
       role === 'bass',
-    );
+    ).map((n) => (n.length > cap ? { ...n, length: cap } : n));
     if (notes.length === 0) continue;
     tracks[role] = notes.map((n) => ({
       type: 'note' as const,

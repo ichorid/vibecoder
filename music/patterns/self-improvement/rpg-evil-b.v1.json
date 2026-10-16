@@ -36,7 +36,7 @@
       {
         "type": "note",
         "step": 0,
-        "length": 11,
+        "length": 6,
         "pitch": "G4",
         "velocity": 0.76
       },
@@ -64,7 +64,7 @@
       {
         "type": "note",
         "step": 20,
-        "length": 8,
+        "length": 6,
         "pitch": "G4",
         "velocity": 0.76
       },
@@ -78,7 +78,7 @@
       {
         "type": "note",
         "step": 32,
-        "length": 12,
+        "length": 6,
         "pitch": "F5",
         "velocity": 0.76
       },
@@ -99,7 +99,7 @@
       {
         "type": "note",
         "step": 48,
-        "length": 15,
+        "length": 6,
         "pitch": "G5",
         "velocity": 0.76
       }

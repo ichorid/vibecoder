@@ -482,3 +482,11 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   hits per step (kick > snare > hat) and a test asserts compilePhrase drops nothing.
 - NOTE: another session has uncommitted changes in src/game, src/app, src/content,
   src/persistence; left untouched.
+- 2026-10-16: listening feedback on the import: "recursion is very good; the rest have very
+  whiny main tones, pretty long ones". Measured: Recursion's leads averaged C5 (72) with short
+  notes; the others sat at F5–G#5 (77–80, up to C7) on thin pulse presets, and held long notes
+  (acceleration 94 % of lead time, self-improvement 82 %). Fix in the importer, presets
+  untouched: plan.json `lead: { maxSteps: 6, centre: "C5" }` — the lead octave is the one
+  averaging nearest C5 among shifts keeping ≥ 75 % of notes in range, held lead notes are cut to
+  a dotted quarter. Recursion songs set `lead: { maxSteps: null, centre: null }`: their files are
+  byte-identical. After: lead means 68–72, max length 6 steps outside Recursion.

@@ -1,5 +1,6 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
+import { Note } from 'tonal';
 import { describe, expect, it } from 'vitest';
 import { buildCatalog } from '../../src/music/core/catalog';
 import { checkBankCompatibility, DEFAULT_BOUNDARY_RULES } from '../../src/music/core/compatibility';
@@ -154,3 +155,27 @@ function repositoryFiles(): string[] {
     .filter((f) => f.endsWith('.mid'))
     .sort();
 }
+
+describe('lead style (listening: Recursion good; elsewhere whiny, long, high main tones)', () => {
+  const result = importAll(plan, readMidi, catalog);
+  const songOf = (id: string) => plan.songs.find((s) => id.startsWith(`${s.id}-`));
+
+  it('the plan caps held lead notes and centres leads near C5, unless a song keeps its lead', () => {
+    expect(plan.lead).toEqual({ maxSteps: 6, centre: 'C5' });
+    const kept = plan.songs.filter((s) => s.lead).map((s) => s.era);
+    expect(new Set(kept)).toEqual(new Set(['recursion']));
+  });
+
+  it('styled leads: no note longer than the cap, the line averaging within a fifth of C5', () => {
+    const centre = Note.midi(plan.lead?.centre ?? 'C5') ?? 72;
+    for (const pattern of result.patterns) {
+      if (songOf(pattern.id)?.lead) continue;
+      const lead = (pattern.tracks.lead ?? []).flatMap((e) => (e.type === 'note' ? [e] : []));
+      if (lead.length === 0) continue;
+      for (const n of lead)
+        expect(n.length, pattern.id).toBeLessThanOrEqual(plan.lead?.maxSteps ?? 6);
+      const mean = lead.reduce((sum, n) => sum + (Note.midi(n.pitch) ?? 0), 0) / lead.length;
+      expect(Math.abs(mean - centre), pattern.id).toBeLessThanOrEqual(7);
+    }
+  });
+});

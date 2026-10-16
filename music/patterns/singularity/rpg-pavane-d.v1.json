@@ -64,7 +64,7 @@
       {
         "type": "note",
         "step": 16,
-        "length": 8,
+        "length": 6,
         "pitch": "Bb4",
         "velocity": 0.76
       },
@@ -113,7 +113,7 @@
       {
         "type": "note",
         "step": 48,
-        "length": 8,
+        "length": 6,
         "pitch": "C4",
         "velocity": 0.76
       }

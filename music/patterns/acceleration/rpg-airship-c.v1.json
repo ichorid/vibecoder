@@ -36,56 +36,56 @@
       {
         "type": "note",
         "step": 0,
-        "length": 8,
+        "length": 6,
         "pitch": "B4",
         "velocity": 0.76
       },
       {
         "type": "note",
         "step": 8,
-        "length": 8,
+        "length": 6,
         "pitch": "C#5",
         "velocity": 0.76
       },
       {
         "type": "note",
         "step": 16,
-        "length": 8,
+        "length": 6,
         "pitch": "D5",
         "velocity": 0.76
       },
       {
         "type": "note",
         "step": 24,
-        "length": 8,
+        "length": 6,
         "pitch": "E5",
         "velocity": 0.76
       },
       {
         "type": "note",
         "step": 32,
-        "length": 8,
+        "length": 6,
         "pitch": "F5",
         "velocity": 0.76
       },
       {
         "type": "note",
         "step": 40,
-        "length": 8,
+        "length": 6,
         "pitch": "E5",
         "velocity": 0.76
       },
       {
         "type": "note",
         "step": 48,
-        "length": 8,
+        "length": 6,
         "pitch": "D5",
         "velocity": 0.76
       },
       {
         "type": "note",
         "step": 56,
-        "length": 8,
+        "length": 6,
         "pitch": "E5",
         "velocity": 0.76
       }

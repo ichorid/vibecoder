@@ -36,29 +36,29 @@
       {
         "type": "note",
         "step": 0,
-        "length": 15,
-        "pitch": "G5",
+        "length": 6,
+        "pitch": "G4",
         "velocity": 0.76
       },
       {
         "type": "note",
         "step": 16,
-        "length": 15,
-        "pitch": "B5",
+        "length": 6,
+        "pitch": "B4",
         "velocity": 0.76
       },
       {
         "type": "note",
         "step": 32,
-        "length": 15,
-        "pitch": "A5",
+        "length": 6,
+        "pitch": "A4",
         "velocity": 0.76
       },
       {
         "type": "note",
         "step": 48,
-        "length": 15,
-        "pitch": "C6",
+        "length": 6,
+        "pitch": "C5",
         "velocity": 0.76
       }
     ],

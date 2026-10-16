@@ -6,6 +6,10 @@
     "license": "CC0-1.0"
   },
   "maxPerSong": 4,
+  "lead": {
+    "maxSteps": 6,
+    "centre": "C5"
+  },
   "songs": [
     {
       "file": "rpgchip01_title_screen.mid",
@@ -53,19 +57,31 @@
       "file": "rpgchip06_dungeon.mid",
       "id": "rpg-dungeon",
       "era": "recursion",
-      "mood": "E minor, the bass walks down chromatically (E D C B … B♭ A♭ F#): anxious."
+      "mood": "E minor, the bass walks down chromatically (E D C B … B♭ A♭ F#): anxious.",
+      "lead": {
+        "maxSteps": null,
+        "centre": null
+      }
     },
     {
       "file": "rpgchip13_battle_1.mid",
       "id": "rpg-battle1",
       "era": "recursion",
-      "mood": "G minor grinding a ♭2 over a pedal, busy drums: complex, tense."
+      "mood": "G minor grinding a ♭2 over a pedal, busy drums: complex, tense.",
+      "lead": {
+        "maxSteps": null,
+        "centre": null
+      }
     },
     {
       "file": "rpgchip09_rainy_streets.mid",
       "id": "rpg-rainy",
       "era": "recursion",
-      "mood": "B minor, a moving bass line and dense drums under sparse pads: restless."
+      "mood": "B minor, a moving bass line and dense drums under sparse pads: restless.",
+      "lead": {
+        "maxSteps": null,
+        "centre": null
+      }
     },
     {
       "file": "rpgchip12_the_evil_one.mid",
