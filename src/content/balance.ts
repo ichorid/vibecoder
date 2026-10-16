@@ -5,11 +5,20 @@ import type {
   CatPlayBalance,
 } from '../game/catalog';
 
-/** Cat starting values (architecture §6, implementation plan §6). */
+/**
+ * How demanding the cat is. Every time-based cat rate is multiplied by this factor and the PET
+ * cooldown divided by it, while what one action gives (a meal, a pet, a caught mouse) is
+ * unchanged — so keeping the cat well takes this many times more care actions. 1 = the original
+ * plan values (feed every 3–4 min, PLAY every 4–6 min); 3 = feed about every minute.
+ */
+export const CAT_INTENSITY = 3;
+const perMinute = (value: number) => value * CAT_INTENSITY;
+
+/** Cat starting values (architecture §6, implementation plan §6), scaled by `CAT_INTENSITY`. */
 export const catBalance = {
   needsTickMs: 5000,
-  fullnessDecayPerTick: 0.65,
-  moodDecayPerTick: 0.45,
+  fullnessDecayPerTick: perMinute(0.65),
+  moodDecayPerTick: perMinute(0.45),
   accelerationPerAction: 0.01,
   accelerationCap: 0.1,
   hungryBelow: 35,
@@ -19,14 +28,14 @@ export const catBalance = {
   sickAt: 80,
   criticalBelow: 20,
   starvationBelow: 20,
-  starvationHealthPerMinute: 8,
+  starvationHealthPerMinute: perMinute(8),
   severeStarvationAtOrBelow: 5,
-  severeStarvationHealthPerMinute: 14,
+  severeStarvationHealthPerMinute: perMinute(14),
   recoveryAbove: 35,
-  recoveryHealthPerMinute: 4,
-  overfeedingDecayPerMinute: 6,
-  sicknessMoodPerMinute: 1,
-  sicknessHealthPerMinute: 2,
+  recoveryHealthPerMinute: perMinute(4),
+  overfeedingDecayPerMinute: perMinute(6),
+  sicknessMoodPerMinute: perMinute(1),
+  sicknessHealthPerMinute: perMinute(2),
   sicknessHealthFloor: 10,
   feedMin: 18,
   feedMax: 32,
@@ -35,7 +44,7 @@ export const catBalance = {
   overfeedFullnessAt: 85,
   overfeedOverflowAt: 10,
   petMood: 3,
-  petCooldownMs: 60_000,
+  petCooldownMs: 60_000 / CAT_INTENSITY,
 } as const satisfies CatBalance;
 
 /** Starting balance values (implementation plan §6). Tune with tests and a recorded reason. */

@@ -19,6 +19,7 @@ import {
   every,
   playEvery,
   pressPrimary,
+  CARE,
   type Policy,
 } from '../helpers/scenario';
 
@@ -70,7 +71,7 @@ function route(seed: number, policies: readonly Policy[], label: string): Route 
 }
 
 const economy: Policy[] = [baselinePrimary, baselineBuyer, acknowledgeReveals];
-const baseline: Policy[] = [...economy, ...baselineCare, playEvery(270_000)];
+const baseline: Policy[] = [...economy, ...baselineCare, playEvery()];
 
 /** Pause all input during a visit to Cat/History (the game keeps running there). */
 function withVisits(policies: readonly Policy[], everyMs: number, lengthMs: number): Policy[] {
@@ -98,20 +99,32 @@ describe('player strategies (full catalog)', { timeout: 120_000 }, () => {
     expect(r.minutes).toBeLessThanOrEqual(35);
   });
 
-  it('a calmer cadence (feed every 4 min, PLAY every 6 min) also keeps the cat alive', () => {
-    const calm: Policy[] = [
+  it('the demanding cat needs a meal about every minute: feeding a third less often starves it', () => {
+    const lazyFeeding: Policy[] = [
       ...economy,
-      every(240_000, ({ run, catalog }) =>
-        selectCat(run, catalog).alive && run.cat.fullness < 70 ? [{ type: 'feedCat' }] : [],
-      ),
-      every(90_000, () => [{ type: 'petCat' }], 30_000),
-      playEvery(360_000),
+      // Feed once the interval since the last meal has passed (a PLAY session may delay it).
+      ({ run, catalog }) =>
+        selectCat(run, catalog).alive &&
+        !run.catPlay &&
+        run.cat.fullness < 70 &&
+        run.activeMs - (run.cat.lastFedAtActiveMs ?? -Infinity) >= (CARE.feedMs * 4) / 3
+          ? [{ type: 'feedCat' }]
+          : [],
+      every(CARE.petMs, () => [{ type: 'petCat' }], CARE.petMs / 2),
+      playEvery(),
     ];
-    const r = route(202, calm, 'calm-care');
+    const r = route(202, lazyFeeding, 'lazy-feeding');
+    expect(r.run.cat.alive).toBe(false);
+    expect(r.minutes).toBeLessThanOrEqual(35);
+  });
+
+  it('PLAY a third less often (with normal feeding) still keeps the cat alive', () => {
+    const r = route(
+      202,
+      [...economy, ...baselineCare, playEvery((CARE.playMs * 4) / 3)],
+      'calm-play',
+    );
     expect(r.run.cat.alive).toBe(true);
-    // Every feed was useful (the bowl was below 70 each time) and care was occasional.
-    expect(r.feeds).toBeGreaterThanOrEqual(5);
-    expect(r.feeds).toBeLessThanOrEqual(Math.ceil(r.minutes / 4) + 1);
   });
 
   it('a slow player (presses every 3 s, then every 15 s) still finishes, later', () => {
@@ -175,7 +188,7 @@ describe('player strategies (full catalog)', { timeout: 120_000 }, () => {
     };
     const r = route(
       404,
-      [baselinePrimary, greedy, acknowledgeReveals, ...baselineCare, playEvery(270_000)],
+      [baselinePrimary, greedy, acknowledgeReveals, ...baselineCare, playEvery()],
       'greedy',
     );
     expect(r.minutes).toBeLessThanOrEqual(40);

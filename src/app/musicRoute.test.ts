@@ -53,7 +53,7 @@ async function fullRun(care: boolean) {
     baselinePrimary,
     baselineBuyer,
     acknowledgeReveals,
-    ...(care ? [...baselineCare, playEvery(270_000)] : []),
+    ...(care ? [...baselineCare, playEvery()] : []),
   ];
   const unlockAt = new Map<string, number>();
   while (run.activeMs < 45 * 60_000 && run.status === 'playing') {

@@ -31,7 +31,7 @@ import { applyCommand } from '../../src/game/commands';
 export function lonelyRun(level: 'small' | 'large', seed = 31): RunState {
   let run = createRun(seed, `lonely-${seed}`);
   for (let i = 0; i < 40 * 600; i += 1) {
-    if (run.activeMs % 180_000 === 0 && run.cat.fullness < 70) {
+    if (run.activeMs % CARE.feedMs === 0 && run.cat.fullness < 70) {
       run = applyCommand(run, { type: 'feedCat' }, run.activeMs, catalog).run;
     }
     run = stepRun(run, 100, catalog).run;
@@ -67,10 +67,10 @@ export function progressedRun(count: number, leavePending = false, seed = 41): R
     if (offer?.kind === 'upgrade') {
       run = applyCommand(run, { type: 'buyUpgrade', id: offer.id }, run.activeMs, catalog).run;
     }
-    if (run.activeMs % 180_000 === 0 && run.cat.fullness < 70) {
+    if (run.activeMs % CARE.feedMs === 0 && run.cat.fullness < 70) {
       run = applyCommand(run, { type: 'feedCat' }, run.activeMs, catalog).run;
     }
-    if (run.activeMs % 60_000 === 30_000) {
+    if (run.activeMs % CARE.petMs === CARE.petMs / 2) {
       run = applyCommand(run, { type: 'petCat' }, run.activeMs, catalog).run;
     }
     run = stepRun(run, 100, catalog).run;
@@ -86,6 +86,7 @@ import {
   baselineCare,
   baselinePrimary,
   playEvery,
+  CARE,
 } from '../helpers/scenario';
 
 /** Play the baseline route until a decision card is offered (command-driven fixture). */
@@ -96,7 +97,7 @@ export function untilChoice(id: ChoiceId, seed = 51): RunState {
     baselineBuyer,
     acknowledgeReveals,
     ...baselineCare,
-    playEvery(270_000),
+    playEvery(),
   ];
   for (let i = 0; i < 60 * 600; i += 1) {
     if (selectGame(run, catalog).offers.some((o) => o.kind === 'choice' && o.id === id)) return run;

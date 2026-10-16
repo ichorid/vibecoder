@@ -23,7 +23,7 @@ function mainRoute(seed: number): { run: RunState; unlockAt: Map<string, number>
     baselineBuyer,
     acknowledgeReveals,
     ...baselineCare,
-    playEvery(270_000),
+    playEvery(),
   ];
   const unlockAt = new Map<string, number>();
   let plays = 0;

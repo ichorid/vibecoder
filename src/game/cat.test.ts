@@ -6,6 +6,10 @@ import { createCat, createRun } from './createRun';
 import type { CatState } from './types';
 
 const balance = catalog.balance.cat;
+const FULL = balance.fullnessDecayPerTick;
+const MOOD = balance.moodDecayPerTick;
+/** Ticks per active minute. */
+const TICKS = 60_000 / balance.needsTickMs;
 
 function cat(overrides: Partial<CatState> = {}): CatState {
   return { ...createCat(), ...overrides };
@@ -24,9 +28,9 @@ describe('cat needs tick', () => {
     expect(before.fullness).toBe(75);
     expect(before.mood).toBe(85);
     const after = advance(start, 5000);
-    expect(after.fullness).toBeCloseTo(75 - 0.65, 9);
-    expect(after.mood).toBeCloseTo(85 - 0.45, 9);
-    expect(advance(start, 9900).fullness).toBeCloseTo(75 - 0.65, 9);
+    expect(after.fullness).toBeCloseTo(75 - FULL, 9);
+    expect(after.mood).toBeCloseTo(85 - MOOD, 9);
+    expect(advance(start, 9900).fullness).toBeCloseTo(75 - FULL, 9);
   });
 
   it('keeps values inside 0–100', () => {
@@ -43,10 +47,10 @@ describe('cat needs tick', () => {
     let state = cat();
     for (let i = 0; i < count; i += 1) state = noteMeaningfulAction(state);
     const ticked = advance(state, 5000);
-    expect(75 - ticked.fullness).toBeCloseTo(0.65 * (1 + modifier), 9);
+    expect(75 - ticked.fullness).toBeCloseTo(FULL * (1 + modifier), 9);
     expect(ticked.pendingActions).toBe(0);
     const next = advance(ticked, 5000);
-    expect(ticked.fullness - next.fullness).toBeCloseTo(0.65, 9);
+    expect(ticked.fullness - next.fullness).toBeCloseTo(FULL, 9);
   });
 
   it('lets hungry, lonely and overfed hold at the same time', () => {
@@ -69,13 +73,13 @@ describe('cat needs tick', () => {
 describe('cat in the simulation', () => {
   it('is updated by simulation steps', () => {
     const run = steps(createRun(1, 'r'), 50, catalog);
-    expect(run.cat.fullness).toBeCloseTo(75 - 0.65, 9);
+    expect(run.cat.fullness).toBeCloseTo(75 - FULL, 9);
   });
 
   it('counts primary and upgrade actions, but not navigation-free care, toward acceleration', () => {
     const run = createRun(1, 'r');
     const primary = steps({ ...run, cat: noteMeaningfulAction(run.cat) }, 50, catalog);
-    expect(75 - primary.cat.fullness).toBeCloseTo(0.65 * 1.01, 9);
+    expect(75 - primary.cat.fullness).toBeCloseTo(FULL * 1.01, 9);
   });
 });
 
@@ -94,13 +98,13 @@ describe('meaningful actions', () => {
 });
 
 describe('starvation, recovery and overfeeding', () => {
-  const perTick = (perMinute: number) => perMinute / 12;
+  const perTick = (perMinute: number) => perMinute / TICKS;
 
   it('uses different starvation rates below 20 and at or below 5', () => {
     const mild = advance(cat({ fullness: 15, health: 80 }), 5000);
-    expect(80 - mild.health).toBeCloseTo(perTick(8), 9);
+    expect(80 - mild.health).toBeCloseTo(perTick(balance.starvationHealthPerMinute), 9);
     const severe = advance(cat({ fullness: 4, health: 80 }), 5000);
-    expect(80 - severe.health).toBeCloseTo(perTick(14), 9);
+    expect(80 - severe.health).toBeCloseTo(perTick(balance.severeStarvationHealthPerMinute), 9);
   });
 
   it('stops starvation damage once fed but does not heal instantly', async () => {
@@ -115,18 +119,24 @@ describe('starvation, recovery and overfeeding', () => {
   });
 
   it('recovers health gradually above fullness 35 when not sick', () => {
-    const recovering = advance(cat({ fullness: 60, health: 50 }), 60_000);
-    expect(recovering.health).toBeCloseTo(54, 6);
-    expect(advance(cat({ fullness: 36, health: 99.9 }), 5000).health).toBe(100);
-    expect(advance(cat({ fullness: 35.5, health: 99.9 }), 5000).health).toBe(99.9);
+    // Start high enough that one minute of decay stays above the recovery threshold.
+    const recovering = advance(cat({ fullness: 100, health: 50 }), 60_000);
+    expect(recovering.health).toBeCloseTo(50 + balance.recoveryHealthPerMinute, 6);
+    // The threshold is judged on the fullness after this tick's decay.
+    expect(advance(cat({ fullness: 35.01 + FULL, health: 99.9 }), 5000).health).toBe(100);
+    expect(advance(cat({ fullness: 35 + FULL, health: 99.9 }), 5000).health).toBe(99.9);
   });
 
   it('does not recover or starve between 20 and 35 fullness', () => {
     expect(advance(cat({ fullness: 30, health: 50 }), 5000).health).toBe(50);
+    expect(advance(cat({ fullness: 20 + FULL, health: 50 }), 5000).health).toBe(50);
   });
 
   it('decays overfeeding pressure over time without excessive meals', () => {
-    expect(advance(cat({ overfeeding: 30 }), 60_000).overfeeding).toBeCloseTo(24, 6);
+    expect(advance(cat({ overfeeding: 30 }), 60_000).overfeeding).toBeCloseTo(
+      30 - balance.overfeedingDecayPerMinute,
+      6,
+    );
     expect(advance(cat({ overfeeding: 0.2 }), 5000).overfeeding).toBe(0);
   });
 
@@ -147,17 +157,22 @@ describe('starvation, recovery and overfeeding', () => {
   });
 
   it('makes sickness cost mood faster and health only down to the floor of 10', () => {
-    const sick = advance(cat({ overfeeding: 200, fullness: 30, mood: 50, health: 10.1 }), 60_000);
-    expect(50 - sick.mood).toBeCloseTo(0.45 * 12 + 1, 6);
+    // Fullness stays in 20–35 for the whole minute: no starvation, no recovery.
+    const start = { fullness: 20 + FULL * TICKS + 0.5, mood: 50 };
+    const sick = advance(cat({ ...start, overfeeding: 200, health: 10.1 }), 60_000);
+    expect(50 - sick.mood).toBeCloseTo(MOOD * TICKS + balance.sicknessMoodPerMinute, 6);
     expect(sick.health).toBe(10);
-    const healthy = advance(cat({ fullness: 30, mood: 50 }), 60_000);
-    expect(50 - healthy.mood).toBeCloseTo(0.45 * 12, 6);
+    const healthy = advance(cat(start), 60_000);
+    expect(50 - healthy.mood).toBeCloseTo(MOOD * TICKS, 6);
   });
 
   it('never kills a well-fed cat with zero mood', () => {
-    const sad = advance(cat({ mood: 0, fullness: 100 }), 10 * 60_000);
+    // Fed enough that fullness never reaches the starvation threshold during the test.
+    const minutes = Math.floor((100 - balance.recoveryAbove) / (FULL * TICKS));
+    const sad = advance(cat({ mood: 0, fullness: 100 }), minutes * 60_000);
     expect(sad.alive).toBe(true);
     expect(sad.health).toBe(100);
+    expect(sad.mood).toBe(0);
   });
 
   it('does not let the sickness floor protect a starving cat', () => {
@@ -175,6 +190,7 @@ describe('starvation, recovery and overfeeding', () => {
     }
     expect(run.cat.alive).toBe(false);
     expect(minutes).toBeLessThan(30);
-    expect(minutes).toBeGreaterThan(8);
+    // Faster with a more demanding cat, but never before a few minutes of grace.
+    expect(minutes).toBeGreaterThan(Math.floor(8 / 3));
   });
 });

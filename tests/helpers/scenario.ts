@@ -8,6 +8,18 @@ import { playPhase, playPosition } from '../../src/game/catPlaySession';
 import { selectCat, selectGame } from '../../src/game/selectors';
 import { stepRun } from '../../src/game/simulation';
 import type { GameCommand, GameFact, RunState } from '../../src/game/types';
+import { CAT_INTENSITY } from '../../src/content/balance';
+
+/**
+ * Baseline care cadence (implementation plan: feed every 3 min, pet every minute, PLAY every
+ * 4.5 min), divided by the cat's intensity so the same attentive player keeps the same cat.
+ */
+export const CARE = {
+  feedMs: 180_000 / CAT_INTENSITY,
+  petMs: 60_000 / CAT_INTENSITY,
+  playMs: 270_000 / CAT_INTENSITY,
+  firstPlayMs: 120_000 / CAT_INTENSITY,
+} as const;
 
 export interface ScenarioContext {
   readonly run: RunState;
@@ -74,12 +86,12 @@ export const buyFirstAffordable: Policy = ({ run, catalog }) => {
   return offer?.kind === 'upgrade' ? [{ type: 'buyUpgrade', id: offer.id }] : [];
 };
 
-/** Baseline care from the implementation plan: feed every 180 s below 70, pet every 60 s. */
+/** Baseline care: feed below 70 every `CARE.feedMs`, pet every `CARE.petMs`. */
 export const baselineCare: Policy[] = [
-  every(180_000, ({ run, catalog }) =>
+  every(CARE.feedMs, ({ run, catalog }) =>
     selectCat(run, catalog).alive && run.cat.fullness < 70 ? [{ type: 'feedCat' }] : [],
   ),
-  every(60_000, () => [{ type: 'petCat' }], 30_000),
+  every(CARE.petMs, () => [{ type: 'petCat' }], CARE.petMs / 2),
 ];
 
 /**
@@ -111,7 +123,10 @@ export const baselinePrimary: Policy = (context) => {
  * PLAY every `intervalMs` (plan: 270 s): start a session, then catch when the mouse is well
  * inside the target, as an attentive player would. Sessions consume real active time.
  */
-export function playEvery(intervalMs: number, offsetMs = 120_000): Policy {
+export function playEvery(
+  intervalMs: number = CARE.playMs,
+  offsetMs: number = CARE.firstPlayMs,
+): Policy {
   return ({ run, catalog }) => {
     const cat = selectCat(run, catalog);
     if (!cat.alive) return [];

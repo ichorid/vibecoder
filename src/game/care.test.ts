@@ -59,12 +59,13 @@ describe('PET', () => {
     expect(petted.run.cat.mood).toBe(88);
   });
 
-  it('gives no reward again before 60 000 active ms', () => {
+  it('gives no reward again before the cooldown has passed', () => {
+    const cooldown = catalog.balance.cat.petCooldownMs;
     const run = pet(createRun(1, 'r')).run;
-    const again = pet(run, 59_999);
+    const again = pet(run, cooldown - 1);
     expect(again.result).toBe('cooldown');
     expect(again.run.cat.mood).toBe(88);
-    expect(pet(run, 60_000).run.cat.mood).toBe(91);
+    expect(pet(run, cooldown).run.cat.mood).toBe(91);
   });
 
   it('caps mood at 100', () => {

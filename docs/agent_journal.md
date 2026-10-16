@@ -77,6 +77,11 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
 - D22 (P10) Tab ownership: Web Lock claimed before boot (waiting tab never loads the save);
   fallback = storage-event revision check (best effort). Graphics context loss = app commands
   `graphicsPause/graphicsResume` → runtime pause reason `graphics`. Save fixtures = real v1 saves.
+- D23 (user request, after S09) Cat intensity ×3: `CAT_INTENSITY` in `src/content/balance.ts`
+  multiplies every time-based cat rate and divides the PET cooldown; per-action gains unchanged.
+  Baseline care cadence in `tests/helpers/scenario.ts` `CARE` is derived from it (feed 60 s, pet
+  20 s, PLAY 90 s). Neglected cat dies at ~4.8 min; a meal is needed about every minute. Rule
+  tests now read numbers from the balance. Supersedes the plan's "feed every 3–4 min".
 - D5 (P02) App-level commands (`retrySave`, `setTheme`) go through the same public
   `dispatch` as game commands, so UI still sees only `{subscribe, dispatch}`.
 
@@ -184,3 +189,5 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
 - 2026-10-16: S09 done headless (production walkthrough, author cycle, full-run binding, docs
   guard, clean npm ci + all gates). ALL PLANNED PHASES DONE. Remaining = human/device blocks
   only (see validation_report.md and sound_validation_report.md matrices).
+- 2026-10-16: user requests after S09: (1) cat ×3 intensity — done; queued: floating "+x" on
+  meaningful clicks, stats moved to the lower panel (cat stays in header), coder sprite scale/place.

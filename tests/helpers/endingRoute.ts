@@ -25,7 +25,7 @@ export const baseline: Policy[] = [
   baselineBuyer,
   acknowledgeReveals,
   ...baselineCare,
-  playEvery(270_000),
+  playEvery(),
 ];
 
 export function offered(run: RunState, id: ChoiceId): boolean {
