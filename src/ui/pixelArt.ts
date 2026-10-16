@@ -47,6 +47,26 @@ export const catFace: PixelMap = {
   palette: { o: '#e8892f', d: '#2a2017', p: '#f2a3a3', w: '#fbe3c4' },
 };
 
+/** Settings: a gear with eight teeth around a round hole. */
+export const settingsCog: PixelMap = {
+  rows: [
+    '.....kkk.....',
+    '.kk..kkk..kk.',
+    '.kkkkkkkkkkk.',
+    '..kkkkkkkkk..',
+    '..kkk...kkk..',
+    'kkkk.....kkkk',
+    'kkkk.....kkkk',
+    'kkkk.....kkkk',
+    '..kkk...kkk..',
+    '..kkkkkkkkk..',
+    '.kkkkkkkkkkk.',
+    '.kk..kkk..kk.',
+    '.....kkk.....',
+  ],
+  palette: { k: 'var(--ink)' },
+};
+
 /**
  * The cat died: a cat skull — big eye sockets, wide cheekbones tapering to a short muzzle with
  * a nose opening and two fangs — with pointed cat ears on top (not anatomy, just cool).

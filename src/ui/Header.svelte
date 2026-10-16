@@ -3,7 +3,7 @@
   import AtlasSprite from './AtlasSprite.svelte';
   import type { DomSpriteSheet } from './contracts';
   import PixelIcon from './PixelIcon.svelte';
-  import { catFace, catSkull, catSunset } from './pixelArt';
+  import { catFace, catSkull, catSunset, settingsCog } from './pixelArt';
   import { describeLevel } from './format';
 
   interface Props {
@@ -71,18 +71,7 @@
         data-testid="settings-button"
         onclick={onSettings}
       >
-        <svg
-          width="18"
-          height="18"
-          viewBox="0 0 9 9"
-          shape-rendering="crispEdges"
-          aria-hidden="true"
-        >
-          <path
-            fill="currentColor"
-            d="M3 0h3v1h1v1h1v1h1v3H8v1H7v1H6v1H3V8H2V7H1V6H0V3h1V2h1V1h1zM3 3v3h3V3z"
-          />
-        </svg>
+        <PixelIcon map={settingsCog} scale={2} />
       </button>
     </nav>
   </div>
