@@ -170,9 +170,23 @@ function refExpand(g: Genome, t: number) {
     g.view === 'vortex'
       ? then(rot(0, -90 + tilt * 0.4), rot(2, turn))
       : then(rot(0, tilt - 15), rot(1, turn));
-  for (let c = 0; c < g.copies; c++)
+  const TAU = 2 * Math.PI;
+  for (let c = 0; c < g.copies; c++) {
+    const phi = (TAU * c) / g.copies;
+    const place =
+      g.layout === 'swarm'
+        ? {
+            ...rot(1, (360 * c) / g.copies),
+            t: [
+              g.swarm * Math.sin((TAU * t) / WAVE_PERIODS[1] + phi + (g.phase[1] ?? 0)),
+              0.6 * g.swarm * Math.sin((TAU * t) / WAVE_PERIODS[2] + 2 * phi + (g.phase[2] ?? 0)),
+              g.swarm * Math.sin((TAU * t) / WAVE_PERIODS[0] + 3 * phi + (g.phase[0] ?? 0)),
+            ],
+          }
+        : rot(2, (360 * c) / g.copies);
     for (let m = 0; m < (g.mirror ? 2 : 1); m++)
-      visit(g.root, then(then(m ? rot(0, 180) : refId(), rot(2, (360 * c) / g.copies)), pose), 0);
+      visit(g.root, then(then(m ? rot(0, 180) : refId(), place), pose), 0);
+  }
   return out;
 }
 
@@ -199,13 +213,15 @@ describe('fast expansion', () => {
   it('matches the naive reference (ripples, strands, both views) for many genomes and times', () => {
     const inst = createInstances();
     let worst = 0;
-    const seen = { ripple: 0, lay: 0, vortex: 0 };
+    const seen = { ripple: 0, lay: 0, vortex: 0, swarm: 0, dots: 0 };
     for (let seed = 1; seed <= 60; seed++) {
       const g = randomGenome(seed * 7919);
       const json = JSON.stringify(g);
       if (/"ripple":-?[1-9]/.test(json)) seen.ripple++;
       if (json.includes('"lay"')) seen.lay++;
       if (g.view === 'vortex') seen.vortex++;
+      if (g.layout === 'swarm' && g.copies > 1) seen.swarm++;
+      if (json.includes('"dots"')) seen.dots++;
       for (const t of [0, 3.7, 11.2]) {
         const ref = refExpand(g, t);
         const n = expand(g, t, inst);
@@ -226,7 +242,9 @@ describe('fast expansion', () => {
     // the sample really exercised the new genes
     expect(seen.ripple).toBeGreaterThan(5);
     expect(seen.lay).toBeGreaterThan(2);
-    expect(seen.vortex).toBeGreaterThan(10);
+    expect(seen.vortex).toBeGreaterThan(8);
+    expect(seen.swarm).toBeGreaterThan(5);
+    expect(seen.dots).toBeGreaterThan(5);
   });
 
   it('colour genes paint balls: flowing stripes move, pulses dim, the tip bulb is accent', () => {
@@ -247,6 +265,12 @@ describe('fast expansion', () => {
     expect(a.tones.slice(0, -1)).not.toEqual(b.tones.slice(0, -1)); // and they move
     expect(Math.min(...a.glow)).toBeLessThan(0.75);
     expect(a.tones.at(-1)).toBe(2); // the bulb
+    // dotted: every other rib hidden (glow 0), the bulb still shows
+    const dotted: Genome = { ...flow, root: { ...flow.root, dots: 2 } };
+    const nd = expand(dotted, 0, inst);
+    const glows = [...inst.glow.slice(0, nd)];
+    expect(glows.filter((v) => v === 0).length).toBeGreaterThan(nd / 3);
+    expect(glows.at(-1)).toBe(1);
     const mono: Genome = { ...flow, colour: { ...flow.colour, mode: 'mono', pulse: 0 } };
     const n = expand(mono, 0, inst);
     expect(new Set(inst.tone.slice(0, n - 1))).toEqual(new Set([0]));

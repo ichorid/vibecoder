@@ -19,7 +19,7 @@ export function hornScript(g: Genome): string {
   );
   let id = 0;
   const visit = (node: Horn | Ball): string => {
-    if (node.prim === 'ball') return `ball[${node.tone}]`;
+    if (node.prim === 'ball') return `${node.shape ?? 'ball'}[${node.tone}]`;
     const child = visit(node.child);
     const h = `${node.kind}${++id}`;
     lines.push('', `tube ${h}`, `${h}.child(${child})`, `${h}.ribs(${param(node.ribs)})`);
@@ -39,8 +39,17 @@ export function hornScript(g: Genome): string {
       }
     }
     if (node.lay) lines.push(`${h}.lay(center ${n(node.lay.center)}, rotZ(${n(node.lay.turn)}))`);
+    if (node.dots !== undefined) {
+      lines.push(
+        node.dots === 0
+          ? `${h}.hide()   # invisible: only its tip shows`
+          : `${h}.dots(${node.dots})`,
+      );
+    }
     if (node.alt) lines.push(`${h}.alternate()`);
-    if (node.bulb !== null) lines.push(`${h}.tip(ball[2], scale(${n(node.bulb)}))`);
+    if (node.bulb !== null) {
+      lines.push(`${h}.tip(${node.bulbShape ?? 'ball'}[2], scale(${n(node.bulb)}))`);
+    }
     return h;
   };
   const root = visit(g.root);
@@ -50,8 +59,8 @@ export function hornScript(g: Genome): string {
       ? `pose = rotX(${n(g.tiltAmp * 0.4)} * w${g.tiltOsc} - 90) then rotZ(${n(g.spinAmp)} * w${g.spinOsc} + T * ${n(g.drift)})   # vortex`
       : `pose = rotX(${n(g.tiltAmp)} * w${g.tiltOsc} - 15) then rotY(${n(g.spinAmp)} * w${g.spinOsc} + T * ${n(g.drift)})`,
     `colour ${g.colour.mode} [${g.colour.pattern.join(' ')}] bands ${g.colour.bands} speed ${n(g.colour.speed)} ripple ${g.colour.ripple} pulse ${n(g.colour.pulse)}`,
-    `render(${root}, ${g.copies} copies${g.mirror ? ', mirrored' : ''}, pose)`,
-    `# palette ${g.palette}, ${g.style}, ${g.backdrop}${g.trails ? `, trails every ${g.trails} frames` : ''}`,
+    `render(${root}, ${g.copies} ${g.layout === 'swarm' ? `dancing copies (orbit ${n(g.swarm)})` : 'radial copies'}${g.mirror ? ', mirrored' : ''}, pose)`,
+    `# thickness ${n(g.thickness)}, palette ${g.palette}, ${g.style}, ${g.backdrop}${g.trails ? `, trails every ${g.trails} frames` : ''}`,
   );
   return lines.join('\n');
 }

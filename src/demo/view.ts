@@ -34,13 +34,16 @@ export function framing(g: Genome, inst: Instances): Framing {
   for (const t of FRAMING_TIMES) {
     const n = expand(g, t, inst);
     const xyz = new Float32Array(n * 3);
+    let seen = 0;
     for (let i = 0; i < n; i++) {
+      if (!((inst.glow[i] ?? 1) > 0)) continue; // frame what is seen
       const x = inst.x[i] ?? 0,
         y = inst.y[i] ?? 0,
         z = inst.z[i] ?? 0;
-      xyz[i * 3] = x;
-      xyz[i * 3 + 1] = y;
-      xyz[i * 3 + 2] = z;
+      xyz[seen * 3] = x;
+      xyz[seen * 3 + 1] = y;
+      xyz[seen * 3 + 2] = z;
+      seen++;
       if (x < lx) lx = x;
       if (x > hx) hx = x;
       if (y < ly) ly = y;
@@ -48,7 +51,7 @@ export function framing(g: Genome, inst: Instances): Framing {
       if (z < lz) lz = z;
       if (z > hz) hz = z;
     }
-    samples.push(xyz);
+    samples.push(xyz.subarray(0, seen * 3));
     if (!first) {
       first = {
         x: inst.x.slice(0, n),
@@ -87,7 +90,7 @@ export function framing(g: Genome, inst: Instances): Framing {
   }
   ratios.sort((a, b) => a - b);
   const median = ratios[ratios.length >> 1] ?? 0.1;
-  const size = Math.max(r * 0.015, Math.min(r * 0.2, median * g.thickness));
+  const size = Math.max(r * 0.015, Math.min(r * 0.25, median * g.thickness));
   const maxScale = first ? first.s.reduce((m, v) => Math.max(m, v), 0) : 1;
   return { cx, cy, cz, r, size, biggest: (size * maxScale) / r };
 }

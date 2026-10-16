@@ -522,3 +522,12 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   Electron City, 1KB) not yet supported.
 - NOTE: `npm run check` currently fails only on Prettier for src/demo/genome.ts and
   src/demo/horn.ts — files of the other session; left untouched.
+- 2026-10-16: demos v3 (user): fewer radial forms; invisible carriers like the original's hidden
+  informs / ribs(0) horns — `dots` (beads, or hidden tubes showing only their tip), `flock`
+  arrangement (wide invisible path), `swarm` copy layout (figures orbiting each other);
+  first-demo archetypes (solo/swarm/flock/radial/web) so the judge compares within a kind;
+  scattered forms judged at lower coverage; count-aware big-ball penalty; sprite shapes (ball,
+  ring, gem, cube, star, petal, drop; non-round ones turn along their tube). First demos viable
+  40/40. Note: main-route scenario once exceeded vitest's 5 s timeout under load (passes alone
+  and on rerun).
+

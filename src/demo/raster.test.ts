@@ -4,6 +4,7 @@ import type { Genome } from './genome';
 import { firstDemo } from './judge';
 import { createDemoCanvas, drawDemo } from './raster';
 import { paletteRgba, PALETTES } from './palettes';
+import { SHAPES, spriteFor } from './sprites';
 
 const formPixels = (buf: Uint8Array) => buf.reduce((n, v) => n + (v >= 2 && v !== 17 ? 1 : 0), 0);
 
@@ -18,9 +19,13 @@ describe('demo rasterizer', () => {
     expect(a.rgba).toEqual(b.rgba);
   });
 
-  it('a judged demo fills a fair part of the screen in both styles', () => {
+  it('a solid radial demo fills a fair part of the screen in both styles', () => {
+    const radial = Array.from({ length: 40 }, (_, i) => firstDemo(i + 1).genome).find(
+      (g) => g.layout === 'radial' && !JSON.stringify(g).includes('"dots"'),
+    );
+    if (!radial) throw new Error('no solid radial demo in 40 seeds');
     for (const style of ['bobs', 'wire'] as const) {
-      const g: Genome = { ...firstDemo(11).genome, style, trails: 0 };
+      const g: Genome = { ...radial, style, trails: 0 };
       const c = createDemoCanvas(g);
       drawDemo(c, 3);
       const share = formPixels(c.buf) / c.buf.length;
@@ -38,6 +43,18 @@ describe('demo rasterizer', () => {
     };
     expect(count(3, true)).toBeGreaterThan(count(0, true));
     expect(count(3, false)).toBe(count(0, true)); // reduced motion turns trails off
+  });
+
+  it('every shape draws, and shapes that are not round turn along their tube', () => {
+    for (let shape = 0; shape < SHAPES.length; shape++) {
+      const sprite = spriteFor(shape, 8, 0);
+      expect(sprite.mask.reduce((a, b) => a + b, 0)).toBeGreaterThan(40);
+      expect(sprite.light.some((v) => v > 0)).toBe(true);
+      const turned = spriteFor(shape, 8, Math.PI / 4);
+      const round = SHAPES[shape] === 'ball' || SHAPES[shape] === 'ring';
+      expect(turned === sprite).toBe(round);
+      expect(spriteFor(shape, 8, Math.PI / 4)).toBe(turned); // made once
+    }
   });
 
   it('palettes are 18 opaque colours each', () => {

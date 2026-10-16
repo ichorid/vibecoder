@@ -7,6 +7,7 @@
 import type { Genome } from './genome';
 import { createInstances, expand } from './horn';
 import { paletteRgba } from './palettes';
+import { spriteFor, turns } from './sprites';
 import { createProjected, framing, project, SCREEN_H, SCREEN_W, type Framing } from './view';
 
 const W = SCREEN_W;
@@ -16,42 +17,6 @@ const BAYER = Uint8Array.from(
   (x) => x * 16 + 8,
 );
 const RAMP = [2, 7, 12] as const;
-
-interface Sprite {
-  readonly d: number;
-  readonly c: number;
-  /** Lit intensity 0–255 per pixel; 0 also marks the outline. */
-  readonly light: Uint8Array;
-  readonly mask: Uint8Array;
-}
-
-/** Ball sprites at half-pixel radius steps (index = radius × 2), lit from the upper left. */
-const SPRITES: Sprite[] = [];
-for (let k = 1; k <= 80; k++) {
-  const r = k / 2;
-  const d = Math.ceil(r) * 2 + 1;
-  const c = (d - 1) / 2;
-  const light = new Uint8Array(d * d);
-  const mask = new Uint8Array(d * d);
-  const L = [-0.45, 0.65, -0.62] as const;
-  const ll = Math.hypot(...L);
-  for (let y = 0; y < d; y++) {
-    for (let x = 0; x < d; x++) {
-      const dx = (x - c) / r,
-        dy = (y - c) / r,
-        q = dx * dx + dy * dy;
-      if (q > 1) continue;
-      mask[y * d + x] = 1;
-      const nz = -Math.sqrt(1 - q);
-      const lam = Math.max(0, (dx * L[0] - dy * L[1] + nz * L[2]) / ll);
-      const rim = r > 2 && Math.sqrt(q) * r > r - 0.8;
-      light[y * d + x] = rim
-        ? 0
-        : Math.min(255, Math.round((0.14 + 0.8 * lam + 0.5 * lam ** 24) * 255));
-    }
-  }
-  SPRITES[k] = { d, c, light, mask };
-}
 
 export interface DemoCanvas {
   readonly buf: Uint8Array;
@@ -126,9 +91,22 @@ function drawBobs(buf: Uint8Array, n: number): void {
   const p = projected.data;
   for (let q = 0; q < n; q++) {
     const i = order[q] ?? 0;
+    if (!((inst.glow[i] ?? 1) > 0)) continue; // a hidden rib
     const o = i * 4;
-    const sprite = SPRITES[Math.max(1, Math.min(80, Math.round((p[o + 3] ?? 0) * 2)))];
-    if (!sprite) continue;
+    const shape = inst.shape[i] ?? 0;
+    // shapes that are not round turn along their tube on screen
+    let angle = 0;
+    if (turns(shape)) {
+      const before = i > 0 && inst.chain[i - 1] === inst.chain[i] ? i - 1 : i;
+      const after = i + 1 < n && inst.chain[i + 1] === inst.chain[i] ? i + 1 : i;
+      if (before !== after) {
+        angle = Math.atan2(
+          (p[before * 4 + 1] ?? 0) - (p[after * 4 + 1] ?? 0),
+          (p[after * 4] ?? 0) - (p[before * 4] ?? 0),
+        );
+      }
+    }
+    const sprite = spriteFor(shape, p[o + 3] ?? 0, angle);
     const x0 = Math.round((p[o] ?? 0) - sprite.c);
     const y0 = Math.round((p[o + 1] ?? 0) - sprite.c);
     // depth fog: the back of the form is up to ~45 % darker
@@ -180,10 +158,16 @@ function drawWire(buf: Uint8Array, n: number): void {
   const p = projected.data;
   for (let q = 0; q < n; q++) {
     const i = order[q] ?? 0;
+    if (!((inst.glow[i] ?? 1) > 0)) continue; // a hidden rib
     const o = i * 4;
     const level = 1 + Math.round(3 * nearness(p[o + 2] ?? 3) * (inst.glow[i] ?? 1));
     const ramp = RAMP[inst.tone[i] ?? 0] ?? 2;
-    if (i > 0 && inst.chain[i] === inst.chain[i - 1] && inst.tone[i] !== 2) {
+    if (
+      i > 0 &&
+      inst.chain[i] === inst.chain[i - 1] &&
+      inst.tone[i] !== 2 &&
+      (inst.glow[i - 1] ?? 1) > 0
+    ) {
       const a = (i - 1) * 4;
       line(buf, p[a] ?? 0, p[a + 1] ?? 0, p[o] ?? 0, p[o + 1] ?? 0, ramp + level);
     }

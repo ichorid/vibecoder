@@ -73,6 +73,29 @@ the form's axis at the camera and rolls it slowly, `tumble` sways it.
   (first demos: 0.22 / 0.42 / 0.67 at p10/p50/p90). The first demo is the best of four viable
   draws.
 
+## Invisible carriers, flocks, swarms, archetypes and shapes (user, 2026-10-16)
+
+The original also drew *nothing* for some parts: an inform could be hidden ("Inform i of n
+(hidden)"), scenes use `<none>` meshes, and grammars use horns with `ribs(0)` only to `attach`
+other horns, chains of tails and heads, or the same horn rendered at several moving offsets —
+invisible structure placing visible parts that do not touch. Our versions:
+
+- **`dots`**: a tube draws every k-th rib (beads) or none but its tip (0: fireflies riding
+  invisible swirling paths). Hidden ribs still set rib size; they are not drawn, framed or judged.
+- **`flock`** arrangement: an invisible carrier path (helix or arc) with few, widely spaced
+  ribs, so its children are far apart; rings may also set their children apart.
+- **`swarm`** layout for copies: each copy faces its own way on its own slow orbit round the
+  others (separate figures dancing round each other) instead of radial copies.
+- **Archetypes**: a first demo's kind is drawn from its seed — solo 20 %, swarm 20 %, flock 18 %,
+  radial 30 %, web 12 % — and the judge compares draws of that kind only (its taste favours
+  spread-out radial forms). Scattered forms are judged against 2.5 % / 16 % coverage (viable /
+  target) instead of 5 % / 28 %; the big-ball penalty allows big balls when there are many
+  (solid tubes); solo, flock and swarm forms start thicker (overlapping balls).
+- **Sprite shapes** (`src/demo/sprites.ts`): ball, ring (torus), gem (octahedron), cube, star,
+  petal and drop, pre-shaded and outlined like the balls, made on first use per shape, size and
+  one of 16 angles; shapes that are not round turn along their tube on screen. Ribs and tips
+  each have a shape gene (mutation `shape`, cosmetic to the judge).
+
 ## Designing the next demo (user, 2026-10-16)
 
 On the demo screen — and only there, under the newest demo — the player chooses what the next

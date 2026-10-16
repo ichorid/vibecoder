@@ -15,6 +15,7 @@
  */
 import type { DemoRng } from './rng';
 import { demoRng } from './rng';
+import type { Shape } from './sprites';
 
 /**
  * Wave periods in seconds, slow to fast; each genome adds its own phases. 0–3 drive swirls and
@@ -45,10 +46,12 @@ export type Tone = 0 | 1 | 2;
 export interface Ball {
   prim: 'ball';
   tone: Tone;
+  /** What each rib looks like (a ball unless set). */
+  shape?: Shape;
 }
 
 export const TENDRILS = ['taper', 'spring', 'shell', 'cone'] as const;
-export const ARRANGEMENTS = ['fan', 'ring', 'tower', 'whorl', 'layers'] as const;
+export const ARRANGEMENTS = ['fan', 'ring', 'tower', 'whorl', 'layers', 'flock'] as const;
 export type TendrilKind = (typeof TENDRILS)[number];
 export type ArrangementKind = (typeof ARRANGEMENTS)[number];
 
@@ -63,17 +66,30 @@ export interface Horn {
   alt: boolean;
   /** A bigger ball at the tip (scale relative to the last rib), or none. */
   bulb: number | null;
+  /** The tip's shape (a ball unless set). */
+  bulbShape?: Shape;
   /**
    * A strand (web forms): after its rules, the tube is moved back by `center` × its stack
    * length (0.5 = it turns about its middle) and turned `turn`° about Z (90 = lying sideways).
    */
   lay?: { center: number; turn: number };
+  /**
+   * Which ribs are drawn: absent or 1 = all, k ≥ 2 = every k-th (a string of separate beads),
+   * 0 = none but the tip bulb (an invisible tube carrying it — fireflies on swirling paths).
+   * Hidden ribs still count for rib size and the budget.
+   */
+  dots?: number;
 }
 
 export type DemoStyle = 'bobs' | 'wire';
 export type Backdrop = 'bars' | 'stars';
 /** `tumble`: the form sways in front of the camera; `vortex`: its axis faces the camera. */
 export type View = 'tumble' | 'vortex';
+/**
+ * How copies are placed: `radial` round the axis; `swarm`: each on its own slow orbit round
+ * the others (separate figures dancing round each other), `swarm` units from the centre.
+ */
+export type Layout = 'radial' | 'swarm';
 
 export const COLOUR_MODES = ['alt', 'bands', 'flow', 'tentacles', 'mono'] as const;
 export type ColourMode = (typeof COLOUR_MODES)[number];
@@ -97,9 +113,12 @@ export interface Colour {
 export interface Genome {
   version: 2;
   root: Horn;
-  /** Radial copies about Z, and whether each copy is mirrored (flipped about X). */
+  /** Copies, and whether each copy is mirrored (flipped about X). */
   copies: number;
   mirror: boolean;
+  layout: Layout;
+  /** Swarm orbit size (world units). */
+  swarm: number;
   phase: number[];
   view: View;
   /** Sway: a tilt of `tiltAmp`° on wave `tiltOsc`, a turn of `spinAmp`° on wave `spinOsc`… */
@@ -109,7 +128,7 @@ export interface Genome {
   spinOsc: number;
   /** …plus a slow steady drift in degrees per second. */
   drift: number;
-  /** Ball size relative to the gap between neighbouring ribs (lace 0.45 … fat bobs 1.3). */
+  /** Ball size relative to the gap between neighbouring ribs (lace 0.45 … solid tubes 2). */
   thickness: number;
   colour: Colour;
   palette: number;
@@ -152,9 +171,42 @@ function swirl(r: DemoRng, p: Param, degrees: number): Param {
 
 const ball = (tone: Tone = 0): Ball => ({ prim: 'ball', tone });
 
-type Shape = Pick<Horn, 'ribs' | 'rules'>;
+const RIB_SHAPES: readonly (readonly [Shape, number])[] = [
+  ['ball', 0.45],
+  ['petal', 0.12],
+  ['gem', 0.1],
+  ['ring', 0.09],
+  ['star', 0.08],
+  ['cube', 0.08],
+  ['drop', 0.08],
+];
+const TIP_SHAPES: readonly (readonly [Shape, number])[] = [
+  ['ball', 0.5],
+  ['star', 0.15],
+  ['gem', 0.15],
+  ['ring', 0.1],
+  ['cube', 0.1],
+];
+function pickShape(r: DemoRng, table: readonly (readonly [Shape, number])[]): Shape {
+  let x = r.f();
+  for (const [shape, w] of table) if ((x -= w) < 0) return shape;
+  return 'ball';
+}
+/** Give a tube's ribs (and its tip) a shape; balls are the default and are left unset. */
+function setShapes(r: DemoRng, h: Horn): void {
+  if (h.child.prim === 'ball') {
+    const rib = pickShape(r, RIB_SHAPES);
+    if (rib === 'ball') delete h.child.shape;
+    else h.child.shape = rib;
+  }
+  const tip = pickShape(r, TIP_SHAPES);
+  if (tip === 'ball') delete h.bulbShape;
+  else h.bulbShape = tip;
+}
 
-const TENDRIL: Record<TendrilKind, (r: DemoRng) => Shape> = {
+type HornShape = Pick<Horn, 'ribs' | 'rules'>;
+
+const TENDRIL: Record<TendrilKind, (r: DemoRng) => HornShape> = {
   // length, a slow spin of the ribs, shrink, then the curl (which sways)
   taper: (r) => ({
     ribs: R(r, r.int(14, 34), 0.15, 0),
@@ -212,7 +264,7 @@ const TENDRIL: Record<TendrilKind, (r: DemoRng) => Shape> = {
   },
 };
 
-const ARRANGE: Record<ArrangementKind, (r: DemoRng) => Shape> = {
+const ARRANGE: Record<ArrangementKind, (r: DemoRng) => HornShape> = {
   // an anemone: the cap opens and closes slowly
   fan: (r) => {
     const n = r.int(5, 14);
@@ -234,7 +286,12 @@ const ARRANGE: Record<ArrangementKind, (r: DemoRng) => Shape> = {
       ribs: n,
       rules: [
         { op: 'tilt', deg: r.range(-70, 70) },
-        { op: 'twist', a: 360 * (n / (n + 1)), b: R(r, r.range(0.25, 0.7), 0.3) },
+        // a small offset keeps the children touching; a large one sets them apart
+        {
+          op: 'twist',
+          a: 360 * (n / (n + 1)),
+          b: R(r, r.chance(0.35) ? r.range(1, 2.2) : r.range(0.25, 0.7), 0.3),
+        },
       ],
     };
   },
@@ -265,6 +322,29 @@ const ARRANGE: Record<ArrangementKind, (r: DemoRng) => Shape> = {
       { op: 'grow', a: R(r, r.range(1.6, 4), 0.2) },
     ],
   }),
+  // an invisible carrier path with wide spacing: its children are far apart and swim along
+  flock: (r) =>
+    r.chance(0.5)
+      ? {
+          ribs: r.int(3, 7),
+          rules: [
+            { op: 'stack', a: swirl(r, R(r, r.range(2, 5), 0.2), 1.2) },
+            {
+              op: 'twist',
+              a: swirl(r, R(r, r.sign() * r.range(200, 600), 0.2), r.range(120, 300)),
+              b: R(r, r.range(0.6, 1.6), 0.3),
+            },
+            { op: 'grow', a: r.range(0.5, 1.2) },
+          ],
+        }
+      : {
+          ribs: r.int(3, 7),
+          rules: [
+            { op: 'stack', a: R(r, r.range(2.5, 5), 0.25) },
+            { op: 'bend', a: swirl(r, R(r, r.sign() * r.range(90, 300), 0.2), r.range(60, 160)) },
+            { op: 'grow', a: r.range(0.5, 1.1) },
+          ],
+        },
   whorl: (r) => ({
     ribs: r.int(6, 14),
     rules: [
@@ -276,13 +356,23 @@ const ARRANGE: Record<ArrangementKind, (r: DemoRng) => Shape> = {
 };
 
 export function tendril(r: DemoRng, kind: TendrilKind = r.pick(TENDRILS)): Horn {
-  return {
+  const h: Horn = {
     kind,
     ...TENDRIL[kind](r),
     child: ball(),
     alt: r.chance(0.4),
     bulb: r.chance(0.35) ? r.range(1.2, 1.8) : null,
   };
+  setDots(r, h, r.pick([1, 1, 1, 1, 1, 1, 2, 3, 0]));
+  setShapes(r, h);
+  return h;
+}
+
+/** Draw every k-th rib of a tube (0: only its tip bulb, which it then always has). */
+function setDots(r: DemoRng, h: Horn, k: number): void {
+  if (k === 1) delete h.dots;
+  else h.dots = k;
+  if (k === 0 && h.bulb === null) h.bulb = r.range(1.6, 2.6);
 }
 
 /** Every wave parameter of a horn's rules. */
@@ -402,27 +492,89 @@ export function withinBudget(g: Genome): boolean {
   return n >= MIN_INSTANCES && n <= BUDGET;
 }
 
+/**
+ * What kind of picture a first demo is (drawn first, so the judge's taste — which loves spread-out
+ * radial forms — cannot crowd the others out): a lone creature, figures dancing round each
+ * other, a flock carried by an invisible path, a radial form, or a web.
+ */
+export const ARCHETYPES = ['solo', 'swarm', 'flock', 'radial', 'web'] as const;
+export type Archetype = (typeof ARCHETYPES)[number];
+const ARCHETYPE_WEIGHTS: Readonly<Record<Archetype, number>> = {
+  solo: 0.2,
+  swarm: 0.2,
+  flock: 0.18,
+  radial: 0.3,
+  web: 0.12,
+};
+
+export function archetypeFor(seed: number): Archetype {
+  let x = demoRng(seed ^ 0x2c1b3c6d).f();
+  for (const a of ARCHETYPES) if ((x -= ARCHETYPE_WEIGHTS[a]) < 0) return a;
+  return 'radial';
+}
+
+const RADIAL: readonly ArrangementKind[] = ['fan', 'ring', 'tower', 'whorl', 'layers'];
+
+function rootFor(r: DemoRng, archetype: Archetype, family?: TendrilKind): Horn {
+  if (family) return tendril(r, family);
+  switch (archetype) {
+    case 'web':
+      return web(r);
+    case 'solo':
+      return tendril(r);
+    case 'swarm':
+      return r.chance(0.6)
+        ? tendril(r)
+        : arrangement(r, tendril(r), r.pick(['tower', 'flock'] as const));
+    case 'flock': {
+      const inner = tendril(r);
+      if (r.chance(0.5)) setDots(r, inner, r.pick([0, 2, 3]));
+      const flock = arrangement(r, inner, 'flock');
+      return r.chance(0.3) ? arrangement(r, flock, 'flock') : flock;
+    }
+    case 'radial': {
+      let root = arrangement(r, tendril(r), r.pick(RADIAL));
+      if (r.chance(0.25)) root = arrangement(r, root, r.pick(RADIAL));
+      return root;
+    }
+  }
+}
+
 /** A first genome from a seed (house rules and budget hold; looks are the judge's business). */
-export function randomGenome(seed: number, family?: TendrilKind): Genome {
+export function randomGenome(seed: number, family?: TendrilKind, archetype?: Archetype): Genome {
   const r = demoRng(seed);
+  const kind = archetype ?? archetypeFor(seed);
   for (let attempt = 0; attempt < 20; attempt++) {
-    const webbed = !family && r.chance(0.2);
-    let root = webbed ? web(r) : tendril(r, family);
-    const levels = family || webbed ? 0 : r.pick([0, 1, 1, 1, 2]);
-    for (let l = 0; l < levels; l++) root = arrangement(r, root);
+    const root = rootFor(r, kind, family);
+    const many =
+      kind === 'swarm'
+        ? r.int(2, 5)
+        : kind === 'solo'
+          ? r.pick([1, 1, 2])
+          : kind === 'radial'
+            ? r.pick([1, 1, 2, 3, 4, 5, 6])
+            : r.pick([1, 1, 2]);
     const g: Genome = {
       version: 2,
       root,
-      copies: family || webbed ? 1 : r.pick([1, 1, 1, 2, 3, 4, 5, 6]),
-      mirror: !family && !webbed && r.chance(0.3),
+      copies: family || kind === 'web' ? 1 : many,
+      mirror: !family && kind !== 'web' && r.chance(0.25),
+      layout: kind === 'swarm' || (kind !== 'radial' && r.chance(0.5)) ? 'swarm' : 'radial',
+      swarm: r.range(1, 2.6),
       phase: WAVE_PERIODS.map(() => r.range(0, Math.PI * 2)),
-      view: webbed || r.chance(0.45) ? 'vortex' : 'tumble',
+      view: kind === 'web' || (kind === 'radial' && r.chance(0.45)) ? 'vortex' : 'tumble',
       tiltAmp: r.range(10, 40),
       tiltOsc: osc(r, SLOW),
       spinAmp: r.range(40, 160),
       spinOsc: osc(r, SLOW),
       drift: r.sign() * r.range(0, 5),
-      thickness: webbed ? r.range(0.45, 0.7) : r.range(0.7, 1.25),
+      // overlapping balls make solid tubes; radial forms stay finer, webs are lace
+      thickness:
+        kind === 'web'
+          ? r.range(0.45, 0.7)
+          : kind === 'radial'
+            ? r.range(0.7, 1.25)
+            : r.range(1, 2),
       colour: randomColour(r),
       palette: r.int(0, PALETTE_COUNT - 1),
       style: styleFor(seed),
@@ -442,6 +594,8 @@ export function fallbackGenome(): Genome {
     root: { ...tendril(r, 'spring'), bulb: null },
     copies: 1,
     mirror: false,
+    layout: 'radial',
+    swarm: 1.5,
     phase: WAVE_PERIODS.map(() => 0),
     view: 'tumble',
     tiltAmp: 20,
@@ -519,8 +673,23 @@ export const MUTATIONS = {
   view: (g: Genome) => {
     g.view = g.view === 'tumble' ? 'vortex' : 'tumble';
   },
+  /** Solid, beaded, or invisible but for the bulb at its tip. */
+  dots: (g: Genome, r: DemoRng) => {
+    const inner = hornChain(g.root).at(-1);
+    if (inner) setDots(r, inner, r.pick([1, 2, 3, 0].filter((k) => k !== (inner.dots ?? 1))));
+  },
+  /** Other shapes for the ribs and the tip. */
+  shape: (g: Genome, r: DemoRng) => {
+    const inner = hornChain(g.root).at(-1);
+    if (inner) setShapes(r, inner);
+  },
+  /** Copies round the axis, or dancing round each other. */
+  layout: (g: Genome, r: DemoRng) => {
+    g.layout = g.layout === 'radial' ? 'swarm' : 'radial';
+    if (g.copies < 2) g.copies = r.int(2, 5);
+  },
   thickness: (g: Genome, r: DemoRng) => {
-    g.thickness = Math.max(0.4, Math.min(1.4, g.thickness * Math.exp(r.range(-0.35, 0.35))));
+    g.thickness = Math.max(0.4, Math.min(2.2, g.thickness * Math.exp(r.range(-0.35, 0.35))));
   },
   /** Lay the innermost tube down as a strand about its middle, or stand it up again. */
   lay: (g: Genome, r: DemoRng) => {
@@ -606,6 +775,7 @@ export const MUTATIONS = {
 export type MutationId = keyof typeof MUTATIONS;
 export const COSMETIC: ReadonlySet<MutationId> = new Set([
   'colour',
+  'shape',
   'palette',
   'backdrop',
   'trails',
@@ -619,6 +789,9 @@ const WEIGHTS: readonly [MutationId, number][] = [
   ['view', 0.5],
   ['lay', 0.6],
   ['thickness', 1],
+  ['dots', 1],
+  ['shape', 1.5],
+  ['layout', 0.8],
   ['ribs', 2],
   ['addRule', 1.5],
   ['dropRule', 1],

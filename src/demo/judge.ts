@@ -4,8 +4,10 @@
  * the projected ribs onto an 80×50 occupancy mask (docs/feature_demo.md §Judge).
  *
  * Score (higher is better), averaged over three moments:
- *   −3·|coverage − 0.28| + spread/160            fill about 28 % of the screen, spread out
- *   −12·max(0, ribSize/formRadius − 0.06)        fine ribs, not a few huge balls
+ *   −3·|coverage − 0.28| + spread/160            fill about 28 % of the screen (16 % if
+ *                                                scattered), spread out
+ *   −12·max(0, ribSize/formRadius − limit)       not a few huge balls (limit 0.06, up to
+ *                                                0.16 for 250+ balls: solid tubes)
  *   −6·max(0, biggestBall/formRadius − 0.22)     no bulb that swallows the form
  *   +1.2·min(detail, 0.5)                        lace and tendrils, not a solid blob
  *   −0.4·min(1, |ln(motion / 0.25)|)             lively, neither frozen nor frantic
@@ -14,6 +16,7 @@
 import {
   COSMETIC,
   cloneGenome,
+  archetypeFor,
   fallbackGenome,
   hornChain,
   mutate,
@@ -52,6 +55,7 @@ export function maskAt(
   expand(g, t, inst);
   const p = project(inst, fr, projected, MASK_W / SCREEN_W).data;
   for (let i = 0; i < projected.count; i++) {
+    if (!((inst.glow[i] ?? 1) > 0)) continue; // hidden ribs are not seen
     const cx = p[i * 4] ?? 0,
       cy = p[i * 4 + 1] ?? 0,
       r = Math.max(0.5, p[i * 4 + 3] ?? 0);
@@ -126,18 +130,44 @@ export interface Verdict {
   };
 }
 
-/** Viable = at each moment it covers 5–55 % of the screen and touches ≥ 22 of 160 cells. */
+/**
+ * Forms that are apart by design — dancing copies, flocks on invisible paths, beaded tubes —
+ * leave more of the screen empty: they are judged against a lower coverage.
+ */
+export function scattered(g: Genome): boolean {
+  const chain = hornChain(g.root);
+  return (
+    (g.layout === 'swarm' && g.copies > 1) ||
+    chain.some((h) => h.kind === 'flock') ||
+    (chain.at(-1)?.dots ?? 1) !== 1
+  );
+}
+
+/**
+ * Viable = at each moment it covers 5–55 % of the screen and touches ≥ 22 of 160 cells
+ * (scattered forms: ≥ 2.5 % and ≥ 14 cells).
+ */
 export function judge(g: Genome, ancestors: readonly (readonly Uint8Array[])[] = []): Verdict {
   const fr = framing(g, inst);
   const masks = TIMES.map((t) => maskAt(g, t, fr));
   const stats = masks.map(maskStats);
-  const ok = stats.every((s) => s.coverage >= 0.05 && s.coverage <= 0.55 && s.cells >= 22);
+  const apart = scattered(g);
+  const minCoverage = apart ? 0.025 : 0.05;
+  const minCells = apart ? 14 : 22;
+  const ok = stats.every(
+    (s) => s.coverage >= minCoverage && s.coverage <= 0.55 && s.cells >= minCells,
+  );
   const later = maskAt(g, (TIMES[0] ?? 3) + MOTION_DT, fr);
   const motion = maskDiff(masks[0] ?? later, later);
   const coverage = stats.reduce((sum, s) => sum + s.coverage, 0) / stats.length;
   const cells = stats.reduce((sum, s) => sum + s.cells, 0) / stats.length;
   const detail = stats.reduce((sum, s) => sum + s.detail, 0) / stats.length;
   const grain = fr.size / fr.r;
+  // big balls are fine when there are many of them (a solid tube), not when there are few
+  expand(g, TIMES[0] ?? 3, inst);
+  let balls = 0;
+  for (let i = 0; i < inst.count; i++) if ((inst.glow[i] ?? 1) > 0) balls++;
+  const grainLimit = 0.06 + 0.1 * Math.min(1, balls / 250);
   const flow =
     masks.slice(1).reduce((sum, m, i) => sum + maskDiff(masks[i] ?? m, m), 0) /
     Math.max(1, masks.length - 1);
@@ -150,10 +180,10 @@ export function judge(g: Genome, ancestors: readonly (readonly Uint8Array[])[] =
           ),
         );
   const score =
-    -3 * Math.abs(coverage - 0.28) +
+    -3 * Math.abs(coverage - (apart ? 0.16 : 0.28)) +
     cells / 160 +
     1.2 * Math.min(detail, 0.5) -
-    12 * Math.max(0, grain - 0.06) -
+    12 * Math.max(0, grain - grainLimit) -
     6 * Math.max(0, fr.biggest - 0.22) -
     0.4 * Math.min(1, Math.abs(Math.log(Math.max(1e-3, motion) / MOTION_TARGET))) +
     0.6 * Math.min(flow, 0.6) +
@@ -204,8 +234,10 @@ const FIRST_CHOICES = 4;
 export function firstDemo(seed: number): Judged {
   let best: Judged | null = null;
   let viable = 0;
+  // the kind of picture comes from the seed; the judge only compares draws of that kind
+  const kind = archetypeFor(seed);
   for (let attempt = 0; attempt < 30 && viable < FIRST_CHOICES; attempt++) {
-    const genome = randomGenome(subSeed(seed, attempt));
+    const genome = randomGenome(subSeed(seed, attempt), undefined, kind);
     const verdict = judge(genome);
     if (!verdict.ok) continue;
     viable++;

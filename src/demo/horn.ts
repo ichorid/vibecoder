@@ -18,6 +18,9 @@ import {
   type Param,
   type Rule,
 } from './genome';
+import { SHAPES, type Shape } from './sprites';
+
+const shapeIndex = (shape: Shape | undefined) => Math.max(0, SHAPES.indexOf(shape ?? 'ball'));
 
 const DEG = Math.PI / 180;
 const TAU = Math.PI * 2;
@@ -33,6 +36,8 @@ export interface Instances {
   readonly s: Float32Array;
   /** Colour ramp 0–2. */
   readonly tone: Uint8Array;
+  /** Sprite shape (index into SHAPES). */
+  readonly shape: Uint8Array;
   /** Light 0–1 (colour pulses darken balls in a travelling wave). */
   readonly glow: Float32Array;
   /** Consecutive ribs of one tube share a chain number (the wire style connects them). */
@@ -47,6 +52,7 @@ export function createInstances(capacity = MAX_INSTANCES): Instances {
     z: new Float32Array(capacity),
     s: new Float32Array(capacity),
     tone: new Uint8Array(capacity),
+    shape: new Uint8Array(capacity),
     glow: new Float32Array(capacity),
     chain: new Uint32Array(capacity),
     count: 0,
@@ -305,7 +311,7 @@ interface Paint {
   readonly copy: number;
 }
 
-function emit(out: Instances, p: Float32Array, tone: number, glow: number): void {
+function emit(out: Instances, p: Float32Array, tone: number, glow: number, shape: number): void {
   if (out.count >= out.x.length) return;
   const i = out.count++;
   out.x[i] = p[10] ?? 0;
@@ -313,6 +319,7 @@ function emit(out: Instances, p: Float32Array, tone: number, glow: number): void
   out.z[i] = p[12] ?? 0;
   out.s[i] = Math.abs(p[9] ?? 0);
   out.tone[i] = tone;
+  out.shape[i] = shape;
   out.glow[i] = glow;
   out.chain[i] = chainSeq;
 }
@@ -385,6 +392,7 @@ function walk(
       q1 = parent[11] ?? 0,
       q2 = parent[12] ?? 0;
     const travel = colour.ripple * up - colour.speed * paint.t;
+    const shape = shapeIndex(child.shape);
     for (let j = 0; j < t.n; j++) {
       if (out.count >= out.x.length) return;
       const k = j * X;
@@ -398,10 +406,14 @@ function walk(
       out.s[i] = Math.abs((xf[k + 9] ?? 0) * ps);
       const u = t.ribs > 0 ? Math.min(j, t.ribs) / t.ribs : 0;
       out.tone[i] = rampOf(h, child, j, j === t.n - 1, u, travel, tone, index, paint);
+      out.shape[i] = shape;
+      const dots = h.dots ?? 1;
       out.glow[i] =
-        colour.pulse > 0
-          ? 1 - colour.pulse * (0.5 + 0.5 * Math.sin(TAU * 0.5 * (u * colour.bands + travel)))
-          : 1;
+        dots !== 1 && (dots === 0 || j % dots !== 0)
+          ? 0 // hidden rib: it still sets rib size, but is not drawn
+          : colour.pulse > 0
+            ? 1 - colour.pulse * (0.5 + 0.5 * Math.sin(TAU * 0.5 * (u * colour.bands + travel)))
+            : 1;
       out.chain[i] = chainSeq;
     }
   } else {
@@ -418,7 +430,7 @@ function walk(
     const o = scratch[depth] ?? new Float32Array(X);
     compose(o, 0, t.tip, 0, parent, 0);
     chainSeq++;
-    emit(out, o, 2, 1);
+    emit(out, o, 2, 1, shapeIndex(h.bulbShape));
   }
 }
 
@@ -462,9 +474,19 @@ export function expand(g: Genome, t: number, out: Instances): number {
     for (let m = 0; m < (g.mirror ? 2 : 1); m++) {
       if (m) setRotation(base, X, 0, 180);
       else setIdentity(base, X);
-      setRotation(base, X * 2, 2, (360 * c) / g.copies);
+      if (g.layout === 'swarm') {
+        // each copy faces its own way and dances on its own slow orbit round the others
+        const phi = (TAU * c) / g.copies;
+        setRotation(base, X * 2, 1, (360 * c) / g.copies);
+        base[X * 2 + 10] =
+          g.swarm * Math.sin((TAU * t) / WAVE_PERIODS[1] + phi + (g.phase[1] ?? 0));
+        base[X * 2 + 11] =
+          0.6 * g.swarm * Math.sin((TAU * t) / WAVE_PERIODS[2] + 2 * phi + (g.phase[2] ?? 0));
+        base[X * 2 + 12] =
+          g.swarm * Math.sin((TAU * t) / WAVE_PERIODS[0] + 3 * phi + (g.phase[0] ?? 0));
+      } else setRotation(base, X * 2, 2, (360 * c) / g.copies);
       compose(base, X, base, X, base, X * 2);
-      compose(base, X, base, X, base, 0); // mirror, then the copy's turn, then the pose
+      compose(base, X, base, X, base, 0); // mirror, then the copy's place, then the pose
       walk(g.root, copy, 0, c % 2, out, ctx, { colour: g.colour, t, copy: c }, 0, c);
     }
   }
