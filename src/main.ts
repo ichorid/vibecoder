@@ -17,6 +17,7 @@ if (boot.kind === 'ready') {
     target,
     props: {
       api: game.api,
+      audio: boot.music.controls,
       illustrationUrl,
       clock: { activeNow: () => game.activeNow(), frames: browserFrames },
     },

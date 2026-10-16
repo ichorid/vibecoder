@@ -7,8 +7,11 @@ import {
   type SaveAdapter,
   type StorageLike,
 } from '../persistence/save';
+import { selectMusicProjection } from '../game/selectors';
+import { createAudioPreferences } from '../music/preferences';
 import { createGame, type Game } from './createGame';
-import { attachBrowserLifecycle } from './lifecycle';
+import { attachBrowserLifecycle, type LifecycleTarget } from './lifecycle';
+import { createMusicBinding, type MusicBinding } from './musicBinding';
 import { browserClock, browserScheduler } from './runtime';
 
 /** Seeds and run IDs are created here, at the app boundary, never inside game code. */
@@ -39,7 +42,7 @@ function browserStorage(): StorageLike | null {
 }
 
 export type Boot =
-  | { kind: 'ready'; game: Game; detach: () => void }
+  | { kind: 'ready'; game: Game; music: MusicBinding; detach: () => void }
   | {
       kind: 'recovery';
       load: Extract<LoadResult, { status: 'corrupt' | 'unsupported' }>;
@@ -72,7 +75,15 @@ export function bootGame(): Boot {
   }
 
   const save = loaded.status === 'loaded' ? loaded.save : null;
+  const music = createMusicBinding({
+    preferences: createAudioPreferences(storage),
+    // Tone, the director and the pack load only after the Sound gesture.
+    load: async () => (await import('./gameAudio')).loadGameAudio(newSeed()),
+    userActivationActive: () => navigator.userActivation?.isActive ?? true,
+    now: () => performance.now(),
+  });
   const game = createGame({
+    onFacts: (facts) => music.facts(facts),
     catalog,
     clock: browserClock,
     scheduler: browserScheduler,
@@ -89,9 +100,54 @@ export function bootGame(): Boot {
       : {}),
     freezeSnapshots: import.meta.env.DEV,
   });
-  const detach = attachBrowserLifecycle(game, document, window);
+  game.api.subscribe((snapshot) => music.project(selectMusicProjection(snapshot.run)));
+  // Background, blur and freeze pause the game and silence music at once; music resumes only
+  // when the game is active again. A refused audio resume never holds the game back.
+  const lifecycle: LifecycleTarget = {
+    isActive: () => game.isActive(),
+    suspend(reason) {
+      game.suspend(reason);
+      music.suspend();
+    },
+    resume(reason) {
+      game.resume(reason);
+      if (game.isActive()) music.wake();
+    },
+  };
+  const detachLifecycle = attachBrowserLifecycle(lifecycle, document, window);
+  const detachResume = resumeSoundOnFirstGesture(music);
   game.start();
   // A reloaded PLAY attempt continues after the same short ready cue as a resume.
   if (save?.run.catPlay) game.api.dispatch({ type: 'resumeCatPlay' });
-  return { kind: 'ready', game, detach };
+  return {
+    kind: 'ready',
+    game,
+    music,
+    detach: () => {
+      detachLifecycle();
+      detachResume();
+      music.dispose();
+    },
+  };
+}
+
+/**
+ * The player's "Sound on" choice is remembered, but browsers allow audio only after a gesture:
+ * the first tap or key press of a visit starts it again (once).
+ */
+function resumeSoundOnFirstGesture(music: MusicBinding): () => void {
+  let view = { soundOn: false, status: 'off' };
+  const unsubscribe = music.controls.subscribe((v) => (view = v));
+  const onGesture = () => {
+    detach();
+    if (view.soundOn && view.status === 'off') void music.controls.setSound(true);
+  };
+  const detach = () => {
+    window.removeEventListener('pointerdown', onGesture, true);
+    window.removeEventListener('keydown', onGesture, true);
+    unsubscribe();
+  };
+  window.addEventListener('pointerdown', onGesture, true);
+  window.addEventListener('keydown', onGesture, true);
+  return detach;
 }

@@ -339,3 +339,18 @@ export function selectWorld(run: ReadonlyRun, catalog: Catalog): WorldViewModel 
     },
   };
 }
+
+/** What the music binding may know: committed progress only — never the cat's state. */
+export interface MusicProjection {
+  readonly technologyIds: readonly TechnologyId[];
+  readonly ended: boolean;
+  readonly runId: string;
+}
+
+export function selectMusicProjection(run: ReadonlyRun): MusicProjection {
+  return {
+    technologyIds: [...run.unlockedTechnologyIds],
+    ended: run.ending !== null,
+    runId: run.id,
+  };
+}

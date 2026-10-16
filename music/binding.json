@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "initial": {
+    "era": "discovery",
+    "arrangement": "discovery-base"
+  },
+  "rules": [
+    {
+      "technology": "ai-native-ide",
+      "era": "discovery",
+      "arrangement": "discovery-support"
+    },
+    {
+      "technology": "terminal-agent",
+      "era": "acceleration",
+      "arrangement": "acceleration-base"
+    },
+    {
+      "technology": "parallel-agents",
+      "era": "orchestration",
+      "arrangement": "orchestration-base"
+    },
+    {
+      "technology": "manager-agent",
+      "era": "orchestration",
+      "arrangement": "orchestration-manager"
+    },
+    {
+      "technology": "custom-harness",
+      "era": "recursion",
+      "arrangement": "recursion-base"
+    },
+    {
+      "technology": "meta-harness",
+      "era": "recursion",
+      "arrangement": "recursion-meta"
+    },
+    {
+      "technology": "self-improvement",
+      "era": "self-improvement",
+      "arrangement": "self-improvement-base"
+    },
+    {
+      "technology": "autonomous-company",
+      "era": "singularity",
+      "arrangement": "singularity-base"
+    }
+  ]
+}

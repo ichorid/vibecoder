@@ -5,7 +5,7 @@
  * the phrase after. Rapid requests collapse to the latest. The clock is never reset by an era
  * change; `stop` is the only reset. Shared by the game and every Music Lab mode.
  */
-import type { MusicBackendPort, PhraseHandle } from './backend/port';
+import type { MusicBackendPort, PhraseHandle, SfxId } from './backend/port';
 import { compilePhrase, type PhrasePlan } from './core/phrasePlanner';
 import { createBag, nextFromBag, type BagState } from './core/shuffleBag';
 import { clockFor } from './core/timing';
@@ -34,7 +34,7 @@ export interface EraTransition {
 }
 
 export type DirectorStatus =
-  'transition' | 'idle' | 'playing' | 'fallback' | 'demo-fallback' | 'silent' | 'paused';
+  'transition' | 'idle' | 'playing' | 'fallback' | 'demo-fallback' | 'silent' | 'paused' | 'ended';
 
 export interface PhraseInfo {
   readonly key: string;
@@ -73,6 +73,10 @@ export interface MusicDirector extends MusicEngine {
 
   /** The only reset: clears the clock, the bags and the scheduled phrase. */
   stop(): void;
+  /** The run ended: finish what is committed, then schedule nothing more (until `stop`). */
+  end(): void;
+  /** An allowlisted care sound on the separate SFX bus; never touches the music plan. */
+  playSfx(id: SfxId): void;
   snapshot(): DirectorSnapshot;
 }
 
@@ -98,6 +102,7 @@ export function createDirector(options: DirectorOptions): MusicDirector {
   let next: Scheduled | null = null;
   let started = false;
   let paused = false;
+  let ending = false;
   let bags = new Map<string, BagState>();
   let seedCounter = 0;
 
@@ -254,6 +259,7 @@ export function createDirector(options: DirectorOptions): MusicDirector {
     if (!next || next.plan !== plan) return;
     current = info;
     next = null;
+    if (ending) return;
     options.onCommit?.(info);
     schedule(plan.endTick);
   }
@@ -278,7 +284,7 @@ export function createDirector(options: DirectorOptions): MusicDirector {
     snapshot: () => ({
       requested,
       playing,
-      status: paused ? 'paused' : (playing?.status ?? 'idle'),
+      status: paused ? 'paused' : ending ? 'ended' : (playing?.status ?? 'idle'),
     }),
     start() {
       if (started) return;
@@ -297,8 +303,17 @@ export function createDirector(options: DirectorOptions): MusicDirector {
       paused = false;
       backend.resume();
     },
+    end() {
+      ending = true;
+      if (started && next && !backend.isCommitted(next.handle)) {
+        backend.cancelPhrase(next.handle);
+        next = null;
+      }
+    },
+    playSfx: (id) => backend.playSfx(id),
     stop() {
       backend.stop();
+      ending = false;
       started = false;
       paused = false;
       next = null;

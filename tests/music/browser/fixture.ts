@@ -222,10 +222,44 @@ async function hashParity() {
   return { canonical: canonicalPayload(target, catalog), hash: await contentHash(target, catalog) };
 }
 
+/** Care sound effects over the loudest demo phrase: audible, never clipping. */
+async function sfxMix() {
+  const { catalog } = buildCatalog({
+    eras: repository('eras'),
+    presets: repository('presets'),
+    arrangements: repository('arrangements'),
+    motifs: repository('motif'),
+    patterns: repository('patterns'),
+  });
+  const buffer = await Tone.Offline(({ transport }) => {
+    const backend = createToneBackend(Tone, { volume: 1 });
+    const director = createDirector({
+      backend,
+      library: createLibrary(catalog, { candidates: 'demo' }),
+      seed: 2,
+    });
+    director.request({
+      era: 'discovery',
+      arrangement: 'discovery-support',
+      pin: 'discovery-demo-b@1',
+    });
+    director.start();
+    for (const [at, id] of [
+      [1, 'feed'],
+      [2.5, 'pet'],
+      [4, 'play'],
+    ] as const) {
+      transport.scheduleOnce(() => director.playSfx(id), at);
+    }
+  }, 5);
+  return analyse(buffer);
+}
+
 (window as unknown as { musicFixture: unknown }).musicFixture = {
   render,
   lifecycleCycles,
   transition,
   evolution,
   hashParity,
+  sfxMix,
 };

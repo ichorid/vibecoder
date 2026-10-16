@@ -46,21 +46,40 @@ export interface UiGameApi extends Readable<UiSnapshot> {
   dispatch: Dispatch;
 }
 
-/** Narrow audio-control contract injected into Settings; the backend arrives with music S07. */
-export interface AudioControls {
-  /** False until a real audio backend is wired; the UI then says so honestly. */
+export type AudioStatus = 'off' | 'loading' | 'needsGesture' | 'playing' | 'unavailable' | 'error';
+
+/** What Settings shows about sound: the player's choice, the real state, and honest notes. */
+export interface AudioView {
+  /** False when this build has no audio at all; the UI then says so. */
   readonly available: boolean;
   readonly soundOn: boolean;
   readonly volume: number;
-  setSound(on: boolean): void;
+  readonly status: AudioStatus;
+  /** Why there is no sound, or what the player can do (null when nothing to say). */
+  readonly message: string | null;
+}
+
+/** Narrow audio-control contract injected into Settings (a readable store plus two actions). */
+export interface AudioControls extends Readable<AudioView> {
+  /** Called from the Sound switch (a trusted gesture). Never rejects. */
+  setSound(on: boolean): Promise<void>;
   setVolume(volume: number): void;
 }
 
-export const unavailableAudio: AudioControls = {
+const UNAVAILABLE_VIEW: AudioView = {
   available: false,
   soundOn: false,
   volume: 0.35,
-  setSound() {},
+  status: 'unavailable',
+  message: null,
+};
+
+export const unavailableAudio: AudioControls = {
+  subscribe(subscriber) {
+    subscriber(UNAVAILABLE_VIEW);
+    return () => {};
+  },
+  setSound: () => Promise.resolve(),
   setVolume() {},
 };
 

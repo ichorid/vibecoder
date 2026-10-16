@@ -7,7 +7,7 @@ import { createDirector } from '../../src/music/director';
 import { contentHash } from '../../src/music/hash';
 import { libraryFromPack } from '../../src/music/pack';
 import { createFakeBackend } from '../../tests/music/helpers/fakeBackend';
-import { buildPack } from './packLib';
+import { buildPack, serializePack } from './packLib';
 import { readRepository } from './sources';
 
 function corpus(): string {
@@ -147,5 +147,27 @@ describe('music pack builder', () => {
     director.start();
     fake.advanceTo(0);
     expect(heard).toEqual(['singularity-demo-b@1']);
+  });
+
+  it('the browser test-pack fixture is a real approved pack of the four demos (test only)', async () => {
+    const root = corpus();
+    const ids = [
+      'discovery-demo-a',
+      'discovery-demo-b',
+      'singularity-demo-a',
+      'singularity-demo-b',
+    ];
+    writeReviews(
+      root,
+      'test-approvals.json',
+      await Promise.all(ids.map(async (id) => record(id, await hashOf(root, id), 'approved'))),
+    );
+    const { pack, errors } = await buildPack({ root, mode: 'approved' });
+    expect(errors).toEqual([]);
+    if (!pack) throw new Error('no pack');
+    const text = serializePack(pack);
+    const fixture = 'tests/browser/fixtures/approved-test-pack.json';
+    if (process.env.UPDATE_FIXTURES) writeFileSync(fixture, text);
+    expect(readFileSync(fixture, 'utf8')).toBe(text);
   });
 });

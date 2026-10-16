@@ -70,6 +70,10 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   ignored; `music:check-pack` byte-compares). Exact duplicates under different IDs are validator
   errors. Third-party notices come from the lockfile (`npm run notices`), not from node_modules
   scans. vite-node strips the script path from `process.argv`: keep CLI and library in separate files.
+- D21 (S07) `AudioControls` UI contract became a readable store (`AudioView`). Game audio is
+  one lazy module `src/app/gameAudio.ts`; demo pack only with `VITE_MUSIC_PACK=demo` on the dev
+  server. Browser playback proof = routed test-pack fixture + `AudioScheduledSourceNode.start`
+  counting (test-only). Remembered "Sound on" resumes on the first gesture of a visit.
 - D5 (P02) App-level commands (`retrySave`, `setTheme`) go through the same public
   `dispatch` as game commands, so UI still sees only `{subscribe, dispatch}`.
 
@@ -153,3 +157,6 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
 - 2026-10-16: S06 done (similarity, approved/demo packs, prompt formatter + CLI templates,
   licenses/notices, music docs). test:music 149, browser 40. Next S07 (game integration);
   S07 must add `music/binding.json` (README already documents it).
+- 2026-10-16: S07 done (Settings sound/music live, tech→era binding JSON, lifecycle/ending/
+  restart, care SFX without cat-driven music, Lab round trip). game 347, music 159,
+  music-browser 15, browser 43. Next: main P10 (P10.6 can now pass), then P11, then S08/S09.

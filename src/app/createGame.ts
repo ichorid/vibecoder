@@ -53,6 +53,8 @@ export interface GameOptions {
   newRun?: () => RunState;
   persistence?: PersistenceOptions;
   freezeSnapshots?: boolean;
+  /** App-level listener for committed facts (e.g. care sound effects); never alters the run. */
+  onFacts?: (facts: readonly GameFact[]) => void;
 }
 
 export interface Game {
@@ -152,6 +154,7 @@ export function createGame(options: GameOptions): Game {
         const transition = stepRun(run, STEP_MS, catalog);
         run = transition.run;
         recordDiscoveries(transition.facts);
+        if (transition.facts.length > 0) options.onFacts?.(transition.facts);
         if (needsImmediateSave(transition.facts)) urgent = true;
       }
       if (urgent) write();
@@ -200,6 +203,7 @@ export function createGame(options: GameOptions): Game {
       const transition = applyCommand(run, command, at, catalog);
       run = transition.run;
       recordDiscoveries(transition.facts);
+      if (transition.facts.length > 0) options.onFacts?.(transition.facts);
       if (needsImmediateSave(transition.facts)) write();
       publish();
       return transition.result;

@@ -67,16 +67,25 @@
         class="toggle"
         role="switch"
         aria-labelledby="sound-label"
-        aria-checked={audio.soundOn}
-        disabled={!audio.available}
-        onclick={() => audio.setSound(!audio.soundOn)}
+        aria-checked={$audio.soundOn}
+        aria-describedby="sound-status"
+        disabled={!$audio.available || $audio.status === 'loading'}
+        onclick={() => void audio.setSound(!$audio.soundOn)}
       >
-        {audio.soundOn ? 'ON' : 'OFF'}
+        {$audio.soundOn ? 'ON' : 'OFF'}
       </button>
     </div>
-    {#if !audio.available}
-      <p class="note">Sound is not available in this build yet.</p>
-    {/if}
+    <p class="note" id="sound-status" role="status" data-testid="sound-status">
+      {#if !$audio.available}
+        Sound is not available in this build.
+      {:else if $audio.status === 'loading'}
+        Loading sound…
+      {:else if $audio.message}
+        {$audio.message}
+      {:else if $audio.status === 'playing'}
+        Playing.
+      {/if}
+    </p>
     <button type="button" class="item" onclick={() => (page = 'music')}>Music ›</button>
   {:else}
     <div class="head">

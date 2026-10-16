@@ -13,7 +13,8 @@ test('settings panel: theme, sound switch, music submenu, Music Lab link, focus 
   await expect(dialog).toBeVisible();
   await expect(dialog.getByRole('button', { name: 'Theme' })).toBeVisible();
   await expect(dialog.getByRole('switch', { name: 'Sound' })).toBeVisible();
-  await expect(dialog).toContainText('not available in this build');
+  // The switch drives the real audio controller (covered by sound.spec.ts).
+  await expect(dialog.getByRole('switch', { name: 'Sound' })).toBeEnabled();
 
   await dialog.getByRole('button', { name: /Music/ }).click();
   const music = page.getByRole('dialog', { name: 'Music' });

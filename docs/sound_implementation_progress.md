@@ -106,3 +106,17 @@ Status: **done** (no composer agent was run; no lead assignment or final composi
 
 Exit: `test:music` 149/149, `test:game` 335/335, `test:music-browser` 14/14, `test:browser` 40/40, `npm run check` OK, build within budgets.
 Not done: MIDI export (future). `music/binding.json` named in the README arrives with S07. Next: S07 (game integration).
+
+## S07 — game and Settings integration
+
+Status: **done** (headless Chromium; real phones and listening are S08/S09)
+
+- S07.1 `src/ui/contracts.ts`: `AudioControls` is now a readable `AudioView` store (available, soundOn, volume, status, honest message) + `setSound`/`setVolume`; `SettingsMenu`/`AudioControls` subscribe to it and show a status line. `src/app/musicBinding.ts` owns the page's single `createAudioController`; `src/app/gameAudio.ts` is the one lazy audio graph (Tone backend + director + pack), imported only after the Sound gesture (`reportSize.ts` treats it as lazy; game initial JS 232.7 KiB). The empty approved pack reports "No approved soundtrack is installed yet"; failures say the game continues without sound. A remembered "Sound on" resumes on the first tap/key of a visit. Production `sound.spec.ts`: no loader before the gesture, preference persisted across reload.
+- S07.2 `music/binding.json` + `src/music/binding.ts` (latest technology in `TECHNOLOGY_IDS` order wins; set-based, order/duplicate independent; arrangements refined by ai-native-ide / manager-agent / meta-harness). `selectMusicProjection(run)` = technology IDs + ended + run ID only. RED 5/5 (`tests/music/binding.test.ts`, all rule IDs exist in the game catalog and the music catalog), RED 2/2 (`src/game/musicProjection.test.ts`).
+- S07.3 director `end()` (finish committed phrases, then schedule nothing; status `ended`) and `playSfx`; binding: ended run → `end()`, new run ID → stop + fresh Discovery start (or later on sound-on), no old pending phrase. Lifecycle: one composite target pauses game and music together; music wakes only when the game is active again; a refused resume never holds the game. Browser (test pack): music continues in Cat view, no new notes while hidden, resumes when visible.
+- S07.4 care SFX: `createGame({ onFacts })` reports committed facts; the binding plays allowlisted `catCared` kinds only while playing, rate-limited (1.2 s); `catDied` and every other cat fact are ignored. Comparative test: identical schedule with a dying cat vs a living one; SFX calls never change the schedule or RNG (director test). Real mix render (`music-sfx.spec.ts`): peak < 1.
+- S07.5 Settings → Music → Music Lab → "Back to the game": same run ID, no ticking while in the Lab (save unchanged over 1.2 s), activeMs not advanced by time away, volume shared via `vibecoder.audio.v1` (`sound.spec.ts`, the shared flow for P10.6). Lab is not conditional on DEV.
+- Real playback proof uses `tests/browser/fixtures/approved-test-pack.json`: a pack built by `buildPack` from the four demos with test-only approvals (`tools/music/buildPack.test.ts` keeps it byte-identical to a fresh build; regenerate with `UPDATE_FIXTURES=1`), served in place of the empty `pack.approved` chunk by Playwright routing. It is not a human approval. Notes are counted by instrumenting `AudioScheduledSourceNode.start` in the test only.
+
+Exit: `test:game` 347/347, `test:music` 159/159, `test:music-browser` 15/15, `test:browser` 43/43, `npm run check` OK, build within budgets.
+Not verified: listening, iOS/Android unlock and background behaviour. Next: S08/S09 after main P10/P11 (S08 hardening may be partly headless).

@@ -36,7 +36,7 @@ console.log(
 console.log(`size: first assets (light atlas + CSS) ${kib(firstAssets)}; all PNG art ${kib(art)}`);
 
 // Initial JS = everything the game page can reach (static + dynamic imports, so lazy Pixi
-// counts), except the audio loader, which is only imported after the player turns sound on.
+// counts), except the audio graph (Tone, director, pack), imported only after the Sound gesture.
 interface ManifestChunk {
   file: string;
   src?: string;
@@ -51,7 +51,12 @@ const manifest = JSON.parse(readFileSync(path.join(DIST, '.vite/manifest.json'),
 const reachable = new Set<string>();
 const visit = (key: string) => {
   const chunk = manifest[key];
-  if (!chunk || reachable.has(key) || /music\/backend\/loader/.test(chunk.src ?? key)) return;
+  if (
+    !chunk ||
+    reachable.has(key) ||
+    /music\/backend\/loader|app\/gameAudio/.test(chunk.src ?? key)
+  )
+    return;
   reachable.add(key);
   for (const next of [...(chunk.imports ?? []), ...(chunk.dynamicImports ?? [])]) visit(next);
 };

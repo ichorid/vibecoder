@@ -90,4 +90,19 @@ describe('createGame store', () => {
     game.dispose();
     expect(scheduler.activeCount()).toBe(0);
   });
+
+  it('reports committed facts of commands to an app listener (care events for sound effects)', () => {
+    const facts: string[] = [];
+    const game = createGame({
+      catalog: createTestCatalog(),
+      clock: createFakeClock(),
+      scheduler: createFakeScheduler(),
+      run: createRun(1, 'r'),
+      onFacts: (list) =>
+        facts.push(...list.map((f) => (f.type === 'catCared' ? `cared:${f.kind}` : f.type))),
+    });
+    game.api.dispatch({ type: 'petCat' });
+    game.api.dispatch({ type: 'petCat' });
+    expect(facts.filter((f) => f === 'cared:pet')).toHaveLength(1);
+  });
 });

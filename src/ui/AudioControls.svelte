@@ -12,14 +12,14 @@
       min="0"
       max="1"
       step="0.05"
-      value={audio.volume}
-      disabled={!audio.available}
+      value={$audio.volume}
+      disabled={!$audio.available}
       aria-label="Music volume"
       oninput={(event) => audio.setVolume(Number(event.currentTarget.value))}
     />
   </label>
-  {#if !audio.available}
-    <p class="note">Music playback is not available in this build yet.</p>
+  {#if !$audio.available}
+    <p class="note">Music playback is not available in this build.</p>
   {/if}
 </div>
 

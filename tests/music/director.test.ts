@@ -224,6 +224,60 @@ describe('music director: one engine for every Lab mode', () => {
   });
 });
 
+describe('music director: game lifecycle', () => {
+  it('end() lets the current phrase finish and schedules nothing after it', () => {
+    const t = setup();
+    t.director.start();
+    t.fake.advanceTo(10);
+    t.director.end();
+    // The uncommitted next phrase is withdrawn.
+    expect(t.fake.cancelled).toHaveLength(1);
+    expect(t.fake.cancelled[0]).toMatch(new RegExp(`@${PHRASE}$`));
+    for (let i = 1; i <= 3; i += 1) t.fake.advanceTo(i * PHRASE);
+    expect(t.heard).toHaveLength(1);
+    expect(t.fake.entries().filter((e) => !e.audible)).toHaveLength(0);
+    expect(t.director.snapshot().status).toBe('ended');
+  });
+
+  it('end() after the next phrase committed finishes that one too, then stops', () => {
+    const t = setup();
+    t.director.start();
+    t.fake.advanceTo(PHRASE - 10);
+    t.director.end();
+    for (let i = 1; i <= 3; i += 1) t.fake.advanceTo(i * PHRASE);
+    expect(t.heard).toHaveLength(2);
+  });
+
+  it('stop() after end() starts a fresh run from Discovery at tick 0', () => {
+    const t = setup();
+    t.director.start();
+    t.fake.advanceTo(10);
+    t.director.end();
+    t.director.stop();
+    t.director.request({ era: 'discovery', arrangement: 'test-arrangement' });
+    t.director.start();
+    t.fake.advanceTo(0);
+    expect(t.fake.log.at(-1)).toMatch(new RegExp(`@${PHRASE}$`));
+    expect(t.director.snapshot().status).not.toBe('ended');
+  });
+
+  it('a care sound effect never changes the music plan or its random order', () => {
+    const plain = setup();
+    const withSfx = setup();
+    plain.director.start();
+    withSfx.director.start();
+    for (let i = 0; i < 8; i += 1) {
+      withSfx.director.playSfx('feed');
+      plain.fake.advanceTo(i * PHRASE);
+      withSfx.fake.advanceTo(i * PHRASE);
+    }
+    expect(withSfx.fake.log.filter((l) => l.startsWith('sfx'))).toHaveLength(8);
+    expect(withSfx.fake.log.filter((l) => l.startsWith('schedule'))).toEqual(
+      plain.fake.log.filter((l) => l.startsWith('schedule')),
+    );
+  });
+});
+
 describe('music director transitions', () => {
   function crossLibrary(extraPatterns: unknown[] = []) {
     const input = sources({
