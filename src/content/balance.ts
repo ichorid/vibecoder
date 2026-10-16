@@ -68,6 +68,10 @@ export const attentionBalance = {
 } as const satisfies AttentionBalance;
 
 export const balance = {
+  minTokenCostPerWork: 0.1,
+  optimizeStep: 0.05,
+  optimizeCap: 0.25,
+  optimizeDecayPerSecond: 0.01,
   coordination: {
     baseManaged: 1,
     delegationCap: 3,

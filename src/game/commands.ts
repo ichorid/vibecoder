@@ -102,11 +102,12 @@ function buyUpgrade(run: RunState, id: string, catalog: Catalog): CommandTransit
   if (!upgrade || !isUpgradeOffered(run, upgrade)) return reject(run, 'unavailable');
   const level = upgradeLevel(run, upgrade.id);
   const price = upgradePrice(upgrade, level);
-  if (run.economy.output < price) return reject(run, 'unaffordable');
+  const balance = upgrade.currency === 'revenue' ? run.economy.revenue : run.economy.output;
+  if (balance < price) return reject(run, 'unaffordable');
   const bought: RunState = {
     ...run,
     cat: noteMeaningfulAction(run.cat),
-    economy: { ...run.economy, output: roundAmount(run.economy.output - price) },
+    economy: { ...run.economy, [upgrade.currency]: roundAmount(balance - price) },
     upgradeLevels: { ...run.upgradeLevels, [upgrade.id]: level + 1 },
   };
   const discovered = resolveDiscoveries(bought, catalog);
@@ -149,6 +150,18 @@ function primaryAction(run: RunState, catalog: Catalog): CommandTransition {
         ...economy,
         debt: Math.max(0, economy.debt - catalog.balance.coordination.supervisePerPress),
       };
+      break;
+    case 'optimize':
+      economy = {
+        ...economy,
+        optimization: Math.min(
+          catalog.balance.optimizeCap,
+          roundAmount(economy.optimization + catalog.balance.optimizeStep),
+        ),
+      };
+      break;
+    case 'observe':
+      // Nothing left to do by hand. The press is accepted and changes nothing.
       break;
     default: {
       const unknown: never = action;

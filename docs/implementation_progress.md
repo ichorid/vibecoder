@@ -305,3 +305,35 @@ Balance changes vs plan starting values (reason: the plan's numbers produced a f
 
 `npm run check` OK; `test:game` 283/283; `test:browser` 27/27; build within budgets (entry 42 KiB gzip).
 Next: P08.2 (P08.1 table exists in `docs/content_catalog.md`).
+
+## Task: P08 (all 28 technologies)
+
+Status: **done** (art is procedural and still needs human visual review; device perf unmeasured)
+
+### P08.1 content table
+
+`docs/content_catalog.md` (economy model, actions, 28 rows with price/effects/bottleneck/action/art/world, repeatables, header stats, tuned values). P07 IDs match the table.
+
+### P08.2–P08.4 infrastructure, recursive automation, organizations
+
+Files: `src/game/{economy,commands,selectors,ids,catalog,types}.ts`, `lateEconomy.test.ts`, content 13–28, three illustration modules, world additions with `polar`/`grid`/`frameOf` helpers and a `final` framing.
+RED: tests written against the missing contract (no `automationFraction`, IDs, effects; exhaustive switches failed to compile). GREEN: token cost multiplier with a positive floor (0.1); local servers add compute only; ≤3 header stats for every stage; harness rates derived once; evaluations raise review and automate supervising; OPTIMIZE +5 %/press, cap 25 %, decays 1 %/s; self-improvement is a bounded passive efficiency; revenue hidden until product management, then earned from useful output; finance adds operating costs per active agent and a margin stat; unfunded capacity idles when revenue runs out (never negative); OBSERVE adds nothing; automation = automated responsibilities / 6; revenue currency for 25–28 (shown with `$`).
+
+### P08.5 release art and validator
+
+Files: `tools/{validateRelease,checkReleaseContent}.ts`, `releaseContent.test.ts`, `check:release-content` (now part of `npm run check`).
+RED: 7/8 failed against an empty validator. GREEN: rejects declared placeholders, duplicate PNG bytes under different names, missing memorial photo, fewer than 28 technologies, unknown atlas/LOD tags, missing scene addition, non-expanding envelope, placements outside the envelope, no final framing. 28 unique illustrations exported; release check passes.
+
+### P08.6 full headless route
+
+`tests/scenarios/main-route.test.ts` + `playEvery` policy (real PLAY sessions that consume active time). Seeds 101 and 202 reach `autonomous-company` at 31.7 active min (limit 45), 7 PLAY sessions, every technology in History once and in order, all economy values finite and ≥0, cat alive. First full-route run reached only marketing at 47 min; tuning reasons recorded in `docs/content_catalog.md`.
+
+### Late world
+
+`tests/browser/late-world.spec.ts`: final save builds 29 additions (390 sprites), living cat hidden at final framing, OBSERVE, Revenue header. Headless p95 rAF ≈18 ms (not a device figure). Visual review changed LOD thresholds from 96/16 px to 32/8 px (room collapsed to an icon at ~50 px).
+
+### Exit gate
+
+`npm run check` OK (incl. release content); `test:game` 305/305; `test:browser` 28/28; build within budgets (entry 46.5 KiB gzip, all JS 223 KiB, art 34 KiB).
+Not verified: human review of all 28 illustrations in both themes; real-device late-world performance.
+Next: P09.1.

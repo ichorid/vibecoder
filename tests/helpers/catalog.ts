@@ -9,6 +9,10 @@ export function createTestCatalog(): Catalog {
 
     catText,
     balance: {
+      minTokenCostPerWork: 0.1,
+      optimizeStep: 0.05,
+      optimizeCap: 0.25,
+      optimizeDecayPerSecond: 0.01,
       coordination: {
         baseManaged: 1,
         delegationCap: 3,
@@ -30,6 +34,8 @@ export function createTestCatalog(): Catalog {
       prompt: 'PROMPT',
       delegate: 'DELEGATE',
       supervise: 'SUPERVISE',
+      optimize: 'OPTIMIZE',
+      observe: 'OBSERVE',
     },
     statLabels: {
       output: 'Code',

@@ -5,9 +5,11 @@
 export type ClusterLod = 'detail' | 'compact' | 'dots';
 export type CatLod = 'sprite' | 'cluster' | 'pixel' | 'hidden';
 
+// Plan start was 96/16 px; visual review (P08) showed the room collapsing to an icon at ~50 px,
+// long before the programmer should become unreadable, so clusters keep detail down to 32 px.
 export const LOD = {
-  detailPx: 96,
-  compactPx: 16,
+  detailPx: 32,
+  compactPx: 8,
   hysteresis: 0.1,
   catSpritePx: 12,
   catClusterPx: 3,

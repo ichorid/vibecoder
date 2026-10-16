@@ -92,7 +92,9 @@
                 <span class="offer-title">{offer.title}</span>
                 <span class="offer-desc" id="offer-{offer.id}-desc">{offer.description}</span>
               </span>
-              <span class="price">{formatAmount(offer.price)}</span>
+              <span class="price"
+                >{offer.currency === 'revenue' ? '$' : ''}{formatAmount(offer.price)}</span
+              >
             </button>
           </li>
         {/each}

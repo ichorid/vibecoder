@@ -16,6 +16,22 @@ export const TECHNOLOGY_IDS = [
   'parallel-agents',
   'worktrees',
   'manager-agent',
+  'context-management',
+  'persistent-memory',
+  'model-routing',
+  'token-optimization',
+  'local-servers',
+  'custom-harness',
+  'meta-harness',
+  'evaluations',
+  'workflow-optimization',
+  'self-improvement',
+  'self-driving-repositories',
+  'product-management',
+  'marketing',
+  'finance',
+  'executive-agents',
+  'autonomous-company',
 ] as const;
 export type TechnologyId = (typeof TECHNOLOGY_IDS)[number];
 
@@ -36,11 +52,45 @@ export const UPGRADE_IDS = [
   'worktrees',
   'manager-agent',
   'additional-agent',
+  'context-management',
+  'persistent-memory',
+  'model-routing',
+  'token-optimization',
+  'local-servers',
+  'custom-harness',
+  'meta-harness',
+  'evaluations',
+  'workflow-optimization',
+  'self-improvement',
+  'self-driving-repositories',
+  'product-management',
+  'marketing',
+  'finance',
+  'executive-agents',
+  'autonomous-company',
 ] as const;
 export type UpgradeId = (typeof UPGRADE_IDS)[number];
 
-export const PRIMARY_ACTION_IDS = ['writeCode', 'prompt', 'delegate', 'supervise'] as const;
+export const PRIMARY_ACTION_IDS = [
+  'writeCode',
+  'prompt',
+  'delegate',
+  'supervise',
+  'optimize',
+  'observe',
+] as const;
 export type PrimaryActionId = (typeof PRIMARY_ACTION_IDS)[number];
+
+/** Manual responsibilities that technologies progressively automate. */
+export const RESPONSIBILITY_IDS = [
+  'writing',
+  'prompting',
+  'delegating',
+  'supervising',
+  'optimizing',
+  'deciding',
+] as const;
+export type ResponsibilityId = (typeof RESPONSIBILITY_IDS)[number];
 
 export function isTechnologyId(value: unknown): value is TechnologyId {
   return typeof value === 'string' && (TECHNOLOGY_IDS as readonly string[]).includes(value);

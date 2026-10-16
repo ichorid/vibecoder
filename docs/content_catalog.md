@@ -74,6 +74,17 @@ Primary actions (each bounded):
 `*` the action column gives the label after automation of the previous responsibility; the
 contribution rules above apply. Exact numbers live in content and may be retuned (P08.6/P11).
 
+## Tuned values after P08.6 (source of truth is the code)
+
+13–24 output prices 5 800 → 155 000 (×≈1.35); 25–28 revenue prices 3 000 / 7 000 / 6 000 /
+12 000. Passive tasks added on manager (+4), custom harness (+10), meta-harness (+16),
+self-driving repositories (+40), autonomous company (+60) — late agents were task-starved.
+Review scales with maturity: custom harness +4, meta-harness +8, evaluations +20 with unchecked
+×0.2, self-improvement and repositories unchecked ×0.5, repositories +40 review. Context
+management token cost ×0.7 (+30 supply), model routing ×0.5. Responsibilities automated:
+writing (04), prompting (08), delegating (12), supervising (20), optimizing (22), deciding (27).
+Baseline route (seeds 101/202): autonomous company at 31.7 active min with 7 PLAY sessions.
+
 ## Repeatable upgrades (P07.3)
 
 All priced in output, base × growth^level (2 unless noted), max 8 levels.

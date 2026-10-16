@@ -243,7 +243,8 @@ export async function createPixiRenderer(
   function updateCat(deltaMs: number): void {
     const cat = projection?.cat;
     const px = projectedSize(18, camera.zoom);
-    catLevel = catLod(px, cat?.alive ?? false, false, catLevel);
+    const finalFraming = [...clusters.values()].some((c) => c.addition.final === true);
+    catLevel = catLod(px, cat?.alive ?? false, finalFraming, catLevel);
     catDot.visible = catLevel === 'cluster' || catLevel === 'pixel';
     if (catSprite) catSprite.visible = catLevel === 'sprite';
     if (!cat?.alive) {

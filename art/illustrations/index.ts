@@ -10,7 +10,29 @@ import {
   toolPermissions,
 } from './agentic';
 import { aiNativeIde, autocomplete, generatedSnippets } from './manual';
+import {
+  contextManagement,
+  localServers,
+  modelRouting,
+  persistentMemory,
+  tokenOptimization,
+} from './infrastructure';
 import { managerAgent, parallelAgents, worktrees } from './orchestration';
+import {
+  autonomousCompany,
+  executiveAgents,
+  finance,
+  marketing,
+  productManagement,
+  selfDrivingRepositories,
+} from './organizations';
+import {
+  customHarness,
+  evaluations,
+  metaHarness,
+  selfImprovement,
+  workflowOptimization,
+} from './recursive';
 
 /** Technology illustrations by illustration ID (the file is `technologies/<id without tech->.png`). */
 export const ILLUSTRATIONS: Readonly<Record<string, Illustration>> = {
@@ -26,6 +48,22 @@ export const ILLUSTRATIONS: Readonly<Record<string, Illustration>> = {
   'tech-parallel-agents': parallelAgents,
   'tech-worktrees': worktrees,
   'tech-manager-agent': managerAgent,
+  'tech-context-management': contextManagement,
+  'tech-persistent-memory': persistentMemory,
+  'tech-model-routing': modelRouting,
+  'tech-token-optimization': tokenOptimization,
+  'tech-local-servers': localServers,
+  'tech-custom-harness': customHarness,
+  'tech-meta-harness': metaHarness,
+  'tech-evaluations': evaluations,
+  'tech-workflow-optimization': workflowOptimization,
+  'tech-self-improvement': selfImprovement,
+  'tech-self-driving-repositories': selfDrivingRepositories,
+  'tech-product-management': productManagement,
+  'tech-marketing': marketing,
+  'tech-finance': finance,
+  'tech-executive-agents': executiveAgents,
+  'tech-autonomous-company': autonomousCompany,
 };
 
 export function renderIllustration(id: string): PixelCanvas {

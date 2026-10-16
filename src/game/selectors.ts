@@ -1,7 +1,7 @@
 import { catConditions, visibleAttention, type CatConditions } from './cat';
 import type { ReadonlyPlay } from './catPlaySession';
 import type { CatPresentation, Catalog, StatId, UpgradeDefinition } from './catalog';
-import { upgradeLevel, upgradePrice } from './economy';
+import { automationFraction, upgradeLevel, upgradePrice } from './economy';
 import type { PrimaryActionId, TechnologyId, UpgradeId } from './ids';
 import { currentPrimaryAction, findTechnology, isUpgradeOffered } from './progression';
 import type { AttentionLevel, ReadonlyRun } from './types';
@@ -14,6 +14,7 @@ export interface OfferViewModel {
   readonly title: string;
   readonly description: string;
   readonly price: number;
+  readonly currency: 'output' | 'revenue';
   readonly affordable: boolean;
 }
 
@@ -64,7 +65,7 @@ function offerPriority(run: ReadonlyRun, upgrade: UpgradeDefinition): number {
   return upgrade.priority;
 }
 
-function statValue(run: ReadonlyRun, id: StatId): number {
+function statValue(run: ReadonlyRun, id: StatId, catalog: Catalog): number {
   switch (id) {
     case 'output':
       return Math.floor(run.economy.output);
@@ -73,9 +74,11 @@ function statValue(run: ReadonlyRun, id: StatId): number {
     case 'debt':
       return Math.floor(run.economy.debt);
     case 'automation':
+      return Math.round(automationFraction(run, catalog) * 100);
     case 'revenue':
+      return Math.floor(run.economy.revenue);
     case 'margin':
-      return 0;
+      return Math.round(run.economy.revenuePerSecond - run.economy.costPerSecond);
   }
 }
 
@@ -88,7 +91,7 @@ function headerStats(run: ReadonlyRun, catalog: Catalog): StatViewModel[] {
   }
   return ids
     .slice(0, 3)
-    .map((id) => ({ id, label: catalog.statLabels[id], value: statValue(run, id) }));
+    .map((id) => ({ id, label: catalog.statLabels[id], value: statValue(run, id, catalog) }));
 }
 
 /** Only what the current Game view may show: current offers, never future definitions. */
@@ -106,7 +109,9 @@ export function selectGame(run: ReadonlyRun, catalog: Catalog): GameViewModel {
         title: upgrade.title,
         description: upgrade.description,
         price,
-        affordable: run.economy.output >= price,
+        currency: upgrade.currency,
+        affordable:
+          (upgrade.currency === 'revenue' ? run.economy.revenue : run.economy.output) >= price,
       };
     });
   const pendingId = run.pendingUnlockIds[0];

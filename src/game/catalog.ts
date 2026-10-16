@@ -1,4 +1,4 @@
-import type { PrimaryActionId, TechnologyId, UpgradeId } from './ids';
+import type { PrimaryActionId, ResponsibilityId, TechnologyId, UpgradeId } from './ids';
 import type { CareNote, CatHistoryId, ReadonlyRun } from './types';
 
 /**
@@ -88,6 +88,12 @@ export interface CoordinationBalance {
 
 export interface BalanceDefinition {
   readonly coordination: CoordinationBalance;
+  /** Token cost never drops below this. */
+  readonly minTokenCostPerWork: number;
+  /** OPTIMIZE: temporary efficiency per press, cap, and decay per second. */
+  readonly optimizeStep: number;
+  readonly optimizeCap: number;
+  readonly optimizeDecayPerSecond: number;
   /** Primary-action budget: presses beyond this rate do nothing (no autoclicker bypass). */
   readonly actionBurst: number;
   readonly actionRefillPerSecond: number;
@@ -122,6 +128,16 @@ export type Effect =
   | { readonly kind: 'reviewPerSecond'; readonly amount: number }
   /** Agents that can be coordinated without losses. */
   | { readonly kind: 'managedCapacity'; readonly amount: number }
+  /** Multiplies token cost per work (bounded below by balance.minTokenCostPerWork). */
+  | { readonly kind: 'tokenCostMultiplier'; readonly amount: number }
+  /** Adds to the useful-output efficiency multiplier (base 1). */
+  | { readonly kind: 'efficiency'; readonly amount: number }
+  | { readonly kind: 'automates'; readonly responsibility: ResponsibilityId }
+  /** Revenue earned per unit of useful output. */
+  | { readonly kind: 'monetization'; readonly amount: number }
+  | { readonly kind: 'monetizationMultiplier'; readonly amount: number }
+  /** Revenue spent per second per active agent once operating costs exist. */
+  | { readonly kind: 'operatingCostPerAgent'; readonly amount: number }
   /** One-time stock granted in the discovery transaction (not a rate). */
   | { readonly kind: 'grantTokens'; readonly amount: number };
 
@@ -141,6 +157,12 @@ export const EFFECT_KINDS = [
   'uncheckedFractionMultiplier',
   'reviewPerSecond',
   'managedCapacity',
+  'tokenCostMultiplier',
+  'efficiency',
+  'automates',
+  'monetization',
+  'monetizationMultiplier',
+  'operatingCostPerAgent',
   'grantTokens',
 ] as const;
 type EffectKindsMatch = [Effect['kind']] extends [(typeof EFFECT_KINDS)[number]]
@@ -150,7 +172,7 @@ type EffectKindsMatch = [Effect['kind']] extends [(typeof EFFECT_KINDS)[number]]
   : never;
 export const effectKindsMatch: EffectKindsMatch = true;
 
-export type Currency = 'output';
+export type Currency = 'output' | 'revenue';
 
 export interface Requirements {
   readonly technologies?: readonly TechnologyId[];

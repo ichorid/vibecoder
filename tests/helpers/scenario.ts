@@ -4,6 +4,7 @@
  */
 import { applyCommand, type CommandResult } from '../../src/game/commands';
 import type { Catalog } from '../../src/game/catalog';
+import { playPhase, playPosition } from '../../src/game/catPlaySession';
 import { selectCat, selectGame } from '../../src/game/selectors';
 import { stepRun } from '../../src/game/simulation';
 import type { GameCommand, GameFact, RunState } from '../../src/game/types';
@@ -105,3 +106,24 @@ export const baselinePrimary: Policy = (context) => {
   const interval = agents ? 5000 : 1000;
   return context.run.activeMs % interval === 0 ? pressPrimary(context) : [];
 };
+
+/**
+ * PLAY every `intervalMs` (plan: 270 s): start a session, then catch when the mouse is well
+ * inside the target, as an attentive player would. Sessions consume real active time.
+ */
+export function playEvery(intervalMs: number, offsetMs = 120_000): Policy {
+  return ({ run, catalog }) => {
+    const cat = selectCat(run, catalog);
+    if (!cat.alive) return [];
+    const play = cat.play;
+    if (!play) {
+      const t = run.activeMs - offsetMs;
+      return t >= 0 && t % intervalMs === 0 ? [{ type: 'startCatPlay' }] : [];
+    }
+    if (playPhase(play, run.activeMs) !== 'moving') return [];
+    const position = playPosition(play, run.activeMs);
+    const { start, width } = play.target;
+    const inside = position > start + width * 0.25 && position < start + width * 0.75;
+    return inside ? [{ type: 'catchMouse', attemptId: play.attemptId }] : [];
+  };
+}

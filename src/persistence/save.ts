@@ -102,6 +102,10 @@ const ECONOMY_FIELDS = [
   'actionCharges',
   'debt',
   'delegation',
+  'optimization',
+  'revenue',
+  'revenuePerSecond',
+  'costPerSecond',
 ] as const satisfies readonly (keyof EconomyState)[];
 const STATS_FIELDS = ['lifetimeOutput'] as const satisfies readonly (keyof RunStats)[];
 

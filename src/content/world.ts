@@ -40,6 +40,8 @@ export interface WorldAddition {
   readonly catSpots: readonly Point[];
   /** Short phrase for the canvas's accessible scene description. */
   readonly description: string;
+  /** The last framing: the room and cat are visually gone at this scale. */
+  readonly final?: boolean;
 }
 
 /** Portrait framing centered on (cx, cy) with the given width. */
@@ -59,6 +61,281 @@ function cluster(cx: number, cy: number, scale: number, items: readonly Item[]):
     scale,
   }));
 }
+
+/** A cluster centre on a ring around the origin (angle in degrees, 0 = right, 90 = down). */
+function polar(radius: number, degrees: number): Point {
+  const a = (degrees * Math.PI) / 180;
+  return { x: Math.round(Math.cos(a) * radius), y: Math.round(Math.sin(a) * radius) };
+}
+
+/** A grid of one motif (repeated machinery), deterministic so reloads rebuild it identically. */
+function grid(
+  cx: number,
+  cy: number,
+  scale: number,
+  sprite: string,
+  cols: number,
+  rows: number,
+  spacing: number,
+): Placement[] {
+  const placements: Placement[] = [];
+  for (let r = 0; r < rows; r += 1) {
+    for (let c = 0; c < cols; c += 1) {
+      placements.push({
+        sprite,
+        x: Math.round(cx + (c - (cols - 1) / 2) * spacing * scale),
+        y: Math.round(cy + (r - (rows - 1) / 2) * spacing * scale),
+        scale,
+      });
+    }
+  }
+  return placements;
+}
+
+/** Segments along a rectangle's border: a frame of subsystems around everything inside. */
+function frameOf(half: number, sprite: string, scale: number, perSide: number): Placement[] {
+  const placements: Placement[] = [];
+  for (let i = 0; i < perSide; i += 1) {
+    const t = -half + (2 * half * (i + 0.5)) / perSide;
+    placements.push({ sprite, x: Math.round(t), y: -half, scale });
+    placements.push({ sprite, x: Math.round(t), y: half, scale });
+    placements.push({ sprite, x: -half, y: Math.round(t), scale });
+    placements.push({ sprite, x: half, y: Math.round(t), scale });
+  }
+  return placements;
+}
+
+interface LateSpec {
+  readonly technologyId: TechnologyId;
+  readonly width: number;
+  readonly at: Point;
+  readonly placements: readonly Placement[];
+  readonly links: readonly string[];
+  readonly lodSprite: string;
+  readonly description: string;
+  readonly final?: boolean;
+}
+
+function late(spec: LateSpec): WorldAddition {
+  return {
+    id: `world-${spec.technologyId}`,
+    technologyId: spec.technologyId,
+    envelope: frame(spec.width),
+    anchor: spec.at,
+    placements: spec.placements,
+    links: spec.links.map((to) => ({ to })),
+    lodSprite: spec.lodSprite,
+    catSpots: [],
+    description: spec.description,
+    ...(spec.final ? { final: true } : {}),
+  };
+}
+
+const C13 = polar(1150, 200);
+const C14 = polar(1450, 320);
+const C15 = polar(1800, 70);
+const C16 = polar(2250, 150);
+const C17 = polar(2800, 260);
+const C19 = polar(4500, 40);
+const C20 = polar(5600, 120);
+const C21 = polar(7000, 220);
+const C22 = polar(8700, 300);
+const C23 = polar(11_000, 60);
+const C24 = polar(13_500, 160);
+const C25 = polar(17_000, 240);
+const C26 = polar(21_000, 330);
+const C27 = polar(26_000, 100);
+
+const lateAdditions: readonly WorldAddition[] = [
+  late({
+    technologyId: 'context-management',
+    width: 3250,
+    at: C13,
+    placements: grid(C13.x, C13.y, 8, 'kit-memory', 2, 3, 30),
+    links: ['world-manager-agent', 'world-parallel-agents'],
+    lodSprite: 'lod-memory',
+    description: 'context buffers stack up',
+  }),
+  late({
+    technologyId: 'persistent-memory',
+    width: 4060,
+    at: C14,
+    placements: [
+      ...grid(C14.x, C14.y, 9, 'kit-memory', 3, 2, 28),
+      ...cluster(C14.x, C14.y + 260, 9, [['kit-core', -13, 0]]),
+    ],
+    links: ['world-context-management', 'world-reviewer'],
+    lodSprite: 'lod-memory',
+    description: 'a memory bank glows',
+  }),
+  late({
+    technologyId: 'model-routing',
+    width: 5080,
+    at: C15,
+    placements: [
+      ...cluster(C15.x, C15.y, 12, [['kit-router', -11, -8]]),
+      ...grid(C15.x, C15.y + 220, 6, 'kit-node', 5, 1, 24),
+    ],
+    links: ['world-persistent-memory', 'world-manager-agent', 'world-worktrees'],
+    lodSprite: 'lod-router',
+    description: 'a router splits the traffic',
+  }),
+  late({
+    technologyId: 'token-optimization',
+    width: 6350,
+    at: C16,
+    placements: [
+      ...cluster(C16.x, C16.y, 14, [
+        ['kit-gear', -16, -8],
+        ['kit-gear', 2, -8],
+      ]),
+      ...grid(C16.x, C16.y + 260, 7, 'kit-packet', 6, 2, 14),
+    ],
+    links: ['world-model-routing', 'world-context-management'],
+    lodSprite: 'lod-gear',
+    description: 'token compressors grind',
+  }),
+  late({
+    technologyId: 'local-servers',
+    width: 7940,
+    at: C17,
+    placements: grid(C17.x, C17.y, 12, 'kit-server', 6, 1, 24),
+    links: ['world-token-optimization', 'world-persistent-memory'],
+    lodSprite: 'lod-server',
+    description: 'a ring of server racks hums',
+  }),
+  late({
+    technologyId: 'custom-harness',
+    width: 9900,
+    at: { x: 0, y: -3400 },
+    placements: frameOf(3400, 'kit-pipeline', 16, 6),
+    links: ['world-local-servers', 'world-model-routing', 'world-token-optimization'],
+    lodSprite: 'lod-pipeline',
+    description: 'a harness frame encloses everything so far',
+  }),
+  late({
+    technologyId: 'meta-harness',
+    width: 12_400,
+    at: C19,
+    placements: [
+      ...frameOf(4400, 'kit-server', 20, 4),
+      ...cluster(C19.x, C19.y, 22, [['kit-manager', -10, -10]]),
+    ],
+    links: ['world-custom-harness', 'world-local-servers'],
+    lodSprite: 'lod-manager',
+    description: 'an outer harness supervises the inner one',
+  }),
+  late({
+    technologyId: 'evaluations',
+    width: 15_500,
+    at: C20,
+    placements: [
+      ...grid(C20.x, C20.y, 22, 'kit-gauge', 3, 2, 26),
+      ...grid(C20.x, C20.y + 900, 18, 'kit-test', 4, 1, 22),
+    ],
+    links: ['world-meta-harness', 'world-reviewer'],
+    lodSprite: 'lod-gauge',
+    description: 'evaluation dials score everything',
+  }),
+  late({
+    technologyId: 'workflow-optimization',
+    width: 19_400,
+    at: C21,
+    placements: grid(C21.x, C21.y, 26, 'kit-gear', 4, 3, 22),
+    links: ['world-evaluations', 'world-custom-harness'],
+    lodSprite: 'lod-gear',
+    description: 'optimizer gears turn',
+  }),
+  late({
+    technologyId: 'self-improvement',
+    width: 24_200,
+    at: C22,
+    placements: [
+      ...cluster(C22.x, C22.y, 60, [['kit-core', -13, -13]]),
+      ...grid(C22.x, C22.y, 24, 'kit-loop', 5, 5, 40),
+    ],
+    links: ['world-workflow-optimization', 'world-meta-harness', 'world-evaluations'],
+    lodSprite: 'lod-core',
+    description: 'a recursive core rewrites itself',
+  }),
+  late({
+    technologyId: 'self-driving-repositories',
+    width: 30_300,
+    at: C23,
+    placements: [
+      ...grid(C23.x, C23.y, 30, 'kit-pipeline', 4, 6, 40),
+      ...grid(C23.x + 2600, C23.y, 24, 'kit-agent', 4, 6, 40),
+    ],
+    links: ['world-self-improvement', 'world-workflow-optimization'],
+    lodSprite: 'lod-pipeline',
+    description: 'repository pipelines ship on their own',
+  }),
+  late({
+    technologyId: 'product-management',
+    width: 37_800,
+    at: C24,
+    placements: [
+      ...cluster(C24.x, C24.y, 70, [['kit-chart', -10, -8]]),
+      ...grid(C24.x, C24.y + 1800, 30, 'kit-node', 8, 2, 30),
+    ],
+    links: ['world-self-driving-repositories', 'world-evaluations'],
+    lodSprite: 'lod-chart',
+    description: 'a product node decides what ships',
+  }),
+  late({
+    technologyId: 'marketing',
+    width: 47_300,
+    at: C25,
+    placements: grid(C25.x, C25.y, 40, 'kit-megaphone', 5, 4, 30),
+    links: ['world-product-management', 'world-self-driving-repositories'],
+    lodSprite: 'lod-megaphone',
+    description: 'growth links shout outward',
+  }),
+  late({
+    technologyId: 'finance',
+    width: 59_100,
+    at: C26,
+    placements: [
+      ...grid(C26.x, C26.y, 44, 'kit-chart', 5, 3, 28),
+      ...grid(C26.x, C26.y + 2400, 36, 'kit-office', 6, 2, 32),
+    ],
+    links: ['world-marketing', 'world-product-management'],
+    lodSprite: 'lod-chart',
+    description: 'a finance subsystem counts the money',
+  }),
+  late({
+    technologyId: 'executive-agents',
+    width: 73_900,
+    at: C27,
+    placements: [
+      ...cluster(C27.x, C27.y, 120, [['kit-executive', -9, -10]]),
+      ...grid(C27.x, C27.y + 3600, 50, 'kit-executive', 7, 2, 30),
+    ],
+    links: ['world-finance', 'world-marketing', 'world-meta-harness'],
+    lodSprite: 'lod-executive',
+    description: 'executive agents sit at the top of the hierarchy',
+  }),
+  late({
+    technologyId: 'autonomous-company',
+    width: 92_400,
+    at: { x: 0, y: 0 },
+    placements: [
+      ...frameOf(30_000, 'kit-office', 160, 8),
+      ...frameOf(20_000, 'kit-core', 120, 6),
+      ...grid(0, -38_000, 90, 'kit-node', 12, 1, 60),
+      ...grid(0, 38_000, 90, 'kit-node', 12, 1, 60),
+    ],
+    links: [
+      'world-executive-agents',
+      'world-finance',
+      'world-self-driving-repositories',
+      'world-custom-harness',
+    ],
+    lodSprite: 'lod-core',
+    description: 'an immense computational organization runs itself',
+    final: true,
+  }),
+];
 
 export const ROOM_ADDITION: WorldAddition = {
   id: 'room',
@@ -291,6 +568,7 @@ export const worldAdditions: readonly WorldAddition[] = [
     catSpots: [],
     description: 'a crowned manager supervises from below',
   },
+  ...lateAdditions,
 ];
 
 /** The framing for a set of unlocked technologies: the latest authored envelope. */

@@ -10,13 +10,14 @@
     "lint": "eslint src tests tools/*.ts tools/art art vite.config.ts vitest.config.ts playwright.config.ts",
     "format:check": "prettier --check .",
     "format": "prettier --write .",
-    "check": "npm run check:types && npm run lint && npm run format:check && npm run test:rules && npm run check:content",
+    "check": "npm run check:types && npm run lint && npm run format:check && npm run test:rules && npm run check:content && npm run check:release-content",
     "test:rules": "vitest run --config vitest.rules.config.ts",
     "test:game": "vitest run --config vitest.config.ts",
     "check:content": "vite-node tools/checkContent.ts && vite-node tools/art/export.ts -- --check",
     "test:browser": "playwright test",
     "art:export": "vite-node tools/art/export.ts",
-    "art:check": "vite-node tools/art/export.ts -- --check"
+    "art:check": "vite-node tools/art/export.ts -- --check",
+    "check:release-content": "vite-node tools/checkReleaseContent.ts"
   },
   "dependencies": {
     "pixi.js": "^8.6.6",

@@ -42,6 +42,8 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   tokens → compute → coordination → quality). Agents need queued tasks (PROMPT, then passive
   task effects); a shared action budget caps every primary action. Retuned starting values are
   listed in progress P07.5. Tune with `npx vite-node tools/tune.ts -- <seed> <minutes>`.
+- D14 (P08) LOD thresholds 32/8 px (plan start 96/16) after visual review. Release content
+  check is part of `npm run check`. Revenue-priced upgrades use `currency: 'revenue'`.
 - D5 (P02) App-level commands (`retrySave`, `setTheme`) go through the same public
   `dispatch` as game commands, so UI still sees only `{subscribe, dispatch}`.
 
@@ -92,3 +94,5 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
 - 2026-10-16: P07 done (agents/tokens/tasks, debt/review, coordination, techs 04–12, early
   narrative, early-automation scenario: manager at ~14 min). 283 unit + 27 browser.
   Next P08.2 (infrastructure techs 13–17).
+- 2026-10-16: P08 done (28 techs, revenue/costs, OPTIMIZE/OBSERVE, release validator, main route
+  31.7 active min). 305 unit + 28 browser. Next P09 (narrative/achievements, 10 endings).

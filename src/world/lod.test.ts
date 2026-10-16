@@ -3,27 +3,27 @@ import { catLod, clusterLod, projectedSize } from './lod';
 
 describe('cluster LOD', () => {
   it('depends on CSS pixels, not device pixel ratio', () => {
-    const size = projectedSize(120, 0.9);
+    const size = projectedSize(40, 0.9);
     expect(clusterLod(size, null)).toBe('detail');
     // The same CSS size on a DPR-2 screen is still the same CSS size.
     expect(clusterLod(projectedSize(120, 0.9), null)).toBe(clusterLod(size, null));
   });
 
-  it('switches detail → compact → dots at 96 and 16 CSS px', () => {
-    expect(clusterLod(96, null)).toBe('detail');
-    expect(clusterLod(95, null)).toBe('compact');
-    expect(clusterLod(16, null)).toBe('compact');
-    expect(clusterLod(15, null)).toBe('dots');
+  it('switches detail → compact → dots at 32 and 8 CSS px', () => {
+    expect(clusterLod(32, null)).toBe('detail');
+    expect(clusterLod(31, null)).toBe('compact');
+    expect(clusterLod(8, null)).toBe('compact');
+    expect(clusterLod(7.9, null)).toBe('dots');
   });
 
   it('uses a 10% hysteresis band so it does not flicker at a threshold', () => {
-    expect(clusterLod(92, 'detail')).toBe('detail');
-    expect(clusterLod(86, 'detail')).toBe('compact');
-    expect(clusterLod(100, 'compact')).toBe('compact');
-    expect(clusterLod(106, 'compact')).toBe('detail');
-    expect(clusterLod(15, 'compact')).toBe('compact');
-    expect(clusterLod(17, 'dots')).toBe('dots');
-    expect(clusterLod(18, 'dots')).toBe('compact');
+    expect(clusterLod(29.5, 'detail')).toBe('detail');
+    expect(clusterLod(28.5, 'detail')).toBe('compact');
+    expect(clusterLod(34, 'compact')).toBe('compact');
+    expect(clusterLod(35.5, 'compact')).toBe('detail');
+    expect(clusterLod(7.5, 'compact')).toBe('compact');
+    expect(clusterLod(8.5, 'dots')).toBe('dots');
+    expect(clusterLod(9, 'dots')).toBe('compact');
   });
 });
 

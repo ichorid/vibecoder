@@ -30,7 +30,7 @@ function checkEffects(owner: string, effects: readonly Effect[], issues: Content
   for (const effect of effects) {
     if (!(EFFECT_KINDS as readonly string[]).includes(effect.kind)) {
       issues.push({ message: `${owner}: unknown effect kind "${String(effect.kind)}"` });
-    } else if (!Number.isFinite(effect.amount)) {
+    } else if ('amount' in effect && !Number.isFinite(effect.amount)) {
       issues.push({ message: `${owner}: effect "${effect.kind}" has a nonfinite amount` });
     }
   }

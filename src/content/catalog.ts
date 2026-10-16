@@ -15,6 +15,8 @@ export const catalog: Catalog = {
     prompt: 'PROMPT',
     delegate: 'DELEGATE',
     supervise: 'SUPERVISE',
+    optimize: 'OPTIMIZE',
+    observe: 'OBSERVE',
   },
   statLabels: {
     output: 'Code',

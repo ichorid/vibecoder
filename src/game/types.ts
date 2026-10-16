@@ -31,6 +31,13 @@ export interface EconomyState {
   debt: number;
   /** Temporary extra managed capacity from DELEGATE (bounded, decays). */
   delegation: number;
+  /** Temporary efficiency from OPTIMIZE (bounded, decays). */
+  optimization: number;
+  /** Spendable revenue (never negative). */
+  revenue: number;
+  /** Revenue earned and operating costs over the last step, per second (for margin). */
+  revenuePerSecond: number;
+  costPerSecond: number;
 }
 
 export interface RunStats {
