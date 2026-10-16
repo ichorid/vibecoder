@@ -78,7 +78,8 @@
   <div class="bar">
     <button type="button" class="return" onclick={onReturn}>← BACK TO CODE</button>
     <h2 id="cat-title">
-      CAT{#if cat.fate === 'dead'}&nbsp;(died&nbsp;of&nbsp;starvation){:else if cat.fate === 'stray'}&nbsp;(Missing){/if}
+      CAT{#if cat.fate === 'dead'}<span class="fate">(died of starvation)</span
+        >{:else if cat.fate === 'stray'}<span class="fate">(missing)</span>{/if}
     </h2>
   </div>
   {#if cat.alive}
@@ -150,6 +151,13 @@
     display: flex;
     align-items: center;
     gap: 12px;
+  }
+  /* The fate goes on its own line under CAT: it does not fit beside the back button. */
+  .fate {
+    display: block;
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    font-weight: 700;
   }
   h2 {
     margin: 0;

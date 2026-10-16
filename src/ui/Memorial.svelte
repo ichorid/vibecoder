@@ -56,7 +56,7 @@
   }
   .photo img {
     display: block;
-    width: min(192px, 70vw);
+    width: min(173px, 63vw);
     height: auto;
   }
   .tilted {
