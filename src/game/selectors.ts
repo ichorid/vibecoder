@@ -1,6 +1,6 @@
 import { catConditions, visibleAttention, type CatConditions } from './cat';
 import type { ReadonlyPlay } from './catPlaySession';
-import type { CatPresentation, Catalog } from './catalog';
+import type { CatPresentation, Catalog, StatId, UpgradeDefinition } from './catalog';
 import { upgradeLevel, upgradePrice } from './economy';
 import type { PrimaryActionId, TechnologyId, UpgradeId } from './ids';
 import { currentPrimaryAction, findTechnology, isUpgradeOffered } from './progression';
@@ -53,13 +53,51 @@ export interface HistoryViewModel {
   readonly entries: readonly HistoryEntryViewModel[];
 }
 
+/** Progression first; a satisfied recovery rule outranks optional repeatables. */
+const RECOVERY_PRIORITY = 20;
+
+function offerPriority(run: ReadonlyRun, upgrade: UpgradeDefinition): number {
+  const rule = upgrade.recovery;
+  if (rule?.tokensBelow !== undefined && run.economy.tokens < rule.tokensBelow) {
+    return Math.min(upgrade.priority, RECOVERY_PRIORITY);
+  }
+  return upgrade.priority;
+}
+
+function statValue(run: ReadonlyRun, id: StatId): number {
+  switch (id) {
+    case 'output':
+      return Math.floor(run.economy.output);
+    case 'tokens':
+      return Math.floor(run.economy.tokens);
+    case 'debt':
+      return Math.floor(run.economy.debt);
+    case 'automation':
+    case 'revenue':
+    case 'margin':
+      return 0;
+  }
+}
+
+/** At most three current statistics, chosen by the latest technology that sets them. */
+function headerStats(run: ReadonlyRun, catalog: Catalog): StatViewModel[] {
+  let ids: readonly StatId[] = ['output'];
+  for (const id of run.unlockedTechnologyIds) {
+    const stats = findTechnology(catalog, id)?.headerStats;
+    if (stats) ids = stats;
+  }
+  return ids
+    .slice(0, 3)
+    .map((id) => ({ id, label: catalog.statLabels[id], value: statValue(run, id) }));
+}
+
 /** Only what the current Game view may show: current offers, never future definitions. */
 export function selectGame(run: ReadonlyRun, catalog: Catalog): GameViewModel {
   const action = currentPrimaryAction(run, catalog);
   const offers = catalog.upgrades
-    .map((upgrade, order) => ({ upgrade, order }))
+    .map((upgrade, order) => ({ upgrade, order, priority: offerPriority(run, upgrade) }))
     .filter(({ upgrade }) => isUpgradeOffered(run, upgrade))
-    .sort((a, b) => a.upgrade.priority - b.upgrade.priority || a.order - b.order)
+    .sort((a, b) => a.priority - b.priority || a.order - b.order)
     .slice(0, MAX_OFFERS)
     .map(({ upgrade }): OfferViewModel => {
       const price = upgradePrice(upgrade, upgradeLevel(run, upgrade.id));
@@ -75,7 +113,7 @@ export function selectGame(run: ReadonlyRun, catalog: Catalog): GameViewModel {
   const pending = pendingId === undefined ? undefined : findTechnology(catalog, pendingId);
   return {
     primaryAction: { id: action, label: catalog.primaryActionLabels[action] },
-    stats: [{ id: 'output', label: 'Code', value: Math.floor(run.economy.output) }],
+    stats: headerStats(run, catalog),
     offers,
     announcement: pending
       ? {
@@ -107,7 +145,11 @@ export function selectHistory(run: ReadonlyRun, catalog: Catalog): HistoryViewMo
             activeMs: entry.activeMs,
           };
         case 'event':
-          return { kind: 'event', title: entry.textId, activeMs: entry.activeMs };
+          return {
+            kind: 'event',
+            title: catalog.events.find((e) => e.id === entry.textId)?.text ?? entry.textId,
+            activeMs: entry.activeMs,
+          };
       }
     }),
   };

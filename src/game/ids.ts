@@ -3,13 +3,43 @@
  * imports content implementations. Extend a tuple when content with that ID is introduced;
  * never rename a saved ID without an explicit migration mapping.
  */
-export const TECHNOLOGY_IDS = ['autocomplete', 'generated-snippets', 'ai-native-ide'] as const;
+export const TECHNOLOGY_IDS = [
+  'autocomplete',
+  'generated-snippets',
+  'ai-native-ide',
+  'terminal-agent',
+  'autonomous-edits',
+  'tool-permissions',
+  'persistent-instructions',
+  'ralph-loop',
+  'reviewer',
+  'parallel-agents',
+  'worktrees',
+  'manager-agent',
+] as const;
 export type TechnologyId = (typeof TECHNOLOGY_IDS)[number];
 
-export const UPGRADE_IDS = ['autocomplete', 'generated-snippets', 'ai-native-ide'] as const;
+export const UPGRADE_IDS = [
+  'autocomplete',
+  'generated-snippets',
+  'ai-native-ide',
+  'terminal-agent',
+  'token-supply',
+  'compute-slot',
+  'autonomous-edits',
+  'tool-permissions',
+  'persistent-instructions',
+  'ralph-loop',
+  'reviewer',
+  'review-capacity',
+  'parallel-agents',
+  'worktrees',
+  'manager-agent',
+  'additional-agent',
+] as const;
 export type UpgradeId = (typeof UPGRADE_IDS)[number];
 
-export const PRIMARY_ACTION_IDS = ['writeCode', 'prompt'] as const;
+export const PRIMARY_ACTION_IDS = ['writeCode', 'prompt', 'delegate', 'supervise'] as const;
 export type PrimaryActionId = (typeof PRIMARY_ACTION_IDS)[number];
 
 export function isTechnologyId(value: unknown): value is TechnologyId {

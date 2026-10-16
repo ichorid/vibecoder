@@ -62,6 +62,13 @@ export function resolveDiscoveries(run: RunState, catalog: Catalog): Transition 
         { kind: 'technology', id: technology.id, activeMs: next.activeMs },
       ],
     };
+    // One-time grants belong to the discovery transaction itself.
+    const granted = technology.effects.reduce(
+      (sum, effect) => (effect.kind === 'grantTokens' ? sum + effect.amount : sum),
+      0,
+    );
+    if (granted > 0)
+      next = { ...next, economy: { ...next.economy, tokens: next.economy.tokens + granted } };
     next = appendLog(next, `${technology.title} unlocked.`, catalog);
     facts.push({ type: 'technologyDiscovered', id: technology.id });
   }

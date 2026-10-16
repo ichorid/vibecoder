@@ -2,7 +2,12 @@ import { feedCat, noteMeaningfulAction, petCat } from './cat';
 import type { Catalog } from './catalog';
 import { catchMouse, resumeSession, sessionOf, startSession, withSession } from './catPlaySession';
 import { deriveRates, roundAmount, upgradeLevel, upgradePrice } from './economy';
-import { findUpgrade, isUpgradeOffered, resolveDiscoveries } from './progression';
+import {
+  currentPrimaryAction,
+  findUpgrade,
+  isUpgradeOffered,
+  resolveDiscoveries,
+} from './progression';
 import type { Transition } from './simulation';
 import type { GameCommand, RunState } from './types';
 
@@ -29,19 +34,7 @@ export function applyCommand(
   if (run.status !== 'playing') return reject(run, 'unavailable');
   switch (command.type) {
     case 'primaryAction':
-      return {
-        run: {
-          ...run,
-          cat: noteMeaningfulAction(run.cat),
-          economy: {
-            ...run.economy,
-            pendingManualWork:
-              run.economy.pendingManualWork + deriveRates(run, catalog).manualOutput,
-          },
-        },
-        facts: [],
-        result: 'applied',
-      };
+      return primaryAction(run, catalog);
     case 'acknowledgeUnlock':
       if (!run.pendingUnlockIds.includes(command.id)) return reject(run, 'unavailable');
       return {
@@ -122,4 +115,45 @@ function buyUpgrade(run: RunState, id: string, catalog: Catalog): CommandTransit
     facts: [{ type: 'purchased', id: upgrade.id }, ...discovered.facts],
     result: 'applied',
   };
+}
+
+/**
+ * The current primary action. Every press spends one charge of a refilling budget, so rapid
+ * clicking cannot exceed the intended rate; a press without charge is accepted but adds nothing.
+ */
+function primaryAction(run: RunState, catalog: Catalog): CommandTransition {
+  const cat = noteMeaningfulAction(run.cat);
+  if (run.economy.actionCharges < 1) return { run: { ...run, cat }, facts: [], result: 'applied' };
+  const rates = deriveRates(run, catalog);
+  const action = currentPrimaryAction(run, catalog);
+  let economy = { ...run.economy, actionCharges: run.economy.actionCharges - 1 };
+  switch (action) {
+    case 'writeCode':
+      economy = { ...economy, pendingManualWork: economy.pendingManualWork + rates.manualOutput };
+      break;
+    case 'prompt':
+      economy = {
+        ...economy,
+        pendingManualWork: economy.pendingManualWork + rates.manualOutput,
+        tasks: Math.min(catalog.balance.agents.taskQueueCap, economy.tasks + rates.tasksPerPrompt),
+      };
+      break;
+    case 'delegate':
+      economy = {
+        ...economy,
+        delegation: Math.min(catalog.balance.coordination.delegationCap, economy.delegation + 1),
+      };
+      break;
+    case 'supervise':
+      economy = {
+        ...economy,
+        debt: Math.max(0, economy.debt - catalog.balance.coordination.supervisePerPress),
+      };
+      break;
+    default: {
+      const unknown: never = action;
+      void unknown;
+    }
+  }
+  return { run: { ...run, cat, economy }, facts: [], result: 'applied' };
 }

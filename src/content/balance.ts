@@ -68,6 +68,15 @@ export const attentionBalance = {
 } as const satisfies AttentionBalance;
 
 export const balance = {
+  coordination: {
+    baseManaged: 1,
+    delegationCap: 3,
+    delegationDecayPerSecond: 0.1,
+    supervisePerPress: 2,
+  },
+  actionBurst: 10,
+  actionRefillPerSecond: 10,
+  agents: { taskQueueCap: 60, tokenReserve: 150, tokenReserveSupplySeconds: 60 },
   cat: catBalance,
   catPlay: catPlayBalance,
   attention: attentionBalance,

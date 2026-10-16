@@ -270,3 +270,38 @@ Not measured: frame time / GPU memory on a real phone; late-game composition (ex
 
 `npm run check` OK; `test:game` 225/225; `test:browser` 25/25; build within budgets.
 Next: P07.1.
+
+## Task: P07 (agents, review, coordination)
+
+Status: **done** (12 technologies; manual playtest pending)
+
+### P07.1 tokens, agent, compute
+
+Files: `src/game/{economy,commands,progression,catalog,types,ids}.ts`, `agents.test.ts`, `tests/helpers/unlock.ts`, content for `terminal-agent`, `token-supply`, `compute-slot`.
+RED: tests written before the economy step (missing functions/IDs). GREEN: one potential→funded→useful calculation (`stepEconomy`): active agents = min(agents, compute), agents need queued tasks (PROMPT queues, capped), funded by tokens (unfunded capacity idles), stocks never negative, token reserve cap; manual work is free; discovery grant once in the transaction; shared primary-action budget (10 presses/s, burst 10) so clicking cannot bypass bottlenecks.
+
+### P07.2 review and technical debt
+
+Files: economy (`qualityEfficiency`), `debt.test.ts`, content 05–09.
+RED: 6/6 failed (missing IDs/effects). GREEN: debt from funded unchecked work only, quality `max(0.2, 1/(1+debt/100))`, review removes debt without creating tokens, never below 0, review still works when token-starved.
+
+### P07.3 parallel agents and coordination
+
+Files: economy (`coordinationEfficiency`), `coordination.test.ts`, content 10–12 + `review-capacity`, `additional-agent`.
+RED: 6/6 failed. GREEN: coordination `max(0.2, min(1, managed/agents))`; extra compute without management gives no extra useful output while burning 3× tokens; DELEGATE (+1 temporary managed, cap 3, decays 0.1/s); SUPERVISE (−2 debt per press, bounded by the action budget); worktrees +1 managed, manager +4; repeatables base × growth^level, max 8; progression card first, recovery card (token supply when tokens < 10) before optional cards, max three. One test expectation corrected: it assumed extra compute always helps — the intended bottleneck says it does not.
+
+### P07.4 early catalog
+
+Files: `src/persistence/transitions.test.ts` (27 table-driven checks for 04–12: offer only after prerequisite and before price, exact price, once-only effect + one History entry, action label PROMPT/DELEGATE/SUPERVISE, authored world addition, save roundtrip), nine unique illustrations, world additions, `tests/browser/agents.spec.ts` (empty room → working agent with real presses; reviewer purchase with Debt in header).
+
+### P07.5 no dead ends, early narrative
+
+Files: `src/game/narrative.ts`, `narrative.test.ts`, `src/content/events.ts`, `tests/scenarios/early-automation.test.ts`, `tests/helpers/scenario.ts` (baseline buyer/primary), `tools/tune.ts`.
+RED: the first scenario run stalled after autonomous edits (debt-limited ~19 min, no recovery before the reviewer, manager unreachable in 25 min). GREEN after tuning (reasons below): manager at 14.2 active min (seed 101), 164 s token-limited and 66 s debt/coordination-limited, recovery from zero tokens + debt 120 without purchases, cat alive with baseline care, no duplicate history. Narrative: once/cooldown events, one line per step, quiet on discovery/death steps, significant events in History.
+
+Balance changes vs plan starting values (reason: the plan's numbers produced a flat ~6/s economy for 20 min): terminal agent 6 work/s, supply 4/s, 150 tokens, 12 task·s per PROMPT (cap 60); debt rate 0.01 (+0.01 Ralph) with a 0.05/s test review from autonomous edits; larger work/agent steps; token-supply +6/level at ×1.6; parallel agents bring +12 supply; prices 04–12 = 450…4 200 (≈60–90 s of current production). Table updated in `docs/content_catalog.md`.
+
+### Exit gate
+
+`npm run check` OK; `test:game` 283/283; `test:browser` 27/27; build within budgets (entry 42 KiB gzip).
+Next: P08.2 (P08.1 table exists in `docs/content_catalog.md`).

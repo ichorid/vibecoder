@@ -5,8 +5,19 @@ import type { Catalog } from '../../src/game/catalog';
 /** Minimal catalog with one manual action, for core ordering tests. */
 export function createTestCatalog(): Catalog {
   return {
+    events: [],
+
     catText,
     balance: {
+      coordination: {
+        baseManaged: 1,
+        delegationCap: 3,
+        delegationDecayPerSecond: 0.1,
+        supervisePerPress: 2,
+      },
+      actionBurst: 10,
+      actionRefillPerSecond: 10,
+      agents: { taskQueueCap: 40, tokenReserve: 150, tokenReserveSupplySeconds: 60 },
       cat: catBalance,
       catPlay: catPlayBalance,
       attention: attentionBalance,
@@ -14,7 +25,20 @@ export function createTestCatalog(): Catalog {
       logMemoryLimit: 50,
       logVisibleLines: 5,
     },
-    primaryActionLabels: { writeCode: 'WRITE CODE', prompt: 'PROMPT' },
+    primaryActionLabels: {
+      writeCode: 'WRITE CODE',
+      prompt: 'PROMPT',
+      delegate: 'DELEGATE',
+      supervise: 'SUPERVISE',
+    },
+    statLabels: {
+      output: 'Code',
+      tokens: 'Tokens',
+      debt: 'Debt',
+      automation: 'Automation',
+      revenue: 'Revenue',
+      margin: 'Margin',
+    },
     technologies: [],
     upgrades: [],
   };

@@ -29,6 +29,19 @@ export const assetManifest = {
       placeholder: false,
     },
     { id: 'tech-ai-native-ide', file: 'technologies/ai-native-ide.png', placeholder: false },
+    { id: 'tech-terminal-agent', file: 'technologies/terminal-agent.png', placeholder: false },
+    ...(
+      [
+        'autonomous-edits',
+        'tool-permissions',
+        'persistent-instructions',
+        'ralph-loop',
+        'reviewer',
+        'parallel-agents',
+        'worktrees',
+        'manager-agent',
+      ] as const
+    ).map((name) => ({ id: `tech-${name}`, file: `technologies/${name}.png`, placeholder: false })),
   ],
   memorial: [
     { id: 'memorial-keyboard', file: 'memorial/keyboard.png' },

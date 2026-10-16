@@ -80,3 +80,28 @@ export const baselineCare: Policy[] = [
   ),
   every(60_000, () => [{ type: 'petCat' }], 30_000),
 ];
+
+/**
+ * Baseline purchasing: buy the current progression card when affordable; otherwise buy the
+ * cheapest affordable optional card if it costs under a quarter of the visible progression
+ * price (so repeatables never delay the next discovery much). Uses current offers only.
+ */
+export const baselineBuyer: Policy = ({ run, catalog }) => {
+  const offers = selectGame(run, catalog).offers;
+  const progression = offers.find((o) => catalog.upgrades.find((u) => u.id === o.id)?.discovers);
+  if (progression?.affordable) return [{ type: 'buyUpgrade', id: progression.id }];
+  const limit = progression ? progression.price / 4 : Infinity;
+  const optional = offers
+    .filter((o) => o !== progression && o.affordable && o.price <= limit)
+    .sort((a, b) => a.price - b.price)[0];
+  return optional ? [{ type: 'buyUpgrade', id: optional.id }] : [];
+};
+
+/** Manual pacing from the plan: once per second before agents, then once per 5 seconds. */
+export const baselinePrimary: Policy = (context) => {
+  const agents = (context.run.unlockedTechnologyIds as readonly string[]).includes(
+    'terminal-agent',
+  );
+  const interval = agents ? 5000 : 1000;
+  return context.run.activeMs % interval === 0 ? pressPrimary(context) : [];
+};

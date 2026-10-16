@@ -21,6 +21,16 @@ export interface EconomyState {
   output: number;
   /** Manual work queued by accepted commands since the previous step; consumed once. */
   pendingManualWork: number;
+  /** Token stock consumed by agent work. */
+  tokens: number;
+  /** Queued agent work in agent-seconds (supplied by PROMPT and later automation). */
+  tasks: number;
+  /** Primary-action budget (refills each step, capped). */
+  actionCharges: number;
+  /** Accumulated technical debt; lowers quality efficiency, removed by review. */
+  debt: number;
+  /** Temporary extra managed capacity from DELEGATE (bounded, decays). */
+  delegation: number;
 }
 
 export interface RunStats {
@@ -109,6 +119,8 @@ export interface RunState {
   upgradeLevels: Partial<Record<UpgradeId, number>>;
   pendingUnlockIds: TechnologyId[];
   catPlay: CatPlayState | null;
+  /** Which narrative events fired, and when each repeating one last fired. */
+  narrative: { fired: string[]; lastAt: Record<string, number> };
   attention: AttentionState;
   /** Last issued PLAY attempt ID. */
   catPlaySeq: number;

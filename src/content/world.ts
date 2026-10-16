@@ -48,6 +48,18 @@ function frame(w: number, cx = 0, cy = 0): Rect {
   return { x: cx - w / 2, y: cy - h / 2, w, h };
 }
 
+type Item = readonly [sprite: string, dx: number, dy: number];
+
+/** Placements of kit motifs around a cluster centre, all at one scale. */
+function cluster(cx: number, cy: number, scale: number, items: readonly Item[]): Placement[] {
+  return items.map(([sprite, dx, dy]) => ({
+    sprite,
+    x: cx + dx * scale,
+    y: cy + dy * scale,
+    scale,
+  }));
+}
+
 export const ROOM_ADDITION: WorldAddition = {
   id: 'room',
   technologyId: null,
@@ -122,6 +134,162 @@ export const worldAdditions: readonly WorldAddition[] = [
     lodSprite: 'lod-terminal',
     catSpots: [{ x: -150, y: 24 }],
     description: 'IDE terminals and a helper bot flank it',
+  },
+  {
+    id: 'world-terminal-agent',
+    technologyId: 'terminal-agent',
+    envelope: frame(500, 0, -6),
+    anchor: { x: 0, y: 190 },
+    placements: [
+      { sprite: 'kit-terminal', x: -26, y: 176, scale: 2 },
+      { sprite: 'kit-agent', x: 34, y: 180, scale: 2 },
+      { sprite: 'kit-terminal', x: -200, y: 120 },
+      { sprite: 'kit-terminal', x: 176, y: 120 },
+      { sprite: 'kit-packet', x: -2, y: 150 },
+      { sprite: 'kit-packet', x: 10, y: 120 },
+    ],
+    links: [{ to: 'room' }, { to: 'world-ai-native-ide' }],
+    lodSprite: 'lod-agent',
+    catSpots: [{ x: 10, y: 218 }],
+    description: 'below it, a terminal agent runs on tokens',
+  },
+  {
+    id: 'world-autonomous-edits',
+    technologyId: 'autonomous-edits',
+    envelope: frame(620),
+    anchor: { x: -230, y: -250 },
+    placements: cluster(-230, -250, 2, [
+      ['kit-terminal', -14, -10],
+      ['kit-test', -32, -8],
+      ['kit-test', 14, -8],
+      ['kit-loop', -10, 12],
+    ]),
+    links: [{ to: 'world-terminal-agent' }, { to: 'world-generated-snippets' }],
+    lodSprite: 'lod-test',
+    catSpots: [],
+    description: 'test runners check the edits',
+  },
+  {
+    id: 'world-tool-permissions',
+    technologyId: 'tool-permissions',
+    envelope: frame(760),
+    anchor: { x: 260, y: -300 },
+    placements: cluster(260, -300, 2, [
+      ['kit-router', -11, -20],
+      ['kit-gauge', -30, 4],
+      ['kit-server', 10, -2],
+      ['kit-router', -11, 12],
+    ]),
+    links: [{ to: 'world-autonomous-edits' }, { to: 'world-autocomplete' }],
+    lodSprite: 'lod-router',
+    catSpots: [],
+    description: 'tool gates stand open',
+  },
+  {
+    id: 'world-persistent-instructions',
+    technologyId: 'persistent-instructions',
+    envelope: frame(920),
+    anchor: { x: -300, y: 300 },
+    placements: cluster(-300, 300, 3, [
+      ['kit-scroll', -24, -10],
+      ['kit-scroll', -7, -14],
+      ['kit-scroll', 10, -10],
+      ['kit-node', -5, 10],
+    ]),
+    links: [{ to: 'world-terminal-agent' }, { to: 'world-ai-native-ide' }],
+    lodSprite: 'lod-scroll',
+    catSpots: [],
+    description: 'instruction scrolls feed the agent',
+  },
+  {
+    id: 'world-ralph-loop',
+    technologyId: 'ralph-loop',
+    envelope: frame(1120),
+    anchor: { x: 330, y: 360 },
+    placements: cluster(330, 360, 3, [
+      ['kit-loop', -24, -10],
+      ['kit-loop', 4, -10],
+      ['kit-agent', -9, 12],
+      ['kit-packet', -2, -16],
+    ]),
+    links: [{ to: 'world-persistent-instructions' }, { to: 'world-terminal-agent' }],
+    lodSprite: 'lod-loop',
+    catSpots: [],
+    description: 'a loop machine reruns tasks forever',
+  },
+  {
+    id: 'world-reviewer',
+    technologyId: 'reviewer',
+    envelope: frame(1360),
+    anchor: { x: 0, y: -540 },
+    placements: cluster(0, -540, 4, [
+      ['kit-reviewer', -10, -8],
+      ['kit-test', -30, 2],
+      ['kit-test', 14, 2],
+    ]),
+    links: [{ to: 'world-autonomous-edits' }, { to: 'world-tool-permissions' }],
+    lodSprite: 'lod-reviewer',
+    catSpots: [],
+    description: 'a reviewer eye watches from above',
+  },
+  {
+    id: 'world-parallel-agents',
+    technologyId: 'parallel-agents',
+    envelope: frame(1700, 0, 20),
+    anchor: { x: -560, y: -60 },
+    placements: cluster(-560, -60, 4, [
+      ['kit-agent', -9, -26],
+      ['kit-agent', -30, 0],
+      ['kit-agent', 12, 0],
+      ['kit-node', -5, -6],
+    ]),
+    links: [
+      { to: 'world-ralph-loop' },
+      { to: 'world-persistent-instructions' },
+      { to: 'world-reviewer' },
+    ],
+    lodSprite: 'lod-agent',
+    catSpots: [],
+    description: 'three agents branch off to the left',
+  },
+  {
+    id: 'world-worktrees',
+    technologyId: 'worktrees',
+    envelope: frame(2100, 0, 30),
+    anchor: { x: 600, y: -40 },
+    placements: cluster(600, -40, 5, [
+      ['kit-pipeline', -17, -24],
+      ['kit-pipeline', -17, -7],
+      ['kit-pipeline', -17, 10],
+      ['kit-node', 20, -7],
+    ]),
+    links: [
+      { to: 'world-parallel-agents' },
+      { to: 'world-tool-permissions' },
+      { to: 'world-ralph-loop' },
+    ],
+    lodSprite: 'lod-pipeline',
+    catSpots: [],
+    description: 'parallel worktree lines run to the right',
+  },
+  {
+    id: 'world-manager-agent',
+    technologyId: 'manager-agent',
+    envelope: frame(2600, 0, 40),
+    anchor: { x: 0, y: 900 },
+    placements: cluster(0, 900, 7, [
+      ['kit-manager', -10, -12],
+      ['kit-agent', -36, 6],
+      ['kit-agent', 18, 6],
+    ]),
+    links: [
+      { to: 'world-parallel-agents' },
+      { to: 'world-worktrees' },
+      { to: 'world-terminal-agent' },
+    ],
+    lodSprite: 'lod-manager',
+    catSpots: [],
+    description: 'a crowned manager supervises from below',
   },
 ];
 

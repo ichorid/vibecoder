@@ -3,6 +3,8 @@ import {
   CAT_HISTORY_IDS,
   type CatPlayState,
   type CatState,
+  type EconomyState,
+  type RunStats,
   type HistoryEntry,
   type LogEntry,
   type RunState,
@@ -89,6 +91,46 @@ function decodeLastCare(value: unknown, path: string): CatState['lastCare'] {
     note: oneOf(raw.note, `${path}.note`, CARE_NOTES),
     atActiveMs: num(raw.atActiveMs, `${path}.atActiveMs`, nonNegative),
   };
+}
+
+/** Every economy and statistics field is a finite, nonnegative number. */
+const ECONOMY_FIELDS = [
+  'output',
+  'pendingManualWork',
+  'tokens',
+  'tasks',
+  'actionCharges',
+  'debt',
+  'delegation',
+] as const satisfies readonly (keyof EconomyState)[];
+const STATS_FIELDS = ['lifetimeOutput'] as const satisfies readonly (keyof RunStats)[];
+
+// Compile-time proof that the field lists cover the whole state shape.
+type Missing<T, K extends readonly (keyof T)[]> = Exclude<keyof T, K[number]>;
+const economyCovered: [Missing<EconomyState, typeof ECONOMY_FIELDS>] extends [never]
+  ? true
+  : never = true;
+const statsCovered: [Missing<RunStats, typeof STATS_FIELDS>] extends [never] ? true : never = true;
+void economyCovered;
+void statsCovered;
+
+function decodeNumbers<K extends string>(
+  raw: Record<string, unknown>,
+  fields: readonly K[],
+  path: string,
+): Record<K, number> {
+  const result = {} as Record<K, number>;
+  for (const field of fields) result[field] = num(raw[field], `${path}.${field}`, nonNegative);
+  return result;
+}
+
+function decodeNarrative(value: unknown, path: string): RunState['narrative'] {
+  const raw = record(value, path);
+  const lastAt: Record<string, number> = {};
+  for (const [id, at] of Object.entries(record(raw.lastAt, `${path}.lastAt`))) {
+    lastAt[str(id, `${path}.lastAt`, 80)] = num(at, `${path}.lastAt.${id}`, nonNegative);
+  }
+  return { fired: list(raw.fired, `${path}.fired`, (e, p) => str(e, p, 80), 500), lastAt };
 }
 
 function decodeAttention(value: unknown, path: string): RunState['attention'] {
@@ -214,17 +256,8 @@ export function decodeRun(value: unknown, path = 'run'): RunState {
       narrative: num(rng.narrative, `${path}.rng.narrative`, uint32),
     },
     visualSeed: num(raw.visualSeed, `${path}.visualSeed`, uint32),
-    economy: {
-      output: num(economy.output, `${path}.economy.output`, nonNegative),
-      pendingManualWork: num(
-        economy.pendingManualWork,
-        `${path}.economy.pendingManualWork`,
-        nonNegative,
-      ),
-    },
-    stats: {
-      lifetimeOutput: num(stats.lifetimeOutput, `${path}.stats.lifetimeOutput`, nonNegative),
-    },
+    economy: decodeNumbers(economy, ECONOMY_FIELDS, `${path}.economy`),
+    stats: decodeNumbers(stats, STATS_FIELDS, `${path}.stats`),
     cat: decodeCat(raw.cat, `${path}.cat`),
     history: list(raw.history, `${path}.history`, decodeHistoryEntry, 2000),
     log: list(raw.log, `${path}.log`, decodeLogEntry, 200),
@@ -236,6 +269,7 @@ export function decodeRun(value: unknown, path = 'run'): RunState {
     upgradeLevels: decodeUpgradeLevels(raw.upgradeLevels, `${path}.upgradeLevels`),
     pendingUnlockIds: uniqueList(raw.pendingUnlockIds, `${path}.pendingUnlockIds`, TECHNOLOGY_IDS),
     catPlay: decodeCatPlay(raw.catPlay, `${path}.catPlay`),
+    narrative: decodeNarrative(raw.narrative, `${path}.narrative`),
     attention: decodeAttention(raw.attention, `${path}.attention`),
     catPlaySeq: num(raw.catPlaySeq, `${path}.catPlaySeq`, { min: 0, integer: true }),
     ending: raw.ending === null ? null : fail(`${path}.ending`, 'expected null'),

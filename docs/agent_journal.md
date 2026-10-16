@@ -38,6 +38,10 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   world addition in `src/content/world.ts`.
 - D12 (P06) Renderer mirrors presentation state on the canvas (`data-built`, `data-zoom`,
   `data-cat-lod`, `data-ticker`, `data-sprites`) for browser specs; never read by gameplay.
+- D13 (P07) Economy model is documented at the top of `docs/content_catalog.md` (tasks →
+  tokens → compute → coordination → quality). Agents need queued tasks (PROMPT, then passive
+  task effects); a shared action budget caps every primary action. Retuned starting values are
+  listed in progress P07.5. Tune with `npx vite-node tools/tune.ts -- <seed> <minutes>`.
 - D5 (P02) App-level commands (`retrySave`, `setTheme`) go through the same public
   `dispatch` as game commands, so UI still sees only `{subscribe, dispatch}`.
 
@@ -85,3 +89,6 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   Next P06 (atlas/art pipeline, camera, LOD, reveal).
 - 2026-10-16: P06 done (art pipeline, atlas, camera, LOD, renderer, reveal, budgets).
   225 unit + 25 browser. Next P07 (tokens/agents/compute, debt/review, coordination, techs 04–12).
+- 2026-10-16: P07 done (agents/tokens/tasks, debt/review, coordination, techs 04–12, early
+  narrative, early-automation scenario: manager at ~14 min). 283 unit + 27 browser.
+  Next P08.2 (infrastructure techs 13–17).

@@ -69,7 +69,29 @@ export interface AttentionBalance {
   readonly largeDurationMs: number;
 }
 
+/** Agent economy constants (architecture §5). */
+export interface AgentBalance {
+  /** Queued agent work, in agent-seconds, cannot exceed this. */
+  readonly taskQueueCap: number;
+  /** Token stock never exceeds this many seconds of current supply plus a base reserve. */
+  readonly tokenReserve: number;
+  readonly tokenReserveSupplySeconds: number;
+}
+
+/** Coordination and the DELEGATE/SUPERVISE contributions (each bounded). */
+export interface CoordinationBalance {
+  readonly baseManaged: number;
+  readonly delegationCap: number;
+  readonly delegationDecayPerSecond: number;
+  readonly supervisePerPress: number;
+}
+
 export interface BalanceDefinition {
+  readonly coordination: CoordinationBalance;
+  /** Primary-action budget: presses beyond this rate do nothing (no autoclicker bypass). */
+  readonly actionBurst: number;
+  readonly actionRefillPerSecond: number;
+  readonly agents: AgentBalance;
   readonly cat: CatBalance;
   readonly catPlay: CatPlayBalance;
   readonly attention: AttentionBalance;
@@ -84,10 +106,43 @@ export interface BalanceDefinition {
 /** Small effect union; derived rates are recomputed from ownership, never stacked in state. */
 export type Effect =
   | { readonly kind: 'manualOutput'; readonly amount: number }
-  | { readonly kind: 'passiveOutputPerSecond'; readonly amount: number };
+  | { readonly kind: 'passiveOutputPerSecond'; readonly amount: number }
+  | { readonly kind: 'agents'; readonly amount: number }
+  | { readonly kind: 'compute'; readonly amount: number }
+  | { readonly kind: 'workPerAgentPerSecond'; readonly amount: number }
+  | { readonly kind: 'tokenSupplyPerSecond'; readonly amount: number }
+  | { readonly kind: 'tokenCostPerWork'; readonly amount: number }
+  | { readonly kind: 'tasksPerPrompt'; readonly amount: number }
+  | { readonly kind: 'passiveTasksPerSecond'; readonly amount: number }
+  /** Multiplies how much work one queued agent-second covers. */
+  | { readonly kind: 'taskEfficiencyMultiplier'; readonly amount: number }
+  | { readonly kind: 'debtPerUncheckedWork'; readonly amount: number }
+  /** Multiplies the fraction of funded work that is unchecked (base 1). */
+  | { readonly kind: 'uncheckedFractionMultiplier'; readonly amount: number }
+  | { readonly kind: 'reviewPerSecond'; readonly amount: number }
+  /** Agents that can be coordinated without losses. */
+  | { readonly kind: 'managedCapacity'; readonly amount: number }
+  /** One-time stock granted in the discovery transaction (not a rate). */
+  | { readonly kind: 'grantTokens'; readonly amount: number };
 
 /** Runtime list of effect kinds for content validation; must match `Effect['kind']`. */
-export const EFFECT_KINDS = ['manualOutput', 'passiveOutputPerSecond'] as const;
+export const EFFECT_KINDS = [
+  'manualOutput',
+  'passiveOutputPerSecond',
+  'agents',
+  'compute',
+  'workPerAgentPerSecond',
+  'tokenSupplyPerSecond',
+  'tokenCostPerWork',
+  'tasksPerPrompt',
+  'passiveTasksPerSecond',
+  'taskEfficiencyMultiplier',
+  'debtPerUncheckedWork',
+  'uncheckedFractionMultiplier',
+  'reviewPerSecond',
+  'managedCapacity',
+  'grantTokens',
+] as const;
 type EffectKindsMatch = [Effect['kind']] extends [(typeof EFFECT_KINDS)[number]]
   ? [(typeof EFFECT_KINDS)[number]] extends [Effect['kind']]
     ? true
@@ -100,6 +155,15 @@ export type Currency = 'output';
 export interface Requirements {
   readonly technologies?: readonly TechnologyId[];
   readonly lifetimeOutput?: number;
+}
+
+/** Header statistics a technology may select (at most three are shown). */
+export const STAT_IDS = ['output', 'tokens', 'debt', 'automation', 'revenue', 'margin'] as const;
+export type StatId = (typeof STAT_IDS)[number];
+
+/** Conditions that make an optional upgrade a recovery card (shown before repeatables). */
+export interface RecoveryRule {
+  readonly tokensBelow?: number;
 }
 
 export interface UpgradeDefinition {
@@ -121,6 +185,8 @@ export interface UpgradeDefinition {
   readonly effectsPerLevel: readonly Effect[];
   /** Optional named rule for conditions the declarative requirements cannot express. */
   readonly extraCondition?: (run: ReadonlyRun) => boolean;
+  /** When this holds, the card is a recovery choice and outranks optional repeatables. */
+  readonly recovery?: RecoveryRule;
 }
 
 export interface TechnologyDefinition {
@@ -132,6 +198,8 @@ export interface TechnologyDefinition {
   readonly worldAdditionId: string;
   readonly primaryAction?: PrimaryActionId;
   readonly effects: readonly Effect[];
+  /** Header statistics from this point on (latest technology that sets them wins). */
+  readonly headerStats?: readonly StatId[];
 }
 
 export type CatPresentation =
@@ -147,10 +215,25 @@ export interface CatText {
   readonly careMessageMs: number;
 }
 
+/** A short dynamically triggered message (architecture §9). Predicates read the run only. */
+export interface EventDefinition {
+  readonly id: string;
+  readonly text: string;
+  readonly when: (run: ReadonlyRun) => boolean;
+  /** Fires at most once per run. */
+  readonly once?: boolean;
+  /** Minimum active time between two firings of a repeating event. */
+  readonly cooldownMs?: number;
+  /** Significant events are kept in History as well as the log. */
+  readonly significant?: boolean;
+}
+
 export interface Catalog {
+  readonly events: readonly EventDefinition[];
   readonly catText: CatText;
   readonly balance: BalanceDefinition;
   readonly primaryActionLabels: Readonly<Record<PrimaryActionId, string>>;
+  readonly statLabels: Readonly<Record<StatId, string>>;
   readonly technologies: readonly TechnologyDefinition[];
   readonly upgrades: readonly UpgradeDefinition[];
 }

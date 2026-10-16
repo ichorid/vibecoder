@@ -1,8 +1,9 @@
 import { updateAttention, updateCat } from './cat';
 import { advanceSession, sessionOf, withSession } from './catPlaySession';
 import type { Catalog } from './catalog';
-import { deriveRates, roundAmount } from './economy';
+import { deriveRates, roundAmount, stepEconomy } from './economy';
 import { appendLog } from './log';
+import { evaluateNarrative } from './narrative';
 import type { GameFact, RunState } from './types';
 
 export interface Transition {
@@ -20,20 +21,16 @@ export function stepRun(run: RunState, stepMs: number, catalog: Catalog): Transi
   const facts: GameFact[] = [];
   const activeMs = run.activeMs + stepMs;
 
-  // 2. Production.
-  const rates = deriveRates(run, catalog);
-  const produced = roundAmount(
-    run.economy.pendingManualWork + (rates.passiveOutputPerSecond * stepMs) / 1000,
-  );
+  // 2. Production, costs and capacity constraints.
+  const economy = stepEconomy(run.economy, deriveRates(run, catalog), stepMs, catalog.balance);
   let next: RunState = {
     ...run,
     activeMs,
-    economy: {
-      ...run.economy,
-      output: roundAmount(run.economy.output + produced),
-      pendingManualWork: 0,
+    economy: economy.economy,
+    stats: {
+      ...run.stats,
+      lifetimeOutput: roundAmount(run.stats.lifetimeOutput + economy.produced),
     },
-    stats: { ...run.stats, lifetimeOutput: roundAmount(run.stats.lifetimeOutput + produced) },
   };
 
   // 3. Cat needs, health and terminal death.
@@ -43,6 +40,8 @@ export function stepRun(run: RunState, stepMs: number, catalog: Catalog): Transi
   else if (next.catPlay) {
     next = withSession(next, advanceSession(sessionOf(next), activeMs, catalog.balance.catPlay));
   }
+  // 5. Narrative events (quiet when something important happened this step).
+  next = evaluateNarrative(next, catalog, facts);
   const attention = updateAttention(next.attention, next.cat, activeMs, catalog.balance.attention);
   if (attention !== next.attention) next = { ...next, attention };
 
