@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
   pull_request:
+  # Lets the Pages deploy run the same gate before publishing.
+  workflow_call:
 
 jobs:
   check:
