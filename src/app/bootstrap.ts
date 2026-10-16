@@ -97,7 +97,9 @@ export function bootGame(): Boot {
       : {}),
     freezeSnapshots: import.meta.env.DEV,
   });
-  const detach = attachBrowserLifecycle(game.runtime, document, window, () => game.saveNow());
+  const detach = attachBrowserLifecycle(game, document, window);
   game.start();
+  // A reloaded PLAY attempt continues after the same short ready cue as a resume.
+  if (save?.run.catPlay) game.api.dispatch({ type: 'resumeCatPlay' });
   return { kind: 'ready', game, detach };
 }

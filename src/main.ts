@@ -2,6 +2,7 @@ import { mount } from 'svelte';
 import './ui/styles.css';
 import App from './app/App.svelte';
 import { bootGame, illustrationUrl } from './app/bootstrap';
+import { browserFrames } from './app/frameLoop';
 import RecoveryPanel from './ui/RecoveryPanel.svelte';
 
 const target = document.getElementById('app');
@@ -11,7 +12,15 @@ if (!target) {
 
 const boot = bootGame();
 if (boot.kind === 'ready') {
-  mount(App, { target, props: { api: boot.game.api, illustrationUrl } });
+  const game = boot.game;
+  mount(App, {
+    target,
+    props: {
+      api: game.api,
+      illustrationUrl,
+      clock: { activeNow: () => game.activeNow(), frames: browserFrames },
+    },
+  });
 } else {
   mount(RecoveryPanel, {
     target,

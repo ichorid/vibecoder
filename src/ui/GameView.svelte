@@ -4,16 +4,20 @@
   import type { GameViewModel } from '../game/selectors';
   import type { Dispatch } from './contracts';
   import { formatActiveTime, formatAmount } from './format';
+  import CatOverlay from './CatOverlay.svelte';
   import UnlockAnnouncement from './UnlockAnnouncement.svelte';
+  import type { AttentionLevel } from '../game/types';
 
   interface Props {
     game: GameViewModel;
     dispatch: Dispatch;
     illustrationUrl: (illustrationId: string) => string | null;
+    attention?: { readonly level: AttentionLevel | null; readonly key: number } | undefined;
+    onCatOverlay?: () => void;
     world?: Snippet;
   }
 
-  const { game, dispatch, illustrationUrl, world }: Props = $props();
+  const { game, dispatch, illustrationUrl, attention, onCatOverlay, world }: Props = $props();
   let controls: HTMLElement | undefined = $state();
 
   function primary() {
@@ -50,6 +54,16 @@
     {/if}
   </div>
   <div class="controls" bind:this={controls}>
+    {#if attention?.level && onCatOverlay}
+      {#key attention.key}
+        <CatOverlay
+          level={attention.level}
+          variant={attention.key}
+          surfaces={{ cards: game.offers.length > 0, log: game.log.length > 0 }}
+          onOpen={onCatOverlay}
+        />
+      {/key}
+    {/if}
     <button type="button" class="primary" data-testid="primary-action" onclick={primary}>
       {game.primaryAction.label}
     </button>
@@ -99,6 +113,7 @@
     background: var(--panel-strong);
   }
   .controls {
+    position: relative;
     display: flex;
     flex-direction: column;
     gap: 8px;

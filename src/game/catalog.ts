@@ -39,8 +39,40 @@ export interface CatBalance {
   readonly petCooldownMs: number;
 }
 
+/** PLAY timing minigame. Positions are normalized track coordinates 0–1. */
+export interface CatPlayBalance {
+  readonly attempts: number;
+  readonly readyMs: number;
+  readonly movementMs: number;
+  readonly resultMs: number;
+  readonly resumeCueMs: number;
+  readonly targetWidthMin: number;
+  readonly targetWidthMax: number;
+  /** Normalized track lengths per second. */
+  readonly speedMin: number;
+  readonly speedMax: number;
+  /** Narrowest crossing of the target must last at least this long. */
+  readonly minHitWindowMs: number;
+  readonly nearMissDistance: number;
+  readonly hitMoodMin: number;
+  readonly hitMoodMax: number;
+  readonly nearMissMood: number;
+}
+
+/** Foreground attention intrusions (active-time schedule). */
+export interface AttentionBalance {
+  readonly smallBelowMood: number;
+  readonly largeBelowMood: number;
+  readonly smallIntervalMs: number;
+  readonly smallDurationMs: number;
+  readonly largeIntervalMs: number;
+  readonly largeDurationMs: number;
+}
+
 export interface BalanceDefinition {
   readonly cat: CatBalance;
+  readonly catPlay: CatPlayBalance;
+  readonly attention: AttentionBalance;
   /** Output queued by one accepted WRITE CODE before technology bonuses. */
   readonly manualOutputPerAction: number;
   /** Recent ambient log lines kept in the run. */

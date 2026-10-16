@@ -1,4 +1,9 @@
-import type { BalanceDefinition, CatBalance } from '../game/catalog';
+import type {
+  AttentionBalance,
+  BalanceDefinition,
+  CatBalance,
+  CatPlayBalance,
+} from '../game/catalog';
 
 /** Cat starting values (architecture §6, implementation plan §6). */
 export const catBalance = {
@@ -34,8 +39,38 @@ export const catBalance = {
 } as const satisfies CatBalance;
 
 /** Starting balance values (implementation plan §6). Tune with tests and a recorded reason. */
+/** PLAY starting values (implementation plan §6, phase P05). Do not raise difficulty before a mobile playtest. */
+export const catPlayBalance = {
+  attempts: 3,
+  readyMs: 300,
+  movementMs: 4000,
+  resultMs: 300,
+  resumeCueMs: 500,
+  targetWidthMin: 0.15,
+  targetWidthMax: 0.3,
+  speedMin: 0.4,
+  speedMax: 0.75,
+  minHitWindowMs: 200,
+  nearMissDistance: 0.03,
+  hitMoodMin: 8,
+  hitMoodMax: 12,
+  nearMissMood: 1,
+} as const satisfies CatPlayBalance;
+
+/** Attention intrusions (implementation plan §6). */
+export const attentionBalance = {
+  smallBelowMood: 40,
+  largeBelowMood: 20,
+  smallIntervalMs: 45_000,
+  smallDurationMs: 4000,
+  largeIntervalMs: 25_000,
+  largeDurationMs: 6000,
+} as const satisfies AttentionBalance;
+
 export const balance = {
   cat: catBalance,
+  catPlay: catPlayBalance,
+  attention: attentionBalance,
   manualOutputPerAction: 1,
   logMemoryLimit: 50,
   logVisibleLines: 5,

@@ -2,9 +2,9 @@
  * Cat simulation. Deliberately narrow: it receives the cat, elapsed active time and cat
  * balance only — no economy — so care can never become a productivity modifier.
  */
-import type { CatBalance } from './catalog';
+import type { AttentionBalance, CatBalance } from './catalog';
 import { nextInt } from './random';
-import type { CareNote, CatState } from './types';
+import type { AttentionLevel, AttentionState, CareNote, CatState } from './types';
 
 export interface CatConditions {
   readonly hungry: boolean;
@@ -162,4 +162,55 @@ export function petCat(cat: CatState, at: number, balance: CatBalance): CareResu
       lastCare: { note: 'purr', atActiveMs: at },
     },
   };
+}
+
+const NO_ATTENTION = { nextAtMs: null, visibleUntilMs: null, level: null } as const;
+
+/**
+ * Foreground intrusions on the active clock: below mood 40 small ones, below 20 large ones,
+ * each for a short time with an interval before the next (the first after one interval).
+ * Time spent away from Game is not queued: only the current window can be visible.
+ */
+export function updateAttention(
+  attention: AttentionState,
+  cat: CatState,
+  at: number,
+  balance: AttentionBalance,
+): AttentionState {
+  const level: AttentionLevel | null = !cat.alive
+    ? null
+    : cat.mood < balance.largeBelowMood
+      ? 'large'
+      : cat.mood < balance.smallBelowMood
+        ? 'small'
+        : null;
+  if (level === null) {
+    return attention.nextAtMs === null && attention.visibleUntilMs === null
+      ? attention
+      : { ...attention, ...NO_ATTENTION };
+  }
+  const interval = level === 'large' ? balance.largeIntervalMs : balance.smallIntervalMs;
+  const duration = level === 'large' ? balance.largeDurationMs : balance.smallDurationMs;
+  let next = attention;
+  if (next.nextAtMs === null) next = { ...next, nextAtMs: at + interval };
+  else if (next.nextAtMs > at + interval) next = { ...next, nextAtMs: at + interval };
+  if (next.visibleUntilMs !== null && at >= next.visibleUntilMs) {
+    next = { ...next, visibleUntilMs: null, level: null };
+  }
+  if (next.nextAtMs !== null && at >= next.nextAtMs) {
+    next = {
+      nextAtMs: at + interval,
+      visibleUntilMs: at + duration,
+      level,
+      count: next.count + 1,
+    };
+  }
+  return next;
+}
+
+/** The intrusion visible at `at`, if any. */
+export function visibleAttention(attention: AttentionState, at: number): AttentionLevel | null {
+  return attention.visibleUntilMs !== null && at < attention.visibleUntilMs
+    ? attention.level
+    : null;
 }

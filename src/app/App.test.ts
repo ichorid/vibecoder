@@ -17,7 +17,12 @@ function setup() {
     latest = s;
   });
   render(App, {
-    props: { api: ui.game.api, illustrationUrl: () => null, createRenderer: nullRenderer },
+    props: {
+      api: ui.game.api,
+      illustrationUrl: () => null,
+      createRenderer: nullRenderer,
+      clock: { activeNow: () => ui.game.activeNow(), frames: () => () => {} },
+    },
   });
   return { ...ui, latest: () => latest };
 }

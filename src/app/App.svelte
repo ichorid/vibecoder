@@ -4,6 +4,7 @@
   import {
     unavailableAudio,
     type AudioControls,
+    type PresentationClock,
     type Theme,
     type UiGameApi,
     type ViewId,
@@ -22,6 +23,7 @@
     /** Injected in component tests; production lazily loads the Pixi renderer. */
     createRenderer?: RendererFactory;
     audio?: AudioControls;
+    clock: PresentationClock;
   }
 
   const {
@@ -30,6 +32,7 @@
     navigation = window.history,
     createRenderer,
     audio = unavailableAudio,
+    clock,
   }: Props = $props();
 
   let view = $state<ViewId>('game');
@@ -46,15 +49,22 @@
     return 'game';
   }
 
+  /** Navigating away from Cat ends a PLAY session (no completion bonus). */
+  function leavePlay() {
+    if ($api.cat.play) api.dispatch({ type: 'leaveCatPlay' });
+  }
+
   function open(next: 'history' | 'cat') {
     settingsOpen = false;
     if (view === next) return;
+    if (view === 'cat') leavePlay();
     if (view === 'game') navigation.pushState({ [VIEW_KEY]: next }, '');
     else navigation.replaceState({ [VIEW_KEY]: next }, '');
     view = next;
   }
 
   function returnToGame() {
+    if (view === 'cat') leavePlay();
     if (stateView(navigation.state) !== 'game') navigation.back();
     view = 'game';
   }
@@ -75,10 +85,16 @@
   }
 
   onMount(() => {
-    // A reload always opens Game.
+    // A reload opens Game, unless a saved PLAY attempt is in progress: it resumes in Cat.
     if (stateView(navigation.state) !== 'game') navigation.replaceState(null, '');
+    if ($api.cat.play) {
+      navigation.pushState({ [VIEW_KEY]: 'cat' }, '');
+      view = 'cat';
+    }
     const onPop = (event: PopStateEvent) => {
-      view = stateView(event.state);
+      const next = stateView(event.state);
+      if (view === 'cat' && next !== 'cat') leavePlay();
+      view = next;
     };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
@@ -115,7 +131,13 @@
       </p>
     {/if}
     <div class="view" hidden={view !== 'game'}>
-      <GameView game={$api.game} dispatch={api.dispatch} {illustrationUrl}>
+      <GameView
+        game={$api.game}
+        dispatch={api.dispatch}
+        {illustrationUrl}
+        attention={view === 'game' ? $api.cat.attention : undefined}
+        onCatOverlay={() => open('cat')}
+      >
         {#snippet world()}
           <WorldCanvas
             world={{ ...$api.world, theme: $api.profile.theme }}
@@ -130,7 +152,7 @@
       <div class="view"><HistoryView history={$api.history} onReturn={returnToGame} /></div>
     {:else if view === 'cat'}
       <div class="view">
-        <CatView cat={$api.cat} dispatch={api.dispatch} onReturn={returnToGame} />
+        <CatView cat={$api.cat} dispatch={api.dispatch} {clock} onReturn={returnToGame} />
       </div>
     {/if}
   </main>

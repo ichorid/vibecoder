@@ -21,7 +21,12 @@ export type UiCommand = GameCommand | AppCommand;
 
 export type CommandOutcome = 'applied' | 'unavailable' | 'unaffordable' | 'cooldown';
 
-export type Dispatch = (command: UiCommand) => CommandOutcome;
+/** Optional timing of the DOM event that produced the command. */
+export interface InputTiming {
+  readonly timeStamp?: number;
+}
+
+export type Dispatch = (command: UiCommand, input?: InputTiming) => CommandOutcome;
 
 export interface UiSnapshot {
   readonly game: GameViewModel;
@@ -57,3 +62,11 @@ export const unavailableAudio: AudioControls = {
   setSound() {},
   setVolume() {},
 };
+
+/** Presentation clock access for the PLAY track (no gameplay authority). */
+export interface PresentationClock {
+  /** Current active time in ms, including the not-yet-stepped part. */
+  activeNow(): number;
+  /** Subscribe to animation frames; returns a disposer. */
+  frames(callback: () => void): () => void;
+}

@@ -17,6 +17,8 @@ export const catText = {
     tooMuch: 'That was probably too much.',
     spherical: 'The cat is becoming suspiciously spherical.',
     purr: 'Purrrr.',
+    playWin: 'The cat looks extremely pleased with itself.',
+    playLose: 'The mouse got away. The cat pretends it meant to do that.',
   },
   history: { 'cat-died': 'The cat is gone.' },
   careMessageMs: 8000,

@@ -28,7 +28,8 @@ export interface RunStats {
 }
 
 /** Last accepted care, for contextual Cat messages; cosmetic responses are not stored. */
-export type CareNote = 'nom' | 'notHungry' | 'tooMuch' | 'spherical' | 'purr';
+export type CareNote =
+  'nom' | 'notHungry' | 'tooMuch' | 'spherical' | 'purr' | 'playWin' | 'playLose';
 
 export interface CatState {
   health: number;
@@ -54,6 +55,37 @@ export type HistoryEntry =
   | { kind: 'cat'; id: CatHistoryId; activeMs: number }
   | { kind: 'event'; textId: string; activeMs: number };
 
+export type AttemptOutcomeKind = 'hit' | 'near' | 'miss';
+
+/** One PLAY session: three attempts on the shared active clock. */
+export interface CatPlayState {
+  attemptNumber: number;
+  /** Unique within the run; stale or repeated input for another ID is rejected. */
+  attemptId: number;
+  attemptStartMs: number;
+  /** Movement time origin; shifted forward by a resume cue so the mouse never jumps. */
+  movementOriginMs: number;
+  movementEndMs: number;
+  attemptEndMs: number;
+  /** While set and in the future, the attempt shows a frozen ready cue. */
+  cueUntilMs: number | null;
+  target: { start: number; width: number };
+  speed: number;
+  outcome: { kind: AttemptOutcomeKind; moodGain: number; atMs: number; position: number } | null;
+  previous: AttemptOutcomeKind[];
+}
+
+export type AttentionLevel = 'small' | 'large';
+
+/** Active-time schedule of foreground cat intrusions; presentation reads it, never decides it. */
+export interface AttentionState {
+  nextAtMs: number | null;
+  visibleUntilMs: number | null;
+  level: AttentionLevel | null;
+  /** Number of intrusions so far (seeds cosmetic placement). */
+  count: number;
+}
+
 export interface LogEntry {
   text: string;
   activeMs: number;
@@ -76,6 +108,10 @@ export interface RunState {
   unlockedTechnologyIds: TechnologyId[];
   upgradeLevels: Partial<Record<UpgradeId, number>>;
   pendingUnlockIds: TechnologyId[];
+  catPlay: CatPlayState | null;
+  attention: AttentionState;
+  /** Last issued PLAY attempt ID. */
+  catPlaySeq: number;
   ending: null;
 }
 
@@ -86,12 +122,16 @@ export type GameCommand =
   | { type: 'buyUpgrade'; id: UpgradeId }
   | { type: 'acknowledgeUnlock'; id: TechnologyId }
   | { type: 'feedCat' }
-  | { type: 'petCat' };
+  | { type: 'petCat' }
+  | { type: 'startCatPlay' }
+  | { type: 'catchMouse'; attemptId: number }
+  | { type: 'leaveCatPlay' }
+  | { type: 'resumeCatPlay' };
 
 /** Typed facts returned with a transition for app wiring (saving, presentation). No event bus. */
 export type GameFact =
   | { type: 'catDied' }
-  | { type: 'catCared'; kind: 'feed' | 'pet' }
+  | { type: 'catCared'; kind: 'feed' | 'pet' | 'play' }
   | { type: 'purchased'; id: UpgradeId }
   | { type: 'technologyDiscovered'; id: TechnologyId };
 

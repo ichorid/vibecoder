@@ -1,5 +1,6 @@
 import { feedCat, noteMeaningfulAction, petCat } from './cat';
 import type { Catalog } from './catalog';
+import { catchMouse, resumeSession, sessionOf, startSession, withSession } from './catPlaySession';
 import { deriveRates, roundAmount, upgradeLevel, upgradePrice } from './economy';
 import { findUpgrade, isUpgradeOffered, resolveDiscoveries } from './progression';
 import type { Transition } from './simulation';
@@ -50,6 +51,33 @@ export function applyCommand(
       };
     case 'buyUpgrade':
       return buyUpgrade(run, command.id, catalog);
+    case 'startCatPlay': {
+      if (!run.cat.alive || run.catPlay !== null) return reject(run, 'unavailable');
+      const session = startSession(sessionOf(run), activeTimestamp, catalog.balance.catPlay);
+      return { run: withSession(run, session), facts: [], result: 'applied' };
+    }
+    case 'catchMouse': {
+      const caught = catchMouse(
+        sessionOf(run),
+        command.attemptId,
+        activeTimestamp,
+        catalog.balance.catPlay,
+      );
+      if (!caught.accepted) return reject(run, 'unavailable');
+      return {
+        run: withSession(run, caught.state),
+        facts: [{ type: 'catCared', kind: 'play' }],
+        result: 'applied',
+      };
+    }
+    case 'leaveCatPlay':
+      if (run.catPlay === null) return reject(run, 'unavailable');
+      return { run: { ...run, catPlay: null }, facts: [], result: 'applied' };
+    case 'resumeCatPlay': {
+      if (run.catPlay === null) return reject(run, 'unavailable');
+      const resumed = resumeSession(sessionOf(run), activeTimestamp, catalog.balance.catPlay);
+      return { run: withSession(run, resumed), facts: [], result: 'applied' };
+    }
     case 'feedCat': {
       const fed = feedCat(run.cat, run.rng.cat, activeTimestamp, catalog.balance.cat);
       if (!fed.accepted) return reject(run, fed.reason);

@@ -1,34 +1,35 @@
-import type { GameRuntime } from './runtime';
+import type { PauseReason } from './runtime';
 
 export interface LifecycleDocument extends EventTarget {
   readonly visibilityState: DocumentVisibilityState;
   hasFocus(): boolean;
 }
 
+/** What the lifecycle adapter drives: the composed game (or a bare runtime in tests). */
+export interface LifecycleTarget {
+  isActive(): boolean;
+  /** Settle eligible time, pause for `reason`, and save. */
+  suspend(reason: PauseReason): void;
+  resume(reason: PauseReason): void;
+}
+
 /**
- * Map browser lifecycle events to runtime pause reasons. Each event is idempotent; the runtime
- * settles eligible time before pausing. `onSuspend` lets app composition save.
+ * Map browser lifecycle events to pause reasons. Each event is idempotent; suspension settles
+ * eligible time first (inside `suspend`).
  */
 export function attachBrowserLifecycle(
-  runtime: GameRuntime,
+  target: LifecycleTarget,
   doc: LifecycleDocument,
   win: EventTarget,
-  onSuspend: () => void,
 ): () => void {
-  const suspend = (reason: 'hidden' | 'blurred' | 'frozen') => {
-    const wasActive = runtime.isActive();
-    runtime.pause(reason);
-    if (wasActive) onSuspend();
-  };
-
   const onVisibility = () => {
-    if (doc.visibilityState === 'hidden') suspend('hidden');
-    else runtime.resume('hidden');
+    if (doc.visibilityState === 'hidden') target.suspend('hidden');
+    else target.resume('hidden');
   };
-  const onBlur = () => suspend('blurred');
-  const onFocus = () => runtime.resume('blurred');
-  const onFreeze = () => suspend('frozen');
-  const onThaw = () => runtime.resume('frozen');
+  const onBlur = () => target.suspend('blurred');
+  const onFocus = () => target.resume('blurred');
+  const onFreeze = () => target.suspend('frozen');
+  const onThaw = () => target.resume('frozen');
 
   const listeners: [EventTarget, string, () => void][] = [
     [doc, 'visibilitychange', onVisibility],
@@ -39,12 +40,16 @@ export function attachBrowserLifecycle(
     [win, 'pagehide', onFreeze],
     [win, 'pageshow', onThaw],
   ];
-  for (const [target, type, listener] of listeners) target.addEventListener(type, listener);
+  for (const [eventTarget, type, listener] of listeners) {
+    eventTarget.addEventListener(type, listener);
+  }
 
-  if (doc.visibilityState === 'hidden') runtime.pause('hidden');
-  if (!doc.hasFocus()) runtime.pause('blurred');
+  if (doc.visibilityState === 'hidden') target.suspend('hidden');
+  if (!doc.hasFocus()) target.suspend('blurred');
 
   return () => {
-    for (const [target, type, listener] of listeners) target.removeEventListener(type, listener);
+    for (const [eventTarget, type, listener] of listeners) {
+      eventTarget.removeEventListener(type, listener);
+    }
   };
 }

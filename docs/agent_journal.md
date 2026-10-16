@@ -26,6 +26,11 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
 - D8 (P04) Cat state also stores `needsElapsedMs`, `pendingActions`, care timestamps and
   `lastCare` (for contextual messages). Death time is stamped by `stepRun` (`recordDeath`),
   not by `updateCat`, which has no clock.
+- D9 (P05) Reload normally opens Game, **except** when a PLAY attempt is saved in progress:
+  App reopens Cat and bootstrap dispatches `resumeCatPlay` (500 ms cue). Rationale: P05.4 needs
+  reload to restore the session, while navigating away cancels it.
+- D10 (P05) Input timing: `dispatch(cmd, { timeStamp })`; createGame maps event time into the
+  active clock via `runtime.inputLagMs` (clamped to the current active interval).
 - D5 (P02) App-level commands (`retrySave`, `setTheme`) go through the same public
   `dispatch` as game commands, so UI still sees only `{subscribe, dispatch}`.
 
@@ -49,6 +54,9 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   pagehide save (correct game behavior). Use `loadSave()` in `tests/browser/helpers.ts`
   (addInitScript before boot).
 
+- F6 Prettier reflows code, so exact-string scripted edits break. A formatter-tolerant helper
+  lives in the session scratchpad (`wedit.py`); if unavailable, re-read files and use Edit.
+
 ## Progress log
 
 - 2026-10-16: P00 verified + committed. Next: P01.
@@ -61,3 +69,6 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   101 unit/component + 9 browser tests. Next P04 (cat needs, FEED/PET, death).
 - 2026-10-16: P04 done (needs, FEED/PET, starvation/sickness, death + memorial, independence
   scenario). 143 unit + 11 browser. Next P05 (PLAY minigame, attention overlay).
+- 2026-10-16: P05 done (PLAY minigame, input timing, resume cue, attention overlay).
+  177 unit + 17 browser. `tools/screens.ts` (vite-node) screenshots fixture scenes for review.
+  Next P06 (atlas/art pipeline, camera, LOD, reveal).

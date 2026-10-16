@@ -1,9 +1,10 @@
-import { catConditions, type CatConditions } from './cat';
+import { catConditions, visibleAttention, type CatConditions } from './cat';
+import type { ReadonlyPlay } from './catPlaySession';
 import type { CatPresentation, Catalog } from './catalog';
 import { upgradeLevel, upgradePrice } from './economy';
 import type { PrimaryActionId, TechnologyId, UpgradeId } from './ids';
 import { currentPrimaryAction, findTechnology, isUpgradeOffered } from './progression';
-import type { ReadonlyRun } from './types';
+import type { AttentionLevel, ReadonlyRun } from './types';
 
 /** Maximum number of current upgrade/choice cards shown in Game. */
 export const MAX_OFFERS = 3;
@@ -124,6 +125,11 @@ export interface CatViewModel {
   readonly overfedText: string | null;
   /** Message about the last accepted care action, while still relevant. */
   readonly careMessage: string | null;
+  /** Current PLAY session (timeline data; UI derives phase/position with the shared functions). */
+  readonly play: ReadonlyPlay | null;
+  readonly playAttempts: number;
+  /** Current foreground intrusion, if any. */
+  readonly attention: { readonly level: AttentionLevel | null; readonly key: number };
 }
 
 /** Presentation priority; independent flags stay available alongside. */
@@ -157,6 +163,15 @@ export function selectCat(run: ReadonlyRun, catalog: Catalog): CatViewModel {
     conditionText: catalog.catText.conditions[presentation],
     overfedText: conditions.overfed && run.cat.alive ? catalog.catText.overfed : null,
     careMessage: careFresh ? catalog.catText.care[care.note] : null,
+    play: run.cat.alive ? run.catPlay : null,
+    attention: {
+      level:
+        run.status === 'playing' && run.cat.alive
+          ? visibleAttention(run.attention, run.activeMs)
+          : null,
+      key: run.attention.count,
+    },
+    playAttempts: catalog.balance.catPlay.attempts,
   };
 }
 

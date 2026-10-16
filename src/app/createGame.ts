@@ -9,7 +9,7 @@ import {
   type ProfileState,
   type SaveAdapter,
 } from '../persistence/save';
-import type { AppCommand, SaveStatus, UiGameApi, UiSnapshot } from '../ui/contracts';
+import type { AppCommand, InputTiming, SaveStatus, UiGameApi, UiSnapshot } from '../ui/contracts';
 import { createSnapshotStore, type Readable } from './gameStore';
 import {
   createRuntime,
@@ -32,7 +32,7 @@ export interface GameSnapshot extends UiSnapshot {
 
 /** The narrow API handed to UI components. No setters, no raw mutable state. */
 export interface PublicGameApi extends Readable<GameSnapshot> {
-  dispatch(command: GameCommand | AppCommand): CommandResult;
+  dispatch(command: GameCommand | AppCommand, input?: InputTiming): CommandResult;
 }
 
 /** Compile-time proof that the public API satisfies the UI contract. */
@@ -60,6 +60,9 @@ export interface Game {
   /** Settle eligible time, pause for `reason`, and save. */
   suspend(reason: PauseReason): void;
   resume(reason: PauseReason): void;
+  /** Current active time including the not-yet-stepped part (presentation only). */
+  activeNow(): number;
+  isActive(): boolean;
   saveNow(): void;
   dispose(): void;
 }
@@ -151,12 +154,19 @@ export function createGame(options: GameOptions): Game {
     return 'applied';
   }
 
-  function dispatch(command: GameCommand | AppCommand): CommandResult {
+  /**
+   * Settle elapsed time, then apply the command at its active timestamp. A browser event's
+   * monotonic `timeStamp` is mapped into the active clock and clamped to the current active
+   * interval, so timing input is judged when it happened, not at the last drawn frame.
+   */
+  function dispatch(command: GameCommand | AppCommand, input?: InputTiming): CommandResult {
     if (command.type === 'retrySave' || command.type === 'setTheme') return dispatchApp(command);
     dispatching = true;
     try {
       runtime.settle();
-      const transition = applyCommand(run, command, run.activeMs + runtime.remainderMs(), catalog);
+      const lag = input?.timeStamp === undefined ? 0 : runtime.inputLagMs(input.timeStamp);
+      const at = Math.max(0, run.activeMs + runtime.remainderMs() - lag);
+      const transition = applyCommand(run, command, at, catalog);
       run = transition.run;
       if (needsImmediateSave(transition.facts)) write();
       publish();
@@ -178,7 +188,12 @@ export function createGame(options: GameOptions): Game {
       if (run !== lastSavedRun) write();
       publish();
     },
-    resume: (reason) => runtime.resume(reason),
+    resume(reason) {
+      runtime.resume(reason);
+      if (runtime.isActive() && run.catPlay) dispatch({ type: 'resumeCatPlay' });
+    },
+    activeNow: () => run.activeMs + runtime.pendingMs(),
+    isActive: () => runtime.isActive(),
     saveNow() {
       write();
       publish();

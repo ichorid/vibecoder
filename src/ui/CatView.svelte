@@ -1,15 +1,19 @@
 <script lang="ts">
   import type { CatViewModel } from '../game/selectors';
-  import type { Dispatch } from './contracts';
+  import CatPlay from './CatPlay.svelte';
+  import type { Dispatch, PresentationClock } from './contracts';
   import Memorial from './Memorial.svelte';
   import PixelIcon from './PixelIcon.svelte';
   import { catRound, catSitting } from './pixelArt';
 
-  const {
-    cat,
-    dispatch,
-    onReturn,
-  }: { cat: CatViewModel; dispatch: Dispatch; onReturn: () => void } = $props();
+  interface Props {
+    cat: CatViewModel;
+    dispatch: Dispatch;
+    clock: PresentationClock;
+    onReturn: () => void;
+  }
+
+  const { cat, dispatch, clock, onReturn }: Props = $props();
 
   /** Cosmetic reaction only (e.g. PET during cooldown); never a gameplay reward. */
   let reaction = $state<'none' | 'eat' | 'purr' | 'wiggle'>('none');
@@ -51,28 +55,31 @@
     <p class="condition" data-testid="cat-condition">
       {cat.conditionText}{#if cat.overfedText}{' '}{cat.overfedText}{/if}
     </p>
-    {#if cat.careMessage}
-      <p class="care-message">{cat.careMessage}</p>
+    {#if cat.play}
+      <CatPlay play={cat.play} attempts={cat.playAttempts} {clock} {dispatch} />
+    {:else}
+      {#if cat.careMessage}
+        <p class="care-message">{cat.careMessage}</p>
+      {/if}
+      <dl class="status">
+        {#each meters as meter (meter.id)}
+          <div class="meter">
+            <dt>{meter.label}</dt>
+            <dd>
+              <span class="track"
+                ><span class="fill {meter.id}" style:width="{meter.value}%"></span></span
+              >
+              <span class="value">{Math.round(meter.value)}</span>
+            </dd>
+          </div>
+        {/each}
+      </dl>
+      <div class="care">
+        <button type="button" onclick={feed}>FEED</button>
+        <button type="button" onclick={() => dispatch({ type: 'startCatPlay' })}>PLAY</button>
+        <button type="button" onclick={pet}>PET</button>
+      </div>
     {/if}
-    <dl class="status">
-      {#each meters as meter (meter.id)}
-        <div class="meter">
-          <dt>{meter.label}</dt>
-          <dd>
-            <span class="track"
-              ><span class="fill {meter.id}" style:width="{meter.value}%"></span></span
-            >
-            <span class="value">{Math.round(meter.value)}</span>
-          </dd>
-        </div>
-      {/each}
-    </dl>
-    <div class="care">
-      <button type="button" onclick={feed}>FEED</button>
-      <button type="button" disabled aria-describedby="play-note">PLAY</button>
-      <button type="button" onclick={pet}>PET</button>
-    </div>
-    <p class="dev-note" id="play-note">PLAY is not part of this development build yet.</p>
   {:else}
     <Memorial />
   {/if}
@@ -108,7 +115,7 @@
   .portrait {
     display: grid;
     place-items: center;
-    min-height: 150px;
+    min-height: 120px;
     padding: 12px;
     border: 3px solid var(--border);
     background: var(--panel-strong);

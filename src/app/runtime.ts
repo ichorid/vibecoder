@@ -33,6 +33,10 @@ export interface GameRuntime {
   isActive(): boolean;
   /** Eligible active time not yet consumed by a whole step. */
   remainderMs(): number;
+  /** Remainder plus eligible time since the last settle (for presentation between steps). */
+  pendingMs(): number;
+  /** How long ago a monotonic event timestamp was, clamped to the current active interval. */
+  inputLagMs(eventTime: number): number;
   dispose(): void;
 }
 
@@ -43,6 +47,7 @@ export function createRuntime({ clock, scheduler, onSteps }: RuntimeOptions): Ga
   let timer: number | null = null;
   let baseline: number | null = null;
   let remainder = 0;
+  let intervalStart: number | null = null;
 
   const active = () => started && !disposed && pauseReasons.size === 0;
 
@@ -70,6 +75,7 @@ export function createRuntime({ clock, scheduler, onSteps }: RuntimeOptions): Ga
 
   function rebaseline(): void {
     baseline = readNow();
+    intervalStart = baseline;
   }
 
   return {
@@ -90,6 +96,18 @@ export function createRuntime({ clock, scheduler, onSteps }: RuntimeOptions): Ga
     },
     isActive: active,
     remainderMs: () => remainder,
+    pendingMs() {
+      if (!active() || baseline === null) return remainder;
+      const now = readNow();
+      if (now === null) return remainder;
+      const delta = now - baseline;
+      return delta > 0 && delta <= MAX_GAP_MS ? remainder + delta : remainder;
+    },
+    inputLagMs(eventTime) {
+      const now = readNow();
+      if (now === null || !Number.isFinite(eventTime) || intervalStart === null) return 0;
+      return Math.min(Math.max(0, now - eventTime), Math.max(0, now - intervalStart), MAX_GAP_MS);
+    },
     dispose() {
       if (disposed) return;
       disposed = true;

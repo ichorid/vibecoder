@@ -29,7 +29,7 @@ test('FEED and PET act on the real cat; PET cooldown is cosmetic only', async ({
   await page.getByRole('button', { name: 'PET' }).click();
   await page.getByRole('button', { name: 'PET' }).click();
   await expect(mood).toHaveText('88');
-  await expect(page.getByRole('button', { name: 'PLAY' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'PLAY' })).toBeEnabled();
 
   await page.getByRole('button', { name: '← GAME' }).click();
   await expect.poll(() => barWidth(page, 'mood-bar')).toBeGreaterThan(moodBefore);

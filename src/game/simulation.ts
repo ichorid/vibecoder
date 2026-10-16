@@ -1,4 +1,5 @@
-import { updateCat } from './cat';
+import { updateAttention, updateCat } from './cat';
+import { advanceSession, sessionOf, withSession } from './catPlaySession';
 import type { Catalog } from './catalog';
 import { deriveRates, roundAmount } from './economy';
 import { appendLog } from './log';
@@ -39,6 +40,11 @@ export function stepRun(run: RunState, stepMs: number, catalog: Catalog): Transi
   const cat = updateCat(next.cat, stepMs, catalog.balance.cat);
   next = { ...next, cat: cat.cat };
   if (cat.events.some((event) => event.type === 'died')) next = recordDeath(next, catalog, facts);
+  else if (next.catPlay) {
+    next = withSession(next, advanceSession(sessionOf(next), activeMs, catalog.balance.catPlay));
+  }
+  const attention = updateAttention(next.attention, next.cat, activeMs, catalog.balance.attention);
+  if (attention !== next.attention) next = { ...next, attention };
 
   return { run: next, facts };
 }
@@ -49,6 +55,7 @@ function recordDeath(run: RunState, catalog: Catalog, facts: GameFact[]): RunSta
   const dead: RunState = {
     ...run,
     cat: { ...run.cat, alive: false, health: 0, diedAtActiveMs: run.activeMs },
+    catPlay: null,
     history: [...run.history, { kind: 'cat', id: 'cat-died', activeMs: run.activeMs }],
   };
   return appendLog(dead, catalog.catText.conditions.dead, catalog);

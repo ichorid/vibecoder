@@ -38,6 +38,9 @@ export function createRun(seed: number, runId: string): RunState {
     unlockedTechnologyIds: [],
     upgradeLevels: {},
     pendingUnlockIds: [],
+    catPlay: null,
+    attention: { nextAtMs: null, visibleUntilMs: null, level: null, count: 0 },
+    catPlaySeq: 0,
     ending: null,
   };
 }

@@ -132,3 +132,32 @@ describe('runtime clock', () => {
     expect(t.steps()).toBe(0);
   });
 });
+
+describe('active time between steps and input timestamps', () => {
+  it('reports unsettled active time without stepping', () => {
+    const t = setup();
+    t.runtime.start();
+    t.clock.advance(250);
+    expect(t.runtime.pendingMs()).toBe(250);
+    t.runtime.settle();
+    expect(t.runtime.pendingMs()).toBe(50);
+    t.runtime.pause('hidden');
+    t.clock.advance(400);
+    expect(t.runtime.pendingMs()).toBe(50);
+  });
+
+  it('clamps input lag to the current active interval', () => {
+    const t = setup();
+    t.runtime.start();
+    t.clock.advance(500);
+    expect(t.runtime.inputLagMs(t.clock.now() - 30)).toBe(30);
+    expect(t.runtime.inputLagMs(t.clock.now() + 10)).toBe(0);
+    t.runtime.pause('blurred');
+    t.clock.advance(1000);
+    t.runtime.resume('blurred');
+    t.clock.advance(20);
+    // An event stamped before the resume cannot reach back into suspended time.
+    expect(t.runtime.inputLagMs(t.clock.now() - 500)).toBe(20);
+    expect(t.runtime.inputLagMs(Number.NaN)).toBe(0);
+  });
+});

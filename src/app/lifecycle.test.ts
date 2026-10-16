@@ -32,9 +32,18 @@ function setup() {
   const doc = fakeDocument();
   const win = new EventTarget();
   let suspensions = 0;
-  const detach = attachBrowserLifecycle(runtime, doc, win, () => {
-    suspensions += 1;
-  });
+  const detach = attachBrowserLifecycle(
+    {
+      isActive: () => runtime.isActive(),
+      suspend(reason) {
+        if (runtime.isActive()) suspensions += 1;
+        runtime.pause(reason);
+      },
+      resume: (reason) => runtime.resume(reason),
+    },
+    doc,
+    win,
+  );
   runtime.start();
   return { clock, runtime, doc, win, detach, steps: () => steps, suspensions: () => suspensions };
 }

@@ -1,6 +1,7 @@
 import { TECHNOLOGY_IDS, UPGRADE_IDS, isUpgradeId, type UpgradeId } from '../game/ids';
 import {
   CAT_HISTORY_IDS,
+  type CatPlayState,
   type CatState,
   type HistoryEntry,
   type LogEntry,
@@ -23,7 +24,16 @@ import { CURRENT_SCHEMA_VERSION, migrate } from './migrations';
 export { CURRENT_SCHEMA_VERSION };
 export const SAVE_KEY = 'vibe-coder.save';
 export const CONTENT_VERSION = 1;
-const CARE_NOTES = ['nom', 'notHungry', 'tooMuch', 'spherical', 'purr'] as const;
+const CARE_NOTES = [
+  'nom',
+  'notHungry',
+  'tooMuch',
+  'spherical',
+  'purr',
+  'playWin',
+  'playLose',
+] as const;
+const OUTCOMES = ['hit', 'near', 'miss'] as const;
 
 export const THEMES = ['light', 'dark'] as const;
 export type Theme = (typeof THEMES)[number];
@@ -78,6 +88,60 @@ function decodeLastCare(value: unknown, path: string): CatState['lastCare'] {
   return {
     note: oneOf(raw.note, `${path}.note`, CARE_NOTES),
     atActiveMs: num(raw.atActiveMs, `${path}.atActiveMs`, nonNegative),
+  };
+}
+
+function decodeAttention(value: unknown, path: string): RunState['attention'] {
+  const raw = record(value, path);
+  return {
+    nextAtMs: nullableNum(raw.nextAtMs, `${path}.nextAtMs`, nonNegative),
+    visibleUntilMs: nullableNum(raw.visibleUntilMs, `${path}.visibleUntilMs`, nonNegative),
+    level:
+      raw.level === null ? null : oneOf(raw.level, `${path}.level`, ['small', 'large'] as const),
+    count: num(raw.count, `${path}.count`, { min: 0, integer: true }),
+  };
+}
+
+function decodeCatPlay(value: unknown, path: string): CatPlayState | null {
+  if (value === null) return null;
+  const raw = record(value, path);
+  const target = record(raw.target, `${path}.target`);
+  const width = num(target.width, `${path}.target.width`, { min: 0.01, max: 1 });
+  const play: CatPlayState = {
+    attemptNumber: num(raw.attemptNumber, `${path}.attemptNumber`, {
+      min: 1,
+      max: 10,
+      integer: true,
+    }),
+    attemptId: num(raw.attemptId, `${path}.attemptId`, { min: 1, integer: true }),
+    attemptStartMs: num(raw.attemptStartMs, `${path}.attemptStartMs`, nonNegative),
+    movementOriginMs: num(raw.movementOriginMs, `${path}.movementOriginMs`, nonNegative),
+    movementEndMs: num(raw.movementEndMs, `${path}.movementEndMs`, nonNegative),
+    attemptEndMs: num(raw.attemptEndMs, `${path}.attemptEndMs`, nonNegative),
+    cueUntilMs: nullableNum(raw.cueUntilMs, `${path}.cueUntilMs`, nonNegative),
+    target: {
+      start: num(target.start, `${path}.target.start`, { min: 0, max: 1 - width + 1e-9 }),
+      width,
+    },
+    speed: num(raw.speed, `${path}.speed`, { min: 0.01, max: 5 }),
+    outcome: raw.outcome === null ? null : decodeOutcome(raw.outcome, `${path}.outcome`),
+    previous: list(raw.previous, `${path}.previous`, (e, p) => oneOf(e, p, OUTCOMES), 10),
+  };
+  const ordered =
+    play.attemptStartMs <= play.movementOriginMs &&
+    play.movementOriginMs <= play.movementEndMs &&
+    play.movementEndMs <= play.attemptEndMs;
+  if (!ordered) fail(path, 'inconsistent attempt timeline');
+  return play;
+}
+
+function decodeOutcome(value: unknown, path: string): NonNullable<CatPlayState['outcome']> {
+  const raw = record(value, path);
+  return {
+    kind: oneOf(raw.kind, `${path}.kind`, OUTCOMES),
+    moodGain: num(raw.moodGain, `${path}.moodGain`, { min: 0, max: 100 }),
+    atMs: num(raw.atMs, `${path}.atMs`, nonNegative),
+    position: num(raw.position, `${path}.position`, { min: 0, max: 1 }),
   };
 }
 
@@ -171,8 +235,15 @@ export function decodeRun(value: unknown, path = 'run'): RunState {
     ),
     upgradeLevels: decodeUpgradeLevels(raw.upgradeLevels, `${path}.upgradeLevels`),
     pendingUnlockIds: uniqueList(raw.pendingUnlockIds, `${path}.pendingUnlockIds`, TECHNOLOGY_IDS),
+    catPlay: decodeCatPlay(raw.catPlay, `${path}.catPlay`),
+    attention: decodeAttention(raw.attention, `${path}.attention`),
+    catPlaySeq: num(raw.catPlaySeq, `${path}.catPlaySeq`, { min: 0, integer: true }),
     ending: raw.ending === null ? null : fail(`${path}.ending`, 'expected null'),
   };
+  if (run.catPlay && !run.cat.alive) fail(`${path}.catPlay`, 'play session with a dead cat');
+  if (run.catPlay && run.catPlay.attemptId > run.catPlaySeq) {
+    fail(`${path}.catPlay`, 'attempt ID ahead of sequence');
+  }
   if (run.pendingUnlockIds.some((id) => !run.unlockedTechnologyIds.includes(id))) {
     fail(`${path}.pendingUnlockIds`, 'pending unlock that is not unlocked');
   }

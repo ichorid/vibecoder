@@ -199,3 +199,38 @@ Temporary: memorial photos and cat portraits are inline pixel maps (P06 replaces
 
 `npm run check` OK; `test:game` 143/143; `test:browser` 11/11; build OK.
 Next: P05.1.
+
+## Task: P05 (PLAY, honest input, intrusive cat)
+
+Status: **done** (desktop-emulated; real touch fairness not verified)
+
+### P05.1 attempt geometry
+
+Files: `src/game/catPlay.ts`, `catPlay.test.ts`, `catPlayBalance`.
+RED: 9/12 failed against stubs. GREEN: triangle wave 0→1→0, `mousePosition(speed, elapsedMs)`, inclusive-edge `scoreAttempt` with near ≤0.03 (epsilon for float edges), targets 15–30 % inside the track, speed 0.40–0.75 clamped so one target crossing ≥200 ms.
+
+### P05.2 three attempts and rewards
+
+Files: `src/game/catPlaySession.ts`, `catPlaySession.test.ts`, commands/types/decoder.
+RED: 9/9 failed against stubs. GREEN: ready 300 / movement 4 000 / result 300 ms per attempt (13.8 s session); early hit fixes the result but the next attempt waits for the slot; stale/duplicate attempt IDs rejected; timeout → miss; hit seeded 8–12, near +1, cap 100; no completion bonus; leave cancels; second session/dead cat rejected; session state persisted and validated.
+
+### P05.3 DOM track and input
+
+Files: `src/ui/CatPlay.svelte`, `src/app/frameLoop.ts` (disposable rAF helper), runtime `pendingMs`/`inputLagMs`, `dispatch(command, { timeStamp })`, `tests/browser/cat-play.spec.ts`.
+GREEN: track inside Cat view (no route); mouse transform from the shared active clock each frame using the same `playPosition`; catch judged at the normalized event timestamp (clamped to the active interval); pointerdown + following click scores once; Space works, auto-repeat ignored, Enter works; track fits 320/390 px. Runtime additions tested (written alongside, no separate RED run).
+
+### P05.4 pause, resume, leave, death
+
+Files: `src/app/catPlayLifecycle.test.ts`, `createGame.resume`, `lifecycle.ts` (now drives the composed game), bootstrap resume after reload.
+GREEN: background freezes the attempt (no active time), resume inserts a 500 ms cue and shifts the movement origin so position is continuous; needs/economy get no extra pause; reload restores the same attempt (App reopens Cat for a live session — decision D9); leave cancels; death cancels and later input is rejected. Mutation check: removing the resume dispatch fails the cue test.
+
+### P05.5 foreground attention
+
+Files: `cat.ts` (`updateAttention`, `visibleAttention`), `attentionBalance`, `ui/CatOverlay.svelte`, `tests/browser/attention.spec.ts`, fixtures `lonelyRun()`.
+RED: 4/5 failed against a null schedule. GREEN: mood 20–39 → small for 4 s every 45 s; <20 → large for 6 s every 25 s; first after one interval from first observation; never queued; hidden when mood recovers, dead, ended, or outside Game. Browser: large intrusion is the element under the primary button's centre, tapping it opens Cat, HISTORY/CAT stay usable; small one smaller than the button. Placement only on present surfaces (visual review found the card spot off-screen without cards).
+
+### Exit gate
+
+`npm run check` OK; `test:game` 177/177; `test:browser` 17/17; build OK (initial JS 36 KiB gzip).
+Not verified: real touch timing on iOS/Android (P11.3).
+Next: P06.1.
