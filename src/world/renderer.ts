@@ -461,6 +461,20 @@ export async function createPixiRenderer(
       publishState();
       app.render();
     },
+    onContext(listener) {
+      // preventDefault lets the browser restore the context; the host then rebuilds.
+      const lost = (event: Event) => {
+        event.preventDefault();
+        listener('lost');
+      };
+      const restored = () => listener('restored');
+      app.canvas.addEventListener('webglcontextlost', lost);
+      app.canvas.addEventListener('webglcontextrestored', restored);
+      return () => {
+        app.canvas.removeEventListener('webglcontextlost', lost);
+        app.canvas.removeEventListener('webglcontextrestored', restored);
+      };
+    },
     destroy() {
       app.ticker.remove(tick);
       app.destroy({ removeView: true }, { children: true, texture: false });

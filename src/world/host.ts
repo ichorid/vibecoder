@@ -12,9 +12,18 @@ export interface RendererPort {
   setActive(active: boolean): void;
   update(world: WorldProjection): void;
   destroy(): void;
+  /** Graphics context lost/restored (WebGL); returns an unsubscribe function. */
+  onContext?(listener: (event: 'lost' | 'restored') => void): () => void;
 }
 
 export type RendererFactory = (parent: HTMLElement) => Promise<RendererPort>;
+
+/** ok: drawing; lost: context gone (the app pauses the game); failed: rebuild failed (retry). */
+export type WorldStatus = 'ok' | 'lost' | 'failed';
+
+export interface WorldHostOptions {
+  readonly onStatus?: (status: WorldStatus) => void;
+}
 
 export interface WorldHost {
   mount(parent: HTMLElement): void;
@@ -23,34 +32,50 @@ export interface WorldHost {
   update(world: WorldProjection): void;
   dispose(): void;
   failed(): boolean;
+  /** After a loss: rebuild the renderer now (also used after a failed rebuild). */
+  retry(): void;
   readonly ready: Promise<void>;
+  /** Resolves when the current recovery attempt finished (tests and UI). */
+  recovered(): Promise<void>;
 }
 
 /**
- * Owns one renderer for the application's lifetime: created once on first mount, kept alive
- * across view switches (only activity toggles), destroyed exactly once on dispose. Requests
- * made before the asynchronous renderer is ready are applied when it arrives.
+ * Owns one renderer at a time: created on first mount, kept alive across view switches (only
+ * activity toggles), destroyed exactly once on dispose. Requests made before the asynchronous
+ * renderer is ready are applied when it arrives. When the graphics context is lost the host
+ * reports `lost`; on restore (or an explicit retry) it destroys the old renderer and builds a
+ * new one from the latest projection with the same scene builder — never a separate algorithm.
  */
-export function createWorldHost(factory: RendererFactory): WorldHost {
+export function createWorldHost(
+  factory: RendererFactory,
+  options: WorldHostOptions = {},
+): WorldHost {
   let renderer: RendererPort | null = null;
+  let parentElement: HTMLElement | null = null;
   let started = false;
   let disposed = false;
-  let destroyed = false;
   let failed = false;
   let size: { width: number; height: number } | null = null;
   let latest: WorldProjection | null = null;
   let active = false;
   let appliedActive: boolean | null = null;
+  let unsubscribe: () => void = () => {};
+  let recovery: Promise<void> = Promise.resolve();
   let markReady: () => void = () => {};
   const ready = new Promise<void>((resolve) => {
     markReady = resolve;
   });
 
-  const destroy = () => {
-    if (destroyed || !renderer) return;
-    destroyed = true;
-    renderer.destroy();
-  };
+  const status = (next: WorldStatus) => options.onStatus?.(next);
+
+  function release(): void {
+    unsubscribe();
+    unsubscribe = () => {};
+    const old = renderer;
+    renderer = null;
+    appliedActive = null;
+    old?.destroy();
+  }
 
   const applyActive = () => {
     if (!renderer || disposed || appliedActive === active) return;
@@ -58,28 +83,53 @@ export function createWorldHost(factory: RendererFactory): WorldHost {
     renderer.setActive(active);
   };
 
+  function attach(created: RendererPort): void {
+    renderer = created;
+    unsubscribe =
+      created.onContext?.((event) => {
+        if (event === 'lost') status('lost');
+        else rebuild();
+      }) ?? (() => {});
+    if (size) created.resize(size.width, size.height);
+    if (latest) created.update(latest);
+    applyActive();
+  }
+
+  function create(): Promise<boolean> {
+    if (!parentElement) return Promise.resolve(false);
+    return factory(parentElement).then(
+      (created) => {
+        if (disposed) {
+          created.destroy();
+          return false;
+        }
+        attach(created);
+        return true;
+      },
+      () => false,
+    );
+  }
+
+  function rebuild(): void {
+    if (disposed) return;
+    release();
+    recovery = create().then((ok) => {
+      failed = !ok;
+      if (!disposed) status(ok ? 'ok' : 'failed');
+    });
+  }
+
   return {
     ready,
+    recovered: () => recovery,
     mount(parent) {
       if (started) return;
       started = true;
-      factory(parent).then(
-        (created) => {
-          renderer = created;
-          if (disposed) {
-            destroy();
-          } else {
-            if (size) created.resize(size.width, size.height);
-            if (latest) created.update(latest);
-            applyActive();
-          }
-          markReady();
-        },
-        () => {
-          failed = true;
-          markReady();
-        },
-      );
+      parentElement = parent;
+      void create().then((ok) => {
+        if (!ok && !disposed) failed = true;
+        markReady();
+      });
     },
     resize(width, height) {
       size = { width, height };
@@ -93,10 +143,11 @@ export function createWorldHost(factory: RendererFactory): WorldHost {
       latest = world;
       if (renderer && !disposed) renderer.update(world);
     },
+    retry: () => rebuild(),
     dispose() {
       if (disposed) return;
       disposed = true;
-      destroy();
+      release();
     },
     failed: () => failed,
   };

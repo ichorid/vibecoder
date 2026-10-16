@@ -3,6 +3,7 @@ import { createRun } from '../game/createRun';
 import {
   createProfile,
   createSaveAdapter,
+  recoverProfile,
   type LoadResult,
   type SaveAdapter,
   type StorageLike,
@@ -46,6 +47,8 @@ export type Boot =
   | {
       kind: 'recovery';
       load: Extract<LoadResult, { status: 'corrupt' | 'unsupported' }>;
+      /** Discovered endings survive a new run only if the old profile validates on its own. */
+      keepsEndings: boolean;
       startNew: () => void;
     };
 
@@ -59,15 +62,17 @@ export function bootGame(): Boot {
   const loaded: LoadResult = adapter ? adapter.load() : { status: 'empty' };
 
   if (loaded.status === 'corrupt' || loaded.status === 'unsupported') {
+    const recovered = loaded.status === 'corrupt' ? recoverProfile(loaded.raw) : null;
     return {
       kind: 'recovery',
       load: loaded,
+      keepsEndings: (recovered?.endings.length ?? 0) > 0,
       startNew: () => {
         adapter?.write({
           schemaVersion: 1,
           contentVersion: 1,
           revision: 0,
-          profile: createProfile(),
+          profile: recovered ?? createProfile(),
           run: createRun(newSeed(), newRunId()),
         });
       },

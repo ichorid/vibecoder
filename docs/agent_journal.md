@@ -74,6 +74,9 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   one lazy module `src/app/gameAudio.ts`; demo pack only with `VITE_MUSIC_PACK=demo` on the dev
   server. Browser playback proof = routed test-pack fixture + `AudioScheduledSourceNode.start`
   counting (test-only). Remembered "Sound on" resumes on the first gesture of a visit.
+- D22 (P10) Tab ownership: Web Lock claimed before boot (waiting tab never loads the save);
+  fallback = storage-event revision check (best effort). Graphics context loss = app commands
+  `graphicsPause/graphicsResume` → runtime pause reason `graphics`. Save fixtures = real v1 saves.
 - D5 (P02) App-level commands (`retrySave`, `setTheme`) go through the same public
   `dispatch` as game commands, so UI still sees only `{subscribe, dispatch}`.
 
@@ -118,6 +121,10 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   replaced" instead of "nothing cancelled".
 - F10 (S03) Offline probes must use the audio clock (`context.setTimeout`); transport-time
   offsets are converted to ticks at the tempo current when scheduled, so they lie after a BPM change.
+- F11 (P10) CDP `Page.setWebLifecycleState: frozen` does not freeze a visible headless page (no
+  `freeze` event). Lifecycle browser tests dispatch synthetic events; real freezes need devices.
+- F12 (P10) A `disabled` button that has focus drops focus to `<body>`, so a dialog's Escape
+  handler stops working — use `aria-disabled` for transient "busy" states.
 
 ## Progress log
 
@@ -160,3 +167,5 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
 - 2026-10-16: S07 done (Settings sound/music live, tech→era binding JSON, lifecycle/ending/
   restart, care SFX without cat-driven music, Lab round trip). game 347, music 159,
   music-browser 15, browser 43. Next: main P10 (P10.6 can now pass), then P11, then S08/S09.
+- 2026-10-16: P10 done headless (save fixtures/recovery, tab lock, lifecycle, context loss,
+  mobile DOM, settings gate). game 363, browser 58. Device items unverified. Next P11.

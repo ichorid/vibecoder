@@ -6,7 +6,7 @@ export const STEP_MS = 100;
 /** A larger scheduling gap is treated as suspension and discarded rather than caught up. */
 export const MAX_GAP_MS = 1000;
 
-export type PauseReason = 'hidden' | 'blurred' | 'frozen' | 'loading';
+export type PauseReason = 'hidden' | 'blurred' | 'frozen' | 'loading' | 'graphics';
 
 export interface MonotonicClock {
   now(): number;

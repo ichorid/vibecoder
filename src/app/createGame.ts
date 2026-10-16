@@ -67,6 +67,8 @@ export interface Game {
   /** Current active time including the not-yet-stepped part (presentation only). */
   activeNow(): number;
   isActive(): boolean;
+  /** Revision of the last successful write (tab-ownership fallback). */
+  revision(): number;
   saveNow(): void;
   dispose(): void;
 }
@@ -172,6 +174,14 @@ export function createGame(options: GameOptions): Game {
         profile = { ...profile, theme: command.theme };
         write();
         break;
+      case 'graphicsPause':
+        // Nothing may starve or progress while the player cannot see the world.
+        runtime.pause('graphics');
+        if (run !== lastSavedRun) write();
+        break;
+      case 'graphicsResume':
+        runtime.resume('graphics');
+        break;
       case 'restart': {
         if (!options.newRun) return 'unavailable';
         runtime.settle();
@@ -192,7 +202,13 @@ export function createGame(options: GameOptions): Game {
    * interval, so timing input is judged when it happened, not at the last drawn frame.
    */
   function dispatch(command: GameCommand | AppCommand, input?: InputTiming): CommandResult {
-    if (command.type === 'retrySave' || command.type === 'setTheme' || command.type === 'restart') {
+    if (
+      command.type === 'retrySave' ||
+      command.type === 'setTheme' ||
+      command.type === 'restart' ||
+      command.type === 'graphicsPause' ||
+      command.type === 'graphicsResume'
+    ) {
       return dispatchApp(command);
     }
     dispatching = true;
@@ -230,6 +246,7 @@ export function createGame(options: GameOptions): Game {
     },
     activeNow: () => run.activeMs + runtime.pendingMs(),
     isActive: () => runtime.isActive(),
+    revision: () => revision,
     saveNow() {
       write();
       publish();

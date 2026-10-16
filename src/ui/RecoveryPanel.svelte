@@ -2,11 +2,13 @@
   interface Props {
     reason: string;
     unsupported: boolean;
+    /** The old profile validated on its own: a new run keeps its discovered endings. */
+    keepsEndings?: boolean;
     onRetry: () => void;
     onStartNew: () => void;
   }
 
-  const { reason, unsupported, onRetry, onStartNew }: Props = $props();
+  const { reason, unsupported, keepsEndings = false, onRetry, onStartNew }: Props = $props();
   let confirming = $state(false);
 </script>
 
@@ -19,6 +21,11 @@
     It has been left untouched.
   </p>
   <p class="reason">{reason}</p>
+  <p class="note" data-testid="recovery-endings">
+    {keepsEndings
+      ? 'A new run keeps the endings you have already discovered.'
+      : 'A new run starts with no discovered endings.'}
+  </p>
   <div class="actions">
     <button type="button" onclick={onRetry}>RETRY</button>
     {#if confirming}

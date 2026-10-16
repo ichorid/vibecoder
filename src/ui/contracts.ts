@@ -16,7 +16,12 @@ export type ViewId = 'game' | 'history' | 'cat';
 
 /** Commands handled by app composition rather than the simulation. */
 export type AppCommand =
-  { type: 'retrySave' } | { type: 'setTheme'; theme: Theme } | { type: 'restart' };
+  | { type: 'retrySave' }
+  | { type: 'setTheme'; theme: Theme }
+  | { type: 'restart' }
+  /** The world's graphics context was lost / is back: pause and resume the simulation. */
+  | { type: 'graphicsPause' }
+  | { type: 'graphicsResume' };
 
 export type UiCommand = GameCommand | AppCommand;
 

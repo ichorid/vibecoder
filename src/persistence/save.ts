@@ -398,6 +398,21 @@ export function decodeSave(input: unknown, rawText = ''): LoadResult {
   }
 }
 
+/**
+ * From an unreadable save, recover only the profile (theme and discovered endings) — and only
+ * when that part validates on its own with the same strict decoder. Never digs facts out of a
+ * broken object by assertion; anything doubtful yields null.
+ */
+export function recoverProfile(rawText: string): ProfileState | null {
+  try {
+    const envelope = record(JSON.parse(rawText) as unknown, 'save');
+    if (envelope.schemaVersion !== CURRENT_SCHEMA_VERSION) return null;
+    return decodeProfile(envelope.profile);
+  } catch {
+    return null;
+  }
+}
+
 function safeStringify(value: unknown): string {
   try {
     return JSON.stringify(value) ?? String(value);

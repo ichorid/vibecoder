@@ -140,3 +140,17 @@ test('Settings → Music Lab → back keeps the same run and shares the audio pr
   expect(after.run.id).toBe(saved.run.id);
   expect(after.run.activeMs).toBeLessThan(saved.run.activeMs + 1000);
 });
+
+test('an audio failure is reported, the menu still closes and the game goes on', async ({
+  page,
+}) => {
+  await page.route('**/assets/loader-*.js', (route) => route.abort());
+  await freshGame(page);
+  const dialog = await openSettings(page);
+  await dialog.getByRole('switch', { name: 'Sound' }).click();
+  await expect(dialog.getByTestId('sound-status')).toContainText('continues without sound');
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.getByTestId('settings-button')).toBeFocused();
+  await pressPrimary(page, 3);
+});

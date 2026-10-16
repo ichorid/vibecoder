@@ -13,7 +13,7 @@
   import Header from '../ui/Header.svelte';
   import HistoryView from '../ui/HistoryView.svelte';
   import SettingsMenu from '../ui/SettingsMenu.svelte';
-  import type { RendererFactory } from '../world/host';
+  import type { RendererFactory, WorldStatus } from '../world/host';
   import WorldCanvas from '../world/WorldCanvas.svelte';
   import { describeScene } from '../content/world';
   import { atlasUrl, memorialUrls } from './assetUrls';
@@ -54,6 +54,13 @@
       current = false;
     };
   });
+  /** World graphics: while the context is gone the game is paused (nothing can starve unseen). */
+  let worldStatus = $state<WorldStatus>('ok');
+  let retryWorld: () => void = () => {};
+  function onWorldStatus(status: WorldStatus) {
+    worldStatus = status;
+    api.dispatch({ type: status === 'ok' ? 'graphicsResume' : 'graphicsPause' });
+  }
   let settingsOpen = $state(false);
   let settingsButton: HTMLElement | null = null;
 
@@ -152,9 +159,23 @@
       />
     {/if}
     {#if $api.save.status === 'failed'}
-      <p class="save-warning" role="status">
-        Progress could not be saved.
+      <p class="save-warning" role="status" data-testid="save-warning">
+        Progress could not be saved. It is kept while this page stays open.
         <button type="button" onclick={() => api.dispatch({ type: 'retrySave' })}>RETRY</button>
+      </p>
+    {:else if worldStatus !== 'ok'}
+      <p class="save-warning" role="status" data-testid="graphics-warning">
+        The picture was lost, so the game is paused.
+        {#if worldStatus === 'failed'}
+          <button type="button" onclick={() => retryWorld()}>RETRY</button>
+        {:else}
+          Waiting for the browser to restore it…
+          <button type="button" onclick={() => retryWorld()}>RETRY NOW</button>
+        {/if}
+      </p>
+    {:else if $api.save.status === 'disabled'}
+      <p class="save-warning" role="status" data-testid="save-warning">
+        This browser does not allow saving here: progress lasts only for this visit.
       </p>
     {/if}
     <div class="view" hidden={view !== 'game'}>
@@ -173,6 +194,8 @@
             description={describeScene($api.world.technologyIds, $api.world.cat.alive)}
             {atlasUrl}
             {...createRenderer ? { createRenderer } : {}}
+            onStatus={onWorldStatus}
+            onRetryReady={(retry: () => void) => (retryWorld = retry)}
           />
         {/snippet}
       </GameView>

@@ -366,3 +366,36 @@ GREEN: success with living and dead cat (`you-have-been-optimized` route test ru
 `npm run check` OK; `test:game` 330/330; `test:browser` 30/30; build within budgets (entry 51.9 KiB gzip). Main route still 31.8 active min.
 Not done: P09.6 extension endings (optional).
 Next: sound plan S00 (P10 depends on S07), then P10.
+
+## P10 — saves, tabs and recovery on the mobile web
+
+Status: **done headless**; real-device items (iOS/Android app switch, screen lock, audio unlock) **not verified** — no device available in this environment.
+
+### P10.1 save versions and storage failures
+
+Schema 1 is the first released format (it only evolved during development, never shipped), so there is no invented v0: `tests/fixtures/saves/v1-{fresh,midgame,dead-cat,ended}.json` are real saves produced by real game paths (Prettier-ignored, regenerated only with `UPDATE_FIXTURES=1`) and must re-encode byte for byte (`src/persistence/fixtures.test.ts`). Mid-game keeps RNG/pending reveal/cooldowns; dead stays dead; ended stays ended. Future schema → unsupported; unknown IDs / out-of-range values → corrupt; the stored text is never rewritten. New `recoverProfile(raw)`: after a corrupt save a new run keeps theme and discovered endings only if the profile validates on its own with the strict decoder (RED 1/8 first; the fixture identity cases passed at once). UI: unavailable storage now says "progress lasts only for this visit" (previously silent); the quota banner says the run is kept in memory. Browser `storage.spec.ts`: no storage, full quota + RETRY (race-tolerant: a periodic save may win), corrupt save untouched + endings kept.
+
+### P10.2 one writing tab
+
+`src/app/saveOwnership.ts` (+ tests, RED 3/3): the page claims an exclusive Web Lock **before booting**; a second tab shows `ui/TabPanel.svelte` ("open in another tab") and boots only when granted, therefore from the then-latest save. Without Web Locks: best effort — a `storage` event with a newer revision stops the tab (dispose, detach listeners, "continued in another tab" + CONTINUE HERE); simultaneous first writes are not prevented there. `Game.revision()` added. Browser `tabs.spec.ts`: two real pages with locks (waiting tab never writes; takes over with the first tab's progress) and without locks.
+
+### P10.3 lifecycle
+
+`src/app/recovery.test.ts` (regression, passed at once): an ended run stays ended with no output; a 45-minute main-thread stall gives ≤ 1 step and no starvation; stacked blur/hidden/frozen pauses resume once without double counting. **Finding (journal F11):** CDP `Page.setWebLifecycleState: frozen` delivers no `freeze` event to a visible headless page, so `lifecycle.spec.ts` dispatches synthetic hidden/freeze/pagehide events in the real browser (time away not counted). Real app switch / bfcache / screen lock: not verified on devices.
+
+### P10.4 graphics context and assets
+
+`WorldHost` handles `lost`/`restored` from the renderer (`RendererPort.onContext`; Pixi canvas `webglcontextlost` with `preventDefault` and `webglcontextrestored`) and rebuilds a fresh renderer from the latest projection with the same scene builder; a failed rebuild stays `failed` with RETRY (RED 2/2). App: `graphicsPause`/`graphicsResume` app commands → runtime pause reason `graphics` (+ save), banner "the game is paused". Browser `context-loss.spec.ts` with `WEBGL_lose_context`: paused while lost (activeMs frozen), same sprite count after restore, one canvas, same run and living cat. Failed illustrations already fall back (P06).
+
+### P10.5 mobile DOM, input, accessibility
+
+`mobile.spec.ts` (passed at once): 320×568 / 390×844 / 430×932 mid-game keeps primary action (≥ 44 px) and a card on screen without horizontal overflow; rotation/resizes keep the run and the single world (same sprites); History scrolls at 320×568 with the header reachable; reduced motion keeps discovery text and bars; dark theme bars ≥ 3:1 against the track. Earlier specs keep keyboard reachability and geometry.
+
+### P10.6 production settings and Music Lab
+
+Covered by the S07 shared flow (`sound.spec.ts`, `settings.spec.ts`): Sound on/off drives the real controller, preference survives reload, no audio before a gesture, Settings → Music → Music Lab → back keeps the same run without ticking in the Lab. New: an audio load failure is reported ("continues without sound"), the menu still closes with focus returned, and the game goes on — this exposed a real bug: the Sound switch was `disabled` while loading, which dropped keyboard focus out of the menu (fixed with `aria-disabled`).
+
+### Exit gate
+
+`npm run check` OK; `test:game` 363/363; `test:music` 159/159; `test:music-browser` 15/15; `test:browser` 58/58; build within budgets (game initial JS 234 KiB gzip).
+Not verified: real iOS/Android lifecycle, audio unlock, context loss on mobile GPUs. Next: P11.

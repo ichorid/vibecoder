@@ -9,3 +9,4 @@ public/assets
 THIRD_PARTY_NOTICES.md
 src/music/data/pack.*.json
 tests/browser/fixtures/*.json
+tests/fixtures/saves/*.json

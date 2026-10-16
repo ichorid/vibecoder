@@ -1,6 +1,11 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { createWorldHost, type RendererFactory, type WorldProjection } from './host';
+  import {
+    createWorldHost,
+    type RendererFactory,
+    type WorldProjection,
+    type WorldStatus,
+  } from './host';
 
   interface Props {
     world: WorldProjection;
@@ -8,16 +13,26 @@
     description: string;
     atlasUrl: (theme: 'light' | 'dark') => string;
     createRenderer?: RendererFactory;
+    /** Graphics context lost/back/failed: the app pauses the game while the world is gone. */
+    onStatus?: (status: WorldStatus) => void;
+    /** Receives the retry action once the host exists. */
+    onRetryReady?: (retry: () => void) => void;
   }
 
-  const { world, active, description, atlasUrl, createRenderer }: Props = $props();
+  const { world, active, description, atlasUrl, createRenderer, onStatus, onRetryReady }: Props =
+    $props();
   let element: HTMLDivElement | undefined = $state();
 
   /** Pixi loads in its own chunk after the DOM shell is interactive. */
   const lazyPixi: RendererFactory = async (parent) =>
     (await import('./renderer')).createPixiRenderer(parent, { atlasUrl });
 
-  const host = createWorldHost((parent) => (createRenderer ?? lazyPixi)(parent));
+  const host = createWorldHost((parent) => (createRenderer ?? lazyPixi)(parent), {
+    onStatus: (status) => onStatus?.(status),
+  });
+  $effect(() => {
+    onRetryReady?.(() => host.retry());
+  });
 
   onMount(() => {
     if (!element) return;

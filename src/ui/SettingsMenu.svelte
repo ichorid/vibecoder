@@ -69,8 +69,12 @@
         aria-labelledby="sound-label"
         aria-checked={$audio.soundOn}
         aria-describedby="sound-status"
-        disabled={!$audio.available || $audio.status === 'loading'}
-        onclick={() => void audio.setSound(!$audio.soundOn)}
+        disabled={!$audio.available}
+        aria-disabled={$audio.status === 'loading'}
+        onclick={() => {
+          // Not `disabled` while loading: that would drop keyboard focus out of the menu.
+          if ($audio.status !== 'loading') void audio.setSound(!$audio.soundOn);
+        }}
       >
         {$audio.soundOn ? 'ON' : 'OFF'}
       </button>
