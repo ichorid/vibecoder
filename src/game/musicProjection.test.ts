@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { catalog } from '../content/catalog';
-import { act, clickAndSettle } from '../../tests/helpers/run';
+import { act, AUTOCOMPLETE_PRICE, clickAndSettle } from '../../tests/helpers/run';
 import { createRun } from './createRun';
 import { selectMusicProjection } from './selectors';
 import type { RunState } from './types';
@@ -8,7 +8,7 @@ import type { RunState } from './types';
 describe('music projection', () => {
   it('carries only unlocked technology IDs, the ended flag and the run ID', () => {
     const run = act(
-      clickAndSettle(createRun(1, 'r'), 10, catalog),
+      clickAndSettle(createRun(1, 'r'), AUTOCOMPLETE_PRICE, catalog),
       { type: 'buyUpgrade', id: 'autocomplete' },
       catalog,
     );

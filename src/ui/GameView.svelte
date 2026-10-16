@@ -76,10 +76,14 @@
     // The gain of *this* press is read before dispatching; nothing floats if it adds nothing.
     const gain = game.primaryAction.gain;
     const observing = game.primaryAction.id === 'observe';
+    // Faster than the fingers can type: the press fizzles visibly (pacing, not lag).
+    const capped = !game.primaryAction.ready && !observing;
     if (dispatch({ type: 'primaryAction' }) !== 'applied' || (!gain && !observing)) return;
-    const text = gain
-      ? gainText(gain, formatAmount)
-      : (OBSERVE_GAINS[observed++ % OBSERVE_GAINS.length] ?? '+1 boredom');
+    const text = capped
+      ? 'typing…'
+      : gain
+        ? gainText(gain, formatAmount)
+        : (OBSERVE_GAINS[observed++ % OBSERVE_GAINS.length] ?? '+1 boredom');
     const target = event.currentTarget as HTMLElement;
     const rect = target.getBoundingClientRect();
     const fromPointer = event.detail > 0 && rect.width > 0;
@@ -164,6 +168,35 @@
       <span class="offer-effects" data-testid="offer-effects">▸ {effects.join(' · ')}</span>
     {/if}
   {/snippet}
+  {#snippet shipStrip()}
+    {#if game.release && !game.ending}
+      {@const r = game.release}
+      <!-- Ship It has its own strip (outside the three cards): always the next release. -->
+      <button
+        type="button"
+        class="ship-strip"
+        class:ready={r.affordable}
+        data-release={r.window}
+        data-testid="ship-strip"
+        disabled={!r.affordable}
+        aria-label="{r.title}: {formatAmount(r.price)} code, spends all your code, {Number(
+          (r.retireChance * 100).toFixed(2),
+        )}% chance to retire"
+        onclick={ship}
+      >
+        <span class="ship-icon" aria-hidden="true"><PixelIcon map={RELEASE_ICON} scale={2} /></span>
+        <!-- One line on a 320 px phone: what is left to earn, or the odds once it can ship. -->
+        <span class="ship-text"
+          >{r.title} ·
+          <span class="currency" aria-hidden="true"><PixelIcon map={CODE_ICON} scale={2} /></span
+          >{#if r.affordable}{formatAmount(r.price)} · retire {Number(
+              (r.retireChance * 100).toFixed(2),
+            )}%{:else}{formatAmount(r.shortfall)} to go{/if}</span
+        >
+        <span class="ship-go">SHIP</span>
+      </button>
+    {/if}
+  {/snippet}
   {#snippet offerList()}
     <ul class="offers" aria-label="Upgrades">
       {#each game.offers as offer (offer.id)}
@@ -214,31 +247,6 @@
                     aria-hidden="true"
                     data-testid="price-code-icon"><PixelIcon map={CODE_ICON} scale={2} /></span
                   >{/if}{formatAmount(offer.price)}</span
-              >
-            </button>
-          {:else if offer.kind === 'release'}
-            <button
-              type="button"
-              class="offer release"
-              data-release={offer.window}
-              disabled={!offer.affordable}
-              aria-describedby="release-{offer.window}-desc"
-              onclick={ship}
-            >
-              <span class="card-icon" aria-hidden="true"
-                ><PixelIcon map={RELEASE_ICON} scale={3} /></span
-              >
-              <span class="offer-text">
-                <span class="offer-title">{offer.title}</span>
-                <span class="offer-desc" id="release-{offer.window}-desc">{offer.description}</span>
-                {@render effectLine(offer.effects)}
-              </span>
-              <span class="price ship"
-                ><span class="amount"
-                  ><span class="currency" aria-hidden="true" data-testid="price-code-icon"
-                    ><PixelIcon map={CODE_ICON} scale={2} /></span
-                  >{formatAmount(offer.price)}</span
-                ><span class="ship-label">SHIP</span></span
               >
             </button>
           {:else if confirming === offer.id}
@@ -309,7 +317,13 @@
       {/if}
     {:else}
       <div class="primary-host">
-        <button type="button" class="primary" data-testid="primary-action" onclick={primary}>
+        <button
+          type="button"
+          class="primary"
+          data-testid="primary-action"
+          data-ready={game.primaryAction.ready}
+          onclick={primary}
+        >
           <span class="action-icon" aria-hidden="true"
             ><PixelIcon map={ACTION_ICONS[game.primaryAction.id]} scale={3} /></span
           >{game.primaryAction.label}
@@ -373,6 +387,7 @@
         {@render offerList()}
       {/if}
     {/if}
+    {@render shipStrip()}
     {#if game.log.length > 0}
       <ol class="log" aria-label="Recent events">
         {#each game.log as line, i (i)}
@@ -489,6 +504,38 @@
     position: absolute;
     inset: 0 auto 0 0;
     background: #e8483c;
+  }
+  .ship-strip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 40px;
+    padding: 2px 8px;
+    border: 2px dashed #c99a1e;
+    background: color-mix(in srgb, #f6c945 10%, var(--panel));
+    font-size: 13px;
+    font-weight: 800;
+    text-align: left;
+    cursor: pointer;
+  }
+  .ship-strip:disabled {
+    cursor: not-allowed;
+    color: var(--ink-soft);
+  }
+  .ship-strip.ready {
+    border-style: solid;
+    background: color-mix(in srgb, #f6c945 30%, var(--panel));
+  }
+  .ship-text {
+    flex: 1;
+    min-width: 0;
+  }
+  .ship-go {
+    padding: 2px 6px;
+    border: 2px solid var(--border);
+    background: var(--panel-strong);
+    font-size: 11px;
+    letter-spacing: 0.08em;
   }
   .offers-toggle {
     display: flex;
@@ -659,26 +706,10 @@
   .offer.choice {
     border-style: dashed;
   }
-  .offer.release {
-    border-color: #c99a1e;
-    background: color-mix(in srgb, #f6c945 18%, var(--panel));
-  }
-  .ship {
-    display: flex;
-    flex-direction: column;
-    line-height: 1.1;
-  }
   .currency {
     display: inline-flex;
     vertical-align: middle;
     margin-right: 2px;
-  }
-  .amount {
-    white-space: nowrap;
-  }
-  .ship-label {
-    font-size: 11px;
-    letter-spacing: 0.08em;
   }
   .choose {
     font-size: 11px;
@@ -756,6 +787,15 @@
     }
     .offer-desc {
       display: none;
+    }
+    .controls {
+      gap: 6px;
+    }
+    .ship-strip {
+      min-height: 34px;
+    }
+    .log {
+      max-height: 4.5em;
     }
     .log li:nth-last-child(n + 4) {
       display: none;

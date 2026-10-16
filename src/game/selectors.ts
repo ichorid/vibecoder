@@ -1,7 +1,16 @@
 import { catConditions, visibleAttention, type CatConditions } from './cat';
 import type { ReadonlyPlay } from './catPlaySession';
 import type { CatPresentation, Catalog, StatId, UpgradeDefinition } from './catalog';
-import { automationFraction, deriveRates, offerPrice, tokenPack } from './economy';
+import {
+  automationFraction,
+  coordinationEfficiency,
+  deriveRates,
+  economyFlows,
+  offerPrice,
+  qualityEfficiency,
+  tokenDemandPerSecond,
+  tokenPack,
+} from './economy';
 import type {
   ChoiceId,
   EndingId,
@@ -70,10 +79,14 @@ export interface ReleaseOfferViewModel {
   readonly description: string;
   readonly price: number;
   readonly affordable: boolean;
+  /** Code still missing (0 when affordable). */
+  readonly shortfall: number;
+  /** The true chance of the gold slice on this release (0–1). */
+  readonly retireChance: number;
   readonly effects: readonly string[];
 }
 
-export type OfferViewModel = UpgradeOfferViewModel | ChoiceOfferViewModel | ReleaseOfferViewModel;
+export type OfferViewModel = UpgradeOfferViewModel | ChoiceOfferViewModel;
 
 /** One slice of the release wheel, in drawing order (the gold slice is last). */
 export interface WheelSliceViewModel {
@@ -145,9 +158,13 @@ export interface GameViewModel {
     readonly id: PrimaryActionId;
     readonly label: string;
     readonly gain: PrimaryGainViewModel | null;
+    /** A press would count right now (false: over the tap cap, it fizzles). */
+    readonly ready: boolean;
   };
   readonly stats: readonly StatViewModel[];
   readonly offers: readonly OfferViewModel[];
+  /** The next release, in its own strip outside the three cards (null before the project works). */
+  readonly release: ReleaseOfferViewModel | null;
   readonly announcement: AnnouncementViewModel | null;
   readonly log: readonly LogLineViewModel[];
   readonly ending: EndingViewModel | null;
@@ -195,7 +212,32 @@ const RECOVERY_PRIORITY = 20;
 /** Decision cards come after progression/recovery and before optional repeatables. */
 const CHOICE_PRIORITY = 30;
 
-function offerPriority(run: ReadonlyRun, upgrade: UpgradeDefinition): number {
+/**
+ * The optional card that relieves what binds right now: first among the optional cards, right
+ * after progression, recovery and decisions — it never hides an ending choice.
+ */
+const RELEVANT_PRIORITY = 31;
+
+/** Which optional card is relevant now, from the economy's own flows (one step ahead). */
+function relevantCard(run: ReadonlyRun, catalog: Catalog): string | null {
+  const rates = deriveRates(run, catalog);
+  if (rates.agents === 0) return null;
+  const flows = economyFlows(run.economy, rates, 0.1, catalog.balance);
+  const demand = tokenDemandPerSecond(rates);
+  if (demand > 0 && run.economy.tokens < demand * 30) return 'token-supply';
+  if (rates.compute < rates.agents) return 'compute-slot';
+  if (run.economy.debt > 20) return 'review-capacity';
+  const capacityBinds = flows.funded >= flows.demand - 1e-9;
+  if (capacityBinds && rates.managed >= rates.agents) return 'additional-agent';
+  return null;
+}
+
+function offerPriority(
+  run: ReadonlyRun,
+  upgrade: UpgradeDefinition,
+  relevant: string | null,
+): number {
+  if (upgrade.id === relevant) return Math.min(upgrade.priority, RELEVANT_PRIORITY);
   const rule = upgrade.recovery;
   if (rule?.tokensBelow !== undefined && run.economy.tokens < rule.tokensBelow) {
     return Math.min(upgrade.priority, RECOVERY_PRIORITY);
@@ -217,6 +259,14 @@ function statValue(run: ReadonlyRun, id: StatId, catalog: Catalog): number {
       return Math.floor(run.economy.revenue);
     case 'margin':
       return Math.round(run.economy.revenuePerSecond - run.economy.costPerSecond);
+    case 'quality':
+      return Math.round(qualityEfficiency(run.economy.debt) * 100);
+    case 'team': {
+      const rates = deriveRates(run, catalog);
+      return Math.round(
+        coordinationEfficiency(rates.managed, Math.min(rates.agents, rates.compute)) * 100,
+      );
+    }
   }
 }
 
@@ -230,7 +280,21 @@ function headerStats(run: ReadonlyRun, catalog: Catalog): StatViewModel[] {
     const stats = findTechnology(catalog, id)?.headerStats;
     if (stats) ids = stats;
   }
-  return ids
+  // The hidden couplings made visible (E2): QUALITY and TEAM appear while they hurt (< 95 %),
+  // taking the progress meter's (automation) slot first.
+  const pressure: StatId[] = [];
+  if (run.economy.debt > 0 && statValue(run, 'quality', catalog) < 95) pressure.push('quality');
+  if (run.unlockedTechnologyIds.length > 0 && statValue(run, 'team', catalog) < 95) {
+    pressure.push('team');
+  }
+  let shown = [...ids];
+  for (const id of pressure) {
+    const automation = shown.indexOf('automation');
+    if (automation >= 0) shown[automation] = id;
+    else if (shown.length < 6) shown.push(id);
+    else shown = [...shown.slice(0, 5), id];
+  }
+  return shown
     .slice(0, 6)
     .map((id) => ({ id, label: catalog.statLabels[id], value: statValue(run, id, catalog) }));
 }
@@ -270,6 +334,7 @@ export function selectGame(
   catalog: Catalog,
   discovered: readonly DeepReadonly<DiscoveredEnding>[] = [],
 ): GameViewModel {
+  const relevant = relevantCard(run, catalog);
   const action = currentPrimaryAction(run, catalog);
   const upgradeCards = catalog.upgrades
     .filter((upgrade) => isUpgradeOffered(run, upgrade))
@@ -294,7 +359,7 @@ export function selectGame(
             }
           : {}),
       };
-      return { card, order, priority: offerPriority(run, upgrade) };
+      return { card, order, priority: offerPriority(run, upgrade, relevant) };
     });
   const choiceCards = catalog.choices
     .filter((choice) => isChoiceOffered(run, choice))
@@ -318,46 +383,37 @@ export function selectGame(
       };
       return { card, order: 1000 + order, priority: CHOICE_PRIORITY };
     });
-  // The next release is always on offer (once the project works). It is a decision too, after
-  // the choices: an ending is never hidden behind a gamble.
-  const window = nextRelease(run, catalog);
-  const releaseCards = window
-    ? [
-        {
-          card: {
-            kind: 'release',
-            id: 'release',
-            window: window.window,
-            version: window.version,
-            title: window.title,
-            description: window.description,
-            price: window.price,
-            affordable: run.economy.output >= window.price,
-            effects: [
-              'spends ALL your code',
-              `${Number((jackpotHazard(catalog.releases, window.window) * 100).toFixed(2))}% chance to retire`,
-            ],
-          } satisfies ReleaseOfferViewModel as OfferViewModel,
-          order: 2000,
-          priority: CHOICE_PRIORITY,
-        },
-      ]
-    : [];
   // While a progression card is showing, at most two decision cards share the surface so the
   // route keeps room for the next discovery; at the end decisions may fill all three.
   const progressionShown = upgradeCards.some(
     ({ card }) => findUpgradeDefinition(catalog, card.id)?.discovers,
   );
-  // With a progression card the release competes for the two decision slots. Without one (the
-  // end game: three ending choices, and window 5 never closes) it is an extra fourth card.
-  const decisions = progressionShown
-    ? [...choiceCards, ...releaseCards].slice(0, 2)
-    : [...choiceCards.slice(0, MAX_OFFERS), ...releaseCards];
-  const limit = MAX_OFFERS + (progressionShown ? 0 : releaseCards.length);
+  const decisions = choiceCards.slice(0, progressionShown ? 2 : MAX_OFFERS);
   const offers = [...upgradeCards, ...decisions]
     .sort((a, b) => a.priority - b.priority || a.order - b.order)
-    .slice(0, limit)
+    .slice(0, MAX_OFFERS)
     .map(({ card }) => card);
+  // Ship It has its own strip outside the three cards (economy redesign D2): always the next
+  // release, once the project works.
+  const window = nextRelease(run, catalog);
+  const release: ReleaseOfferViewModel | null = window
+    ? {
+        kind: 'release',
+        id: 'release',
+        window: window.window,
+        version: window.version,
+        title: window.title,
+        description: window.description,
+        price: window.price,
+        affordable: run.economy.output >= window.price,
+        shortfall: Math.max(0, window.price - run.economy.output),
+        retireChance: jackpotHazard(catalog.releases, window.window),
+        effects: [
+          'spends ALL your code',
+          `${Number((jackpotHazard(catalog.releases, window.window) * 100).toFixed(2))}% chance to retire`,
+        ],
+      }
+    : null;
   const pendingId = run.pendingUnlockIds[0];
   const pending = pendingId === undefined ? undefined : findTechnology(catalog, pendingId);
   return {
@@ -365,9 +421,11 @@ export function selectGame(
       id: action,
       label: catalog.primaryActionLabels[action],
       gain: primaryGain(run, catalog, action),
+      ready: run.economy.actionCharges >= 1,
     },
     stats: headerStats(run, catalog),
     offers,
+    release,
     announcement: pending
       ? {
           id: pending.id,

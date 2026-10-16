@@ -2,6 +2,7 @@
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createUiGame, nullRenderer } from '../../tests/helpers/uiGame';
+import { AUTOCOMPLETE_PRICE } from '../../tests/helpers/run';
 import type { GameSnapshot } from '../app/createGame';
 import App from '../app/App.svelte';
 
@@ -27,7 +28,8 @@ function setup() {
   const write = async (count: number) => {
     for (let i = 0; i < count; i += 1) {
       await fireEvent.click(screen.getByTestId('primary-action'));
-      ui.tick(100);
+      // At the tap pace (about 3 per second): every press counts.
+      ui.tick(400);
     }
   };
   return { ...ui, latest: () => latest, write };
@@ -75,7 +77,7 @@ describe('Game controls', () => {
 
   it('removes a bought card, never shows more than three, and leaks no future title', async () => {
     const t = setup();
-    await t.write(10);
+    await t.write(AUTOCOMPLETE_PRICE);
     expect(
       within(screen.getByRole('list', { name: 'Upgrades' })).getAllByRole('listitem').length,
     ).toBeLessThanOrEqual(3);
@@ -87,7 +89,7 @@ describe('Game controls', () => {
 
   it('keeps CAT and HISTORY usable during an announcement', async () => {
     const t = setup();
-    await t.write(10);
+    await t.write(AUTOCOMPLETE_PRICE);
     await fireEvent.click(screen.getByRole('button', { name: /Autocomplete/ }));
     expect(screen.getByTestId('announcement')).toBeTruthy();
     await fireEvent.click(screen.getByRole('button', { name: 'HISTORY' }));
@@ -97,7 +99,7 @@ describe('Game controls', () => {
 
   it('defers an announcement made while Cat is open until Game returns', async () => {
     const t = setup();
-    await t.write(10);
+    await t.write(AUTOCOMPLETE_PRICE);
     await fireEvent.click(screen.getByRole('button', { name: /^Cat\./ }));
     t.game.api.dispatch({ type: 'buyUpgrade', id: 'autocomplete' });
     t.tick(5000);

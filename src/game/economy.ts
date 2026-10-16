@@ -50,12 +50,16 @@ export interface DerivedRates {
 
 /** Quality efficiency from debt, with a positive floor. */
 export function qualityEfficiency(debt: number): number {
-  return Math.max(0.2, 1 / (1 + debt / 100));
+  return Math.max(QUALITY_FLOOR, 1 / (1 + debt / 100));
 }
+
+/** Debt and over-hiring hurt, but never below these (economy redesign E2: softer cliffs). */
+export const QUALITY_FLOOR = 0.35;
+export const COORDINATION_FLOOR = 0.4;
 
 /** Coordination efficiency with a positive floor. */
 export function coordinationEfficiency(managed: number, agents: number): number {
-  return Math.max(0.2, Math.min(1, managed / Math.max(1, agents)));
+  return Math.max(COORDINATION_FLOOR, Math.min(1, managed / Math.max(1, agents)));
 }
 
 /** Every effect that currently applies: owned technologies plus per-level upgrade effects. */
@@ -109,7 +113,6 @@ export function deriveRates(run: ReadonlyRun, catalog: Catalog): DerivedRates {
   let monetization = 0;
   let monetizationMultiplier = 1;
   let operatingCostPerAgent = 0;
-  let tokenRateBonus = 0;
   let autoRefill: 0 | 1 | 2 = 0;
   let autoReview = false;
   const automated = new Set<ResponsibilityId>();
@@ -177,9 +180,6 @@ export function deriveRates(run: ReadonlyRun, catalog: Catalog): DerivedRates {
         break;
       case 'grantTokens':
         break;
-      case 'tokensPerCodeBonus':
-        tokenRateBonus += effect.amount;
-        break;
       case 'autoRefill':
         autoRefill = effect.version > autoRefill ? effect.version : autoRefill;
         break;
@@ -215,7 +215,7 @@ export function deriveRates(run: ReadonlyRun, catalog: Catalog): DerivedRates {
     operatingCostPerAgent,
     fixedOverheadPerSecond: fixedOverhead(run, catalog),
     automated,
-    tokensPerCode: balance.tokens.perCodeBase * (1 + tokenRateBonus + run.economy.tokenReviewBonus),
+    tokensPerCode: balance.tokens.perCodeBase * (1 + run.economy.tokenReviewBonus),
     autoRefill,
     autoReview,
   };

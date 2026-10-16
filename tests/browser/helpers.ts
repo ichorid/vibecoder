@@ -8,10 +8,16 @@ export async function freshGame(page: Page): Promise<void> {
   await expect(page.getByTestId('primary-action')).toBeVisible();
 }
 
-/** Press the primary action `count` times through real pointer clicks. */
+/**
+ * Press the primary action `count` times through real pointer clicks, each one once the tap
+ * budget has a charge (so every press counts).
+ */
 export async function pressPrimary(page: Page, count: number): Promise<void> {
   const button = page.getByTestId('primary-action');
-  for (let i = 0; i < count; i += 1) await button.click();
+  for (let i = 0; i < count; i += 1) {
+    await expect(button).toHaveAttribute('data-ready', 'true');
+    await button.click();
+  }
 }
 
 export async function headerStat(page: Page): Promise<string> {

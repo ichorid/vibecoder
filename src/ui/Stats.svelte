@@ -11,6 +11,8 @@
   }
 
   const { stats, onOpen }: Props = $props();
+  /** Shares of 100 (progress and efficiencies) read as percentages. */
+  const PERCENT: ReadonlySet<string> = new Set(['automation', 'quality', 'team']);
   /** Up to three in a row; more numbers wrap into a second row (two rows at most). */
   const columns = $derived(stats.length <= 3 ? stats.length : Math.ceil(stats.length / 2));
 </script>
@@ -29,7 +31,7 @@
         <dt>
           <PixelIcon map={STAT_ICONS[stat.id]} scale={2} /><span class="label">{stat.label}</span>
         </dt>
-        <dd>{formatAmount(stat.value)}</dd>
+        <dd>{formatAmount(stat.value)}{PERCENT.has(stat.id) ? '%' : ''}</dd>
       </div>
     {/each}
   </dl>

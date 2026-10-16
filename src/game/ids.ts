@@ -44,7 +44,6 @@ export const UPGRADE_IDS = [
   'compute-slot',
   'auto-refill-v1',
   'auto-refill-v2',
-  'token-review',
   'auto-reviewer',
   'autonomous-edits',
   'tool-permissions',

@@ -5,7 +5,7 @@ test('first loop: write, buy, announce, visit Cat, next offer, reload', async ({
   await freshGame(page);
   await expect(page.locator('body')).not.toContainText('Generated snippets');
 
-  await pressPrimary(page, 10);
+  await pressPrimary(page, 20);
   await openUpgrades(page);
   const autocomplete = page.getByRole('button', { name: /Autocomplete/ });
   await expect(autocomplete).toBeEnabled();

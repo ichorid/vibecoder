@@ -23,6 +23,13 @@
   };
   const pct = (value: number) => `${Math.round(value * 100)}%`;
 
+  const LIMITED_BY = {
+    compute: 'compute (agents wait for a slot)',
+    agents: 'agents (every one is busy)',
+    tasks: 'tasks (the agents wait for prompts)',
+    tokens: 'tokens (work waits to be paid for)',
+  } as const;
+
   const LIMIT_ICONS: Record<SetupLimit, PixelMap> = {
     manual: icons.writeCodeIcon,
     compute: icons.computeIcon,
@@ -55,6 +62,11 @@
   </div>
 
   <h3>Right now, per second</h3>
+  {#if e.limitedBy}
+    <p class="limited" data-testid="setup-limited-by">
+      Limited by: <strong>{LIMITED_BY[e.limitedBy]}</strong>
+    </p>
+  {/if}
   <ol class="flow" data-testid="setup-flow">
     <li>
       <span class="what">{@render ico(ACTION_ICONS[e.actionId])}Your button</span>
@@ -279,6 +291,13 @@
     background: var(--panel-strong);
     font-weight: 800;
     cursor: pointer;
+  }
+  .limited {
+    margin: 0 0 6px;
+    padding: 4px 8px;
+    border: 2px solid var(--border);
+    background: color-mix(in srgb, var(--accent) 14%, var(--panel));
+    font-size: 14px;
   }
   .flow,
   .cards,

@@ -11,6 +11,8 @@ export const STAT_ICONS: Readonly<Record<StatId, PixelMap>> = {
   automation: icons.automationIcon,
   revenue: icons.revenueIcon,
   margin: icons.marginIcon,
+  quality: icons.reviewIcon,
+  team: icons.delegateIcon,
 };
 
 export const ACTION_ICONS: Readonly<Record<PrimaryActionId, PixelMap>> = {
@@ -30,7 +32,6 @@ const CARD_ICONS: Partial<Record<UpgradeId, PixelMap>> = {
   'review-capacity': icons.reviewIcon,
   'auto-refill-v1': icons.refillV1Icon,
   'auto-refill-v2': icons.refillV2Icon,
-  'token-review': icons.tokenReviewIcon,
   'auto-reviewer': icons.autoReviewerIcon,
 };
 

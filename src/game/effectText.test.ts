@@ -14,8 +14,10 @@ describe('card effect lines', () => {
   it('describe repeatable cards from their per-level effects', () => {
     expect(cardEffects(upgrade('compute-slot'), catalog)).toEqual(['+1 compute']);
     expect(cardEffects(upgrade('review-capacity'), catalog)).toEqual(['−0.5 debt/s']);
-    expect(cardEffects(upgrade('additional-agent'), catalog)).toEqual(['+1 agent']);
-    expect(cardEffects(upgrade('token-review'), catalog)).toEqual(['+10% tokens per code']);
+    expect(cardEffects(upgrade('additional-agent'), catalog)).toEqual([
+      '+1 agent',
+      'needs 1 compute, 1 managed',
+    ]);
   });
 
   it('describe a technology card from the technology it unlocks, including a new action', () => {

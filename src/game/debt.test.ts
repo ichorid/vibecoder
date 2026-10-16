@@ -3,7 +3,7 @@ import { catalog } from '../content/catalog';
 import { act, steps } from '../../tests/helpers/run';
 import { withTechnologies } from '../../tests/helpers/unlock';
 import { createRun } from './createRun';
-import { deriveRates, qualityEfficiency } from './economy';
+import { deriveRates, QUALITY_FLOOR, qualityEfficiency } from './economy';
 import type { TechnologyId } from './ids';
 import type { RunState } from './types';
 
@@ -44,7 +44,7 @@ describe('technical debt and review', () => {
   it('reduces useful output by quality but keeps a positive floor', () => {
     expect(qualityEfficiency(0)).toBe(1);
     expect(qualityEfficiency(100)).toBeCloseTo(0.5, 9);
-    expect(qualityEfficiency(1e6)).toBe(0.2);
+    expect(qualityEfficiency(1e6)).toBe(QUALITY_FLOOR);
   });
 
   it('lets review remove debt without generating tokens, never below zero', () => {

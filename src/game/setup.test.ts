@@ -34,7 +34,7 @@ describe('setup view', () => {
     const run = at('parallel-agents');
     const stacked = {
       ...run,
-      upgradeLevels: { ...run.upgradeLevels, 'compute-slot': 3, 'token-review': 2 },
+      upgradeLevels: { ...run.upgradeLevels, 'compute-slot': 3, 'review-capacity': 2 },
     };
     const setup = selectSetup(stacked, catalog);
     expect(setup.stacked.find((s) => s.id === 'compute-slot')).toMatchObject({
@@ -42,9 +42,7 @@ describe('setup view', () => {
       maxLevel: 8,
       effects: ['+3 compute'],
     });
-    expect(setup.stacked.find((s) => s.id === 'token-review')?.effects).toEqual([
-      '+20% tokens per code',
-    ]);
+    expect(setup.stacked.find((s) => s.id === 'review-capacity')?.effects).toEqual(['−1 debt/s']);
     expect(setup.stacked.some((s) => s.id === 'additional-agent')).toBe(false);
   });
 

@@ -62,8 +62,6 @@ export function effectText(effect: Effect, catalog: Catalog): string | null {
       return `each agent costs $${num(effect.amount)}/s`;
     case 'grantTokens':
       return `+${num(effect.amount)} tokens now`;
-    case 'tokensPerCodeBonus':
-      return `+${pct(effect.amount)} tokens per code`;
     case 'autoRefill':
       return 'buys tokens when they run out';
     case 'autoReview':
@@ -88,6 +86,10 @@ export function cardEffects(upgrade: UpgradeDefinition, catalog: Catalog): strin
     .filter((line): line is string => line !== null);
   if (technology?.primaryAction) {
     lines.push(`action → ${catalog.primaryActionLabels[technology.primaryAction]}`);
+  }
+  // An agent is only useful with something to run on and someone to coordinate it.
+  if (upgrade.effectsPerLevel.some((e) => e.kind === 'agents')) {
+    lines.push('needs 1 compute, 1 managed');
   }
   if (upgrade.effectsPerLevel.some((e) => e.kind === 'autoRefill' && e.version === 1)) {
     lines.push('has a bug');

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { closeUpgrades, loadSave, openUpgrades } from './helpers';
+import { loadSave } from './helpers';
 import { progressedRun, saveText } from './fixtures';
 import type { RunState } from '../../src/game/types';
 
@@ -9,8 +9,8 @@ function readyToShip(seed: number): RunState {
   return { ...run, economy: { ...run.economy, output: run.economy.output + 2500 } };
 }
 
+/** The Ship strip sits under the cards, outside the popup. */
 async function ship(page: Page) {
-  await openUpgrades(page);
   const card = page.locator('[data-release="1"]');
   await expect(card).toBeVisible();
   await expect(card).toContainText('Ship v0.1');
@@ -33,10 +33,8 @@ test('ship a release: wheel, result, back to work, a frame on the wall, the card
   await page.getByRole('button', { name: 'BACK TO WORK' }).click();
   await expect(page.getByTestId('release-wheel')).toHaveCount(0);
   // The next release is on offer at once — and all the code is gone.
-  await openUpgrades(page);
   await expect(page.locator('[data-release="2"]')).toContainText('Ship v0.2');
   await expect(page.locator('[data-release="1"]')).toHaveCount(0);
-  await closeUpgrades(page);
   await expect(page.getByRole('list', { name: 'Recent events' })).toContainText('Shipped v0.1:');
   await expect(page.getByTestId('world-canvas')).toHaveAttribute('data-release-frames', '1');
 

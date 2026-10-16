@@ -127,14 +127,37 @@ export const baselineBuyer: Policy = ({ run, catalog }) => {
   return optional ? [{ type: 'buyUpgrade', id: optional.id }] : [];
 };
 
-/** Manual pacing from the plan: once per second before agents, then once per 5 seconds. */
-export const baselinePrimary: Policy = (context) => {
-  const agents = (context.run.unlockedTechnologyIds as readonly string[]).includes(
-    'terminal-agent',
-  );
-  const interval = agents ? 5000 : 1000;
-  return context.run.activeMs % interval === 0 ? pressPrimary(context) : [];
-};
+/**
+ * Presses due in this 100 ms step at `rate` per second, counted from `since` (stateless, so one
+ * policy can be shared by many runs).
+ */
+function pressesDue(activeMs: number, since: number, rate: number): number {
+  const t = activeMs - since;
+  if (t < 0) return 0;
+  if (t === 0) return 0;
+  return Math.floor((t * rate) / 1000) - Math.floor(((t - 100) * rate) / 1000);
+}
+
+function agentSince(run: ScenarioContext['run']): number | null {
+  const entry = run.history.find((e) => e.kind === 'technology' && e.id === 'terminal-agent');
+  return entry ? entry.activeMs : null;
+}
+
+/**
+ * Press the main button at `before` presses per second until the Terminal Agent exists, then
+ * at `after` per second (e.g. 3 then 1/3: realistic mobile tapping, docs/economy_redesign.md §7).
+ */
+export function tapAt(before: number, after: number = before): Policy {
+  return ({ run }) => {
+    const since = agentSince(run);
+    const count =
+      since === null ? pressesDue(run.activeMs, 0, before) : pressesDue(run.activeMs, since, after);
+    return Array.from({ length: count }, () => ({ type: 'primaryAction' }));
+  };
+}
+
+/** The design baseline (economy redesign §7): 3 presses per second before agents, then 1 per 3 s. */
+export const baselinePrimary: Policy = tapAt(3, 1 / 3);
 
 /**
  * PLAY every `intervalMs` (plan: 270 s): start a session, then catch when the mouse is well
@@ -160,11 +183,9 @@ export function playEvery(
   };
 }
 
-/** Ship a release whenever the card is on offer and affordable. */
+/** Ship a release whenever the next one is affordable. */
 export const shipWhenAffordable: Policy = ({ run, catalog }) =>
-  selectGame(run, catalog).offers.some((o) => o.kind === 'release' && o.affordable)
-    ? [{ type: 'shipRelease' }]
-    : [];
+  selectGame(run, catalog).release?.affordable ? [{ type: 'shipRelease' }] : [];
 
 /**
  * A player who ships every release: while a launch window is open and unaffordable, they save
@@ -172,40 +193,10 @@ export const shipWhenAffordable: Policy = ({ run, catalog }) =>
  */
 export function savingForReleases(buyer: Policy): Policy {
   return (context) => {
-    const release = selectGame(context.run, context.catalog).offers.find(
-      (o) => o.kind === 'release',
-    );
+    const release = selectGame(context.run, context.catalog).release;
     const commands = buyer(context);
     if (!release || release.affordable) return commands;
     return commands.filter((c) => c.type !== 'buyUpgrade' || c.id === 'token-supply');
-  };
-}
-
-/**
- * Press the main button at `before` presses per second until the Terminal Agent exists, then
- * at `after` per second (e.g. 3 then 1/3: realistic mobile tapping, docs/economy_redesign.md §7).
- */
-export function tapAt(before: number, after: number = before): Policy {
-  let done = 0;
-  let phaseStart = 0;
-  let agentPhase = false;
-  return (context) => {
-    const agents = (context.run.unlockedTechnologyIds as readonly string[]).includes(
-      'terminal-agent',
-    );
-    if (agents && !agentPhase) {
-      agentPhase = true;
-      phaseStart = context.run.activeMs;
-      done = 0;
-    }
-    const rate = agentPhase ? after : before;
-    const due = Math.floor(((context.run.activeMs - phaseStart) * rate) / 1000);
-    const presses: GameCommand[] = [];
-    while (done < due) {
-      presses.push({ type: 'primaryAction' });
-      done += 1;
-    }
-    return presses;
   };
 }
 

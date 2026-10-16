@@ -59,17 +59,6 @@ describe('buying tokens with code', () => {
     const card = selectGame(run, catalog).offers.find((o) => o.id === 'token-supply');
     expect(card).toMatchObject({ price: pack.price, tokens: pack.tokens });
   });
-
-  it('reviewing token spending improves the rate permanently, a little per level', () => {
-    let run = at('reviewer');
-    const before = tokenPack(run, catalog).price;
-    run = buy(run, 'token-review').run;
-    expect(deriveRates(run, catalog).tokensPerCode).toBeCloseTo(
-      tokens.perCodeBase * (1 + tokens.reviewStep),
-      9,
-    );
-    expect(tokenPack(run, catalog).price).toBeLessThan(before);
-  });
 });
 
 describe('auto-refill', () => {

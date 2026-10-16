@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { catalog } from '../content/catalog';
-import { act, clickAndSettle, steps } from '../../tests/helpers/run';
+import {
+  act,
+  AUTOCOMPLETE_PRICE,
+  clickAndSettle,
+  IDE_PRICE,
+  SNIPPETS_PRICE,
+  steps,
+} from '../../tests/helpers/run';
 import { applyCommand } from './commands';
 import { createRun } from './createRun';
 import { resolveDiscoveries } from './progression';
@@ -14,7 +21,7 @@ function visibleText(run: RunState): string {
 }
 
 function buyAutocomplete(): RunState {
-  const run = clickAndSettle(createRun(SEED, 'r'), 10, catalog);
+  const run = clickAndSettle(createRun(SEED, 'r'), AUTOCOMPLETE_PRICE, catalog);
   return act(run, { type: 'buyUpgrade', id: 'autocomplete' }, catalog);
 }
 
@@ -38,7 +45,11 @@ describe('discovery and visibility', () => {
     const run = clickAndSettle(createRun(SEED, 'r'), 5, catalog);
     const offers = selectGame(run, catalog).offers;
     expect(offers).toHaveLength(1);
-    expect(offers[0]).toMatchObject({ id: 'autocomplete', price: 10, affordable: false });
+    expect(offers[0]).toMatchObject({
+      id: 'autocomplete',
+      price: AUTOCOMPLETE_PRICE,
+      affordable: false,
+    });
   });
 
   it('hides offers at the very start', () => {
@@ -82,10 +93,11 @@ describe('discovery and visibility', () => {
 
   it('IDE adds 1 output per second and changes the primary action', () => {
     let run = acknowledge(buyAutocomplete());
-    run = clickAndSettle(run, 15, catalog);
+    // Two code per press after Autocomplete, four after the snippets.
+    run = clickAndSettle(run, Math.ceil(SNIPPETS_PRICE / 2), catalog);
     run = acknowledge(act(run, { type: 'buyUpgrade', id: 'generated-snippets' }, catalog));
     expect(selectGame(run, catalog).primaryAction.label).toBe('WRITE CODE');
-    run = clickAndSettle(run, 23, catalog);
+    run = clickAndSettle(run, Math.ceil(IDE_PRICE / 4), catalog);
     run = act(run, { type: 'buyUpgrade', id: 'ai-native-ide' }, catalog);
     expect(selectGame(run, catalog).primaryAction.label).toBe('PROMPT');
     const before = run.economy.output;

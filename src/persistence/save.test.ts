@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { catalog } from '../content/catalog';
 import { createMemoryStorage } from '../../tests/helpers/memoryStorage';
-import { act, clickAndSettle } from '../../tests/helpers/run';
+import { act, AUTOCOMPLETE_PRICE, clickAndSettle } from '../../tests/helpers/run';
 import { createRun } from '../game/createRun';
 import type { RunState } from '../game/types';
 import {
@@ -15,7 +15,7 @@ import {
 } from './save';
 
 function progressedRun(): RunState {
-  const run = clickAndSettle(createRun(5, 'run-a'), 12, catalog);
+  const run = clickAndSettle(createRun(5, 'run-a'), AUTOCOMPLETE_PRICE + 2, catalog);
   return act(run, { type: 'buyUpgrade', id: 'autocomplete' }, catalog);
 }
 

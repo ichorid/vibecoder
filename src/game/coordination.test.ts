@@ -4,7 +4,7 @@ import { act, steps } from '../../tests/helpers/run';
 import { withTechnologies } from '../../tests/helpers/unlock';
 import { applyCommand } from './commands';
 import { createRun } from './createRun';
-import { coordinationEfficiency, deriveRates, upgradePrice } from './economy';
+import { COORDINATION_FLOOR, coordinationEfficiency, deriveRates, upgradePrice } from './economy';
 import type { TechnologyId } from './ids';
 import { selectGame } from './selectors';
 import type { RunState } from './types';
@@ -27,10 +27,11 @@ function era(extra: TechnologyId[], patch: Partial<RunState['economy']> = {}): R
 }
 
 describe('parallel agents and coordination', () => {
-  it('uses max(0.2, min(1, managed / agents))', () => {
+  it('uses max(floor, min(1, managed / agents))', () => {
     expect(coordinationEfficiency(1, 1)).toBe(1);
-    expect(coordinationEfficiency(1, 3)).toBeCloseTo(1 / 3, 9);
-    expect(coordinationEfficiency(1, 50)).toBe(0.2);
+    expect(coordinationEfficiency(2, 4)).toBeCloseTo(0.5, 9);
+    expect(coordinationEfficiency(1, 3)).toBe(COORDINATION_FLOOR);
+    expect(coordinationEfficiency(1, 50)).toBe(COORDINATION_FLOOR);
     expect(coordinationEfficiency(9, 3)).toBe(1);
   });
 
@@ -44,8 +45,10 @@ describe('parallel agents and coordination', () => {
     const more = { ...run, upgradeLevels: { ...run.upgradeLevels, 'compute-slot': 2 } };
     const one = steps(run, 10, catalog);
     const three = steps(more, 10, catalog);
-    // Three active agents but capacity to manage one: no more useful output, 3× the tokens.
-    expect(Math.abs(three.economy.output - one.economy.output)).toBeLessThan(0.5);
+    // Three active agents but capacity to manage one: barely more useful output (the floor),
+    // 3× the tokens.
+    const gain = (r: typeof run) => r.economy.output - run.economy.output;
+    expect(gain(three)).toBeLessThan(gain(one) * 3 * COORDINATION_FLOOR + 0.5);
     expect(run.economy.tokens - three.economy.tokens).toBeGreaterThan(
       2.5 * (run.economy.tokens - one.economy.tokens),
     );
@@ -106,11 +109,9 @@ describe('repeatable upgrades', () => {
     ).toBe('unavailable');
   });
 
-  it('shows the progression card first, a recovery card before optional ones, at most three', () => {
+  it('shows the progression card, the choice, then the card for what binds, at most three', () => {
     const run = era(['parallel-agents'], { tokens: 0, output: 50 });
     const ids = selectGame(run, catalog).offers.map((o) => o.id);
-    expect(ids).toHaveLength(3);
-    expect(ids[0]).toBe('worktrees');
-    expect(ids[1]).toBe('token-supply');
+    expect(ids).toEqual(['worktrees', 'keep-manual', 'token-supply']);
   });
 });

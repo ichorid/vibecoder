@@ -38,7 +38,8 @@ export function createRun(seed: number, runId: string, experience = 0): RunState
       pendingManualWork: 0,
       tokens: 0,
       tasks: 0,
-      actionCharges: 10,
+      // Starts full: balance.actionBurst (the agents test pins the two together).
+      actionCharges: 6,
       debt: 0,
       delegation: 0,
       optimization: 0,

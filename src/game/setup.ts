@@ -32,6 +32,8 @@ export interface SetupViewModel {
   readonly economy: {
     readonly action: string;
     readonly actionId: PrimaryActionId;
+    /** What caps the agents' work right now (null before there are agents). */
+    readonly limitedBy: 'compute' | 'agents' | 'tasks' | 'tokens' | null;
     /** What one press of the main button does right now. */
     readonly pressEffect: string;
     readonly agents: number;
@@ -199,6 +201,16 @@ export function selectSetup(run: ReadonlyRun, catalog: Catalog): SetupViewModel 
     economy: {
       action: catalog.primaryActionLabels[currentPrimaryAction(run, catalog)],
       actionId: currentPrimaryAction(run, catalog),
+      limitedBy:
+        rates.agents === 0
+          ? null
+          : f.funded < f.taskLimited - 1e-9
+            ? 'tokens'
+            : f.taskLimited < f.demand - 1e-9
+              ? 'tasks'
+              : rates.compute < rates.agents
+                ? 'compute'
+                : 'agents',
       pressEffect: pressEffect(currentPrimaryAction(run, catalog), rates, catalog),
       agents: rates.agents,
       compute: rates.compute,

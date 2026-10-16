@@ -3,7 +3,7 @@ import { closeUpgrades, freshGame, loadSave, openUpgrades } from './helpers';
 import { progressedRun, saveText } from './fixtures';
 
 test('from the empty room to a working terminal agent with real presses', async ({ page }) => {
-  test.setTimeout(120_000);
+  test.setTimeout(240_000);
   await freshGame(page);
   const primary = page.getByTestId('primary-action');
   for (const name of [/Autocomplete/, /Generated snippets/, /AI-native IDE/, /Terminal agent/]) {
@@ -12,7 +12,10 @@ test('from the empty room to a working terminal agent with real presses', async 
     const toggle = page.getByTestId('offers-toggle');
     const affordable = async () =>
       (await toggle.count()) > 0 && Number(await toggle.getAttribute('data-affordable')) > 0;
-    while (!(await affordable())) await primary.click();
+    while (!(await affordable())) {
+      await expect(primary).toHaveAttribute('data-ready', 'true');
+      await primary.click();
+    }
     await openUpgrades(page);
     await card.click();
     await page.getByRole('button', { name: 'CONTINUE' }).click();

@@ -15,10 +15,12 @@
  *   run that took it has already ended with the legacy `three-users` ending, which stays).
  * - 4 → 5: the corner plant. Runs get a fresh, living plant (`water` 60).
  * - 5 → 6: experience. Profile and run get `experience: 0` (no ending gave any before).
+ * - 6 → 7: the "Review your token spending" card is gone (economy redesign E1); its level is
+ *   dropped (its few percent of token rate go with it).
  */
 import { deriveSeed } from '../game/random';
 
-export const CURRENT_SCHEMA_VERSION = 6;
+export const CURRENT_SCHEMA_VERSION = 7;
 
 /** 6 tokens/s × 300 s: what one old supply level gave over five minutes. */
 export const TOKENS_PER_OLD_SUPPLY_LEVEL = 1800;
@@ -134,12 +136,24 @@ function v5ToV6(envelope: Record<string, unknown>): MigrationResult {
   };
 }
 
+function v6ToV7(envelope: Record<string, unknown>): MigrationResult {
+  const run = envelope.run;
+  if (!isRecord(run)) return { ok: false, unsupported: false, reason: 'v6 save without a run' };
+  const levels = isRecord(run.upgradeLevels) ? { ...run.upgradeLevels } : {};
+  delete levels['token-review'];
+  return {
+    ok: true,
+    value: { ...envelope, schemaVersion: 7, run: { ...run, upgradeLevels: levels } },
+  };
+}
+
 const STEPS: Record<number, (envelope: Record<string, unknown>) => MigrationResult> = {
   1: v1ToV2,
   2: v2ToV3,
   3: v3ToV4,
   4: v4ToV5,
   5: v5ToV6,
+  6: v6ToV7,
 };
 
 export function migrate(envelope: Record<string, unknown>): MigrationResult {

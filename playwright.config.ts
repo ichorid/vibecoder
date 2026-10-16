@@ -8,6 +8,9 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: 0,
+  // Presses wait for the tap budget (about 3 per second); under a fully parallel run each real
+  // click is slow, so buying the first card can take ~25 s.
+  timeout: 60_000,
   reporter: [['list']],
   use: {
     baseURL: 'http://127.0.0.1:4173',

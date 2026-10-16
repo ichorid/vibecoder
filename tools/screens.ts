@@ -161,6 +161,7 @@ const scenes: Record<string, Scene> = {
     ]),
   ),
   tech28Small: { width: 320, height: 568, save: () => saveText(progressedRun(28)) },
+  tech9Small: { width: 320, height: 568, save: () => saveText(progressedRun(9)) },
   stray: {
     width: 390,
     height: 844,

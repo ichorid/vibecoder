@@ -174,8 +174,6 @@ export interface TokenBalance {
   readonly firstDisasterTo: number;
   /** After the first disaster, every v1 refill fails with this chance. */
   readonly laterDisasterChance: number;
-  /** Rate bonus per "Review your token spending" level. */
-  readonly reviewStep: number;
   readonly autoReviewEveryMs: number;
   readonly autoReviewStep: number;
   readonly autoReviewCap: number;
@@ -212,8 +210,6 @@ export type Effect =
   | { readonly kind: 'operatingCostPerAgent'; readonly amount: number }
   /** One-time stock granted in the discovery transaction (not a rate). */
   | { readonly kind: 'grantTokens'; readonly amount: number }
-  /** More tokens per code spent on token packs (fraction per level, additive). */
-  | { readonly kind: 'tokensPerCodeBonus'; readonly amount: number }
   /** Buys token packs automatically when tokens run low; version 1 has a bug. */
   | { readonly kind: 'autoRefill'; readonly version: 1 | 2 }
   /** Periodically improves the tokens-per-code rate (balance.tokens.autoReview*). */
@@ -242,7 +238,6 @@ export const EFFECT_KINDS = [
   'monetizationMultiplier',
   'operatingCostPerAgent',
   'grantTokens',
-  'tokensPerCodeBonus',
   'autoRefill',
   'autoReview',
 ] as const;
@@ -261,7 +256,16 @@ export interface Requirements {
 }
 
 /** Header statistics a technology may select (at most three are shown). */
-export const STAT_IDS = ['output', 'tokens', 'debt', 'automation', 'revenue', 'margin'] as const;
+export const STAT_IDS = [
+  'output',
+  'tokens',
+  'debt',
+  'automation',
+  'revenue',
+  'margin',
+  'quality',
+  'team',
+] as const;
 export type StatId = (typeof STAT_IDS)[number];
 
 /** Conditions that make an optional upgrade a recovery card (shown before repeatables). */

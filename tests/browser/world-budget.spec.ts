@@ -27,7 +27,7 @@ test('ordinary updates never rebuild the scene sprites', async ({ page }) => {
 test('a failed illustration shows a fallback and never blocks the discovery', async ({ page }) => {
   await page.route('**/assets/technologies/**', (route) => route.abort());
   await freshGame(page);
-  await pressPrimary(page, 10);
+  await pressPrimary(page, 20);
   await openUpgrades(page);
   await page.getByRole('button', { name: /Autocomplete/ }).click();
   const announcement = page.getByTestId('announcement');

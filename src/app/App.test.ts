@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/svelte';
 import { afterEach, describe, expect, it } from 'vitest';
+import { AUTOCOMPLETE_PRICE } from '../../tests/helpers/run';
 import { createUiGame, nullRenderer } from '../../tests/helpers/uiGame';
 import type { GameSnapshot } from './createGame';
 import App from './App.svelte';
@@ -30,7 +31,8 @@ function setup() {
 async function clickTimes(name: string | RegExp, count: number, tick: (ms: number) => void) {
   for (let i = 0; i < count; i += 1) {
     await fireEvent.click(screen.getByRole('button', { name }));
-    tick(100);
+    // At the tap pace (about 3 per second): every press counts.
+    tick(400);
   }
 }
 
@@ -43,7 +45,7 @@ describe('App navigation', () => {
 
   it('opens History with only current entries and returns to Game', async () => {
     const t = setup();
-    await clickTimes('WRITE CODE', 10, t.tick);
+    await clickTimes('WRITE CODE', AUTOCOMPLETE_PRICE, t.tick);
     await fireEvent.click(screen.getByRole('button', { name: /Autocomplete/ }));
     await fireEvent.click(screen.getByRole('button', { name: 'HISTORY' }));
     expect(screen.getByRole('heading', { name: 'HISTORY' })).toBeTruthy();

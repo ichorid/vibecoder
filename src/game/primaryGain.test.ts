@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { catalog } from '../content/catalog';
-import { act, clickAndSettle } from '../../tests/helpers/run';
+import { act, AUTOCOMPLETE_PRICE, clickAndSettle, steps } from '../../tests/helpers/run';
 import { applyCommand } from './commands';
 import { createRun } from './createRun';
 import { selectGame } from './selectors';
@@ -11,8 +11,9 @@ const gain = (run: RunState) => selectGame(run, catalog).primaryAction.gain;
 describe('what one primary press yields (for the floating number)', () => {
   it('WRITE CODE shows the manual output a press adds, including upgrades', () => {
     expect(gain(createRun(1, 'r'))).toEqual({ amount: 1, unit: 'code' });
-    let run = clickAndSettle(createRun(1, 'r'), 12, catalog);
+    let run = clickAndSettle(createRun(1, 'r'), AUTOCOMPLETE_PRICE, catalog);
     run = act(run, { type: 'buyUpgrade', id: 'autocomplete' }, catalog);
+    run = steps(run, 5, catalog); // a charge to press with
     expect(gain(run)).toEqual({ amount: 2, unit: 'code' });
   });
 

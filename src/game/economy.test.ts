@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { catalog } from '../content/catalog';
-import { act, clickAndSettle, steps } from '../../tests/helpers/run';
+import { act, AUTOCOMPLETE_PRICE, clickAndSettle, steps } from '../../tests/helpers/run';
 import { applyCommand } from './commands';
 import { createRun } from './createRun';
 
@@ -28,19 +28,19 @@ describe('WRITE CODE and first purchases', () => {
   });
 
   it('accepts a purchase at exactly its price and keeps lifetime output', () => {
-    const run = clickAndSettle(createRun(SEED, 'r'), 10, catalog);
+    const run = clickAndSettle(createRun(SEED, 'r'), AUTOCOMPLETE_PRICE, catalog);
     const result = applyCommand(run, { type: 'buyUpgrade', id: 'autocomplete' }, 0, catalog);
     expect(result.result).toBe('applied');
     expect(result.run.economy.output).toBe(0);
-    expect(result.run.stats.lifetimeOutput).toBe(10);
+    expect(result.run.stats.lifetimeOutput).toBe(AUTOCOMPLETE_PRICE);
     expect(result.run.upgradeLevels.autocomplete).toBe(1);
   });
 
   it('cannot buy a one-time upgrade twice', () => {
-    let run = clickAndSettle(createRun(SEED, 'r'), 25, catalog);
+    let run = clickAndSettle(createRun(SEED, 'r'), AUTOCOMPLETE_PRICE + 5, catalog);
     run = act(run, { type: 'buyUpgrade', id: 'autocomplete' }, catalog);
     const again = applyCommand(run, { type: 'buyUpgrade', id: 'autocomplete' }, 0, catalog);
     expect(again.result).toBe('unavailable');
-    expect(again.run.economy.output).toBe(15);
+    expect(again.run.economy.output).toBe(5);
   });
 });

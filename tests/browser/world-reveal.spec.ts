@@ -14,7 +14,7 @@ test('a discovery reveals its subsystem and zooms out while Game shows the annou
   await freshGame(page);
   await expect.poll(() => built(page)).toEqual(['room']);
   const zoomBefore = Number(await canvas(page).getAttribute('data-zoom'));
-  await pressPrimary(page, 10);
+  await pressPrimary(page, 20);
   await openUpgrades(page);
   await page.getByRole('button', { name: /Autocomplete/ }).click();
   await expect(page.getByTestId('announcement')).toBeVisible();

@@ -35,7 +35,7 @@ test('a full quota keeps the run in memory and RETRY saves it once space is back
     };
   });
   // Buying a technology forces an immediate save, which now fails.
-  await pressPrimary(page, 8);
+  await pressPrimary(page, 16);
   await openUpgrades(page);
   await page.getByRole('button', { name: /Autocomplete/ }).click();
   await expect(page.getByTestId('save-warning')).toContainText('could not be saved');

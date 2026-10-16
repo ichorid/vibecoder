@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { catalog } from '../content/catalog';
 import { createFakeClock, createFakeScheduler } from '../../tests/helpers/fakeClock';
 import { createMemoryStorage } from '../../tests/helpers/memoryStorage';
+import { AUTOCOMPLETE_PRICE, IDE_PRICE, SNIPPETS_PRICE } from '../../tests/helpers/run';
 import { createRun } from '../game/createRun';
 import { SAVE_KEY, createProfile, createSaveAdapter, type SaveData } from '../persistence/save';
 import { createGame, type GameSnapshot } from './createGame';
@@ -41,10 +42,11 @@ function stored(storage: ReturnType<typeof createMemoryStorage>): SaveData {
   return JSON.parse(storage.getItem(SAVE_KEY) ?? 'null') as SaveData;
 }
 
-function click(t: ReturnType<typeof setup>, count: number) {
+/** Presses `count` times; by default at the tap pace (about 3 per second), so every press counts. */
+function click(t: ReturnType<typeof setup>, count: number, everyMs = 400) {
   for (let i = 0; i < count; i += 1) {
     t.game.api.dispatch({ type: 'primaryAction' });
-    t.tick(100);
+    t.tick(everyMs);
   }
 }
 
@@ -61,18 +63,21 @@ describe('autosave', () => {
 
   it('coalesces primary clicks into the periodic save', () => {
     const t = setup();
-    click(t, 30);
+    click(t, 30, 100);
     expect(t.storage.writes).toBe(0);
   });
 
   it('writes immediately after a purchase that discovers a technology', () => {
     const t = setup();
-    click(t, 10);
+    click(t, AUTOCOMPLETE_PRICE);
+    // Earning the price takes longer than the periodic save; the purchase still writes at once.
+    const writes = t.storage.writes;
+    const revision = stored(t.storage).revision;
     expect(t.game.api.dispatch({ type: 'buyUpgrade', id: 'autocomplete' })).toBe('applied');
-    expect(t.storage.writes).toBe(1);
+    expect(t.storage.writes).toBe(writes + 1);
     const save = stored(t.storage);
     expect(save.run.unlockedTechnologyIds).toEqual(['autocomplete']);
-    expect(save.revision).toBe(1);
+    expect(save.revision).toBe(revision + 1);
   });
 
   it('does not write again on a tick right after a save', () => {
@@ -86,7 +91,7 @@ describe('autosave', () => {
   it('keeps the in-memory run and reports failure when storage refuses writes', () => {
     const t = setup();
     t.storage.failWrites = true;
-    click(t, 10);
+    click(t, AUTOCOMPLETE_PRICE);
     t.game.api.dispatch({ type: 'buyUpgrade', id: 'autocomplete' });
     expect(t.latest()?.save.status).toBe('failed');
     expect(t.latest()?.run.unlockedTechnologyIds).toEqual(['autocomplete']);
@@ -105,7 +110,7 @@ describe('autosave', () => {
 
   it('does not reapply purchase effects after reload', () => {
     const first = setup();
-    click(first, 10);
+    click(first, AUTOCOMPLETE_PRICE);
     first.game.api.dispatch({ type: 'buyUpgrade', id: 'autocomplete' });
     first.game.dispose();
     const second = setup(first.storage);
@@ -127,9 +132,9 @@ describe('passive output and pause', () => {
       expect(t.game.api.dispatch({ type: 'buyUpgrade', id })).toBe('applied');
       t.game.api.dispatch({ type: 'acknowledgeUnlock', id });
     };
-    buy('autocomplete', 10);
-    buy('generated-snippets', 15);
-    buy('ai-native-ide', 23);
+    buy('autocomplete', AUTOCOMPLETE_PRICE);
+    buy('generated-snippets', Math.ceil(SNIPPETS_PRICE / 2));
+    buy('ai-native-ide', Math.ceil(IDE_PRICE / 4));
     t.tick(1000);
     const before = t.latest()?.run.economy.output ?? 0;
     expect(before).toBeGreaterThan(0);

@@ -159,15 +159,21 @@ describe('shipping a release', () => {
     expect(selectRelease(shipped, only, 0)?.result.text).not.toMatch(/cat/i);
   });
 
-  it('the release card is a decision card with its price', () => {
+  it('the release has its own strip, outside the three cards, with price and shortfall', () => {
     const run = withTechnologies(
       ['autocomplete', 'generated-snippets', 'ai-native-ide', 'terminal-agent'],
       0,
       100,
     );
-    const card = selectGame(run, catalog).offers.find((o) => o.kind === 'release');
-    expect(card).toMatchObject({ kind: 'release', title: 'Ship v0.1', price: 2000 });
-    expect(card?.kind === 'release' && card.affordable).toBe(false);
+    const game = selectGame(run, catalog);
+    expect(game.offers.some((o) => (o.kind as string) === 'release')).toBe(false);
+    expect(game.release).toMatchObject({
+      title: 'Ship v0.1',
+      price: 2000,
+      affordable: false,
+      shortfall: 1900,
+    });
+    expect(game.release?.retireChance).toBeCloseTo(0.002, 9);
   });
 });
 
@@ -187,19 +193,19 @@ describe('archiving the original project', () => {
 });
 
 describe('release card placement', () => {
-  it('never hides an ending choice; in the end game it is a fourth card', () => {
+  it('never takes a card slot: the end game shows all three ending choices', () => {
     const all = TECHNOLOGY_IDS.slice();
     const rich = withTechnologies(all, 0, 100);
     // Plenty of tokens, so no recovery card competes for the surface.
     const end = { ...rich, economy: { ...rich.economy, tokens: 1e9 } };
-    const offers = selectGame(end, catalog).offers;
-    expect(offers.filter((o) => o.kind === 'choice').map((o) => o.id)).toEqual([
+    const game = selectGame(end, catalog);
+    expect(game.offers.filter((o) => o.kind === 'choice').map((o) => o.id)).toEqual([
       'remove-oversight',
       'keep-approval',
       'expand-anyway',
     ]);
-    expect(offers.at(-1)?.kind).toBe('release');
-    expect(offers).toHaveLength(4);
+    expect(game.offers).toHaveLength(3);
+    expect(game.release?.version).toBe('v0.1');
   });
 });
 

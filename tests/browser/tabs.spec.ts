@@ -44,7 +44,7 @@ test('without Web Locks, a tab that sees a newer save from another tab stops wri
   await expect(second.getByTestId('primary-action')).toBeVisible();
 
   // The first tab writes newer progress (a purchase saves immediately).
-  await pressPrimary(first, 12);
+  await pressPrimary(first, 20);
   await openUpgrades(first);
   await first.getByRole('button', { name: /Autocomplete/ }).click();
   await expect(second.getByTestId('tab-panel')).toContainText('continued in another tab');

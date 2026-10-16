@@ -34,6 +34,8 @@ export const catalog: Catalog = {
     automation: 'Automation',
     revenue: 'Revenue',
     margin: 'Margin',
+    quality: 'Quality',
+    team: 'Team',
   },
   technologies,
   upgrades,

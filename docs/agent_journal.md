@@ -374,3 +374,30 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   load (inflated profiles normalise) and after each new discovery; a repeat lesson ending shows
   "Lesson already learned" (`experience.repeat`). The 3 cps run at experience 0.5 is 18.7 min
   today (< the 20 min floor) — to be re-measured after E3/E6 slow the early game.
+- 2026-10-16: economy redesign E1–E3 (one commit; the tests had to move together).
+  E1: Ship It is a strip under the cards (`game.release`, data-testid ship-strip), never one of
+  the three cards; Token review removed (upgrade, effect kind, balance) — save schema 7 (6→7
+  drops its level); `relevantCard()` puts the card for what binds (tokens < 30 s demand, compute
+  < agents, debt > 20, capacity binding) after progression and choices (endings never hidden).
+  E2: floors QUALITY_FLOOR 0.35 / COORDINATION_FLOOR 0.4; QUALITY and TEAM header stats replace
+  the automation slot while < 95 % (shown as %); agent card says "needs 1 compute, 1 managed";
+  Setup has "Limited by:". E3: actionBurst 6, refill 3/s (createRun starts with 6 charges);
+  act-1 prices 20/60/180/900; a capped press floats "typing…"; baseline tapper 3 cps → 1/3 s.
+  UI: the strip is one line on 320 px ("Ship v0.1 · 2K to go", odds once it can ship); below
+  640 px height the log keeps 3 lines and the controls gap is 6 px (world ≥ 30 % at 320×568).
+  Tests: click counts derive from content (AUTOCOMPLETE_PRICE etc. in tests/helpers/run.ts);
+  browser presses wait for `data-ready` on the primary button; Playwright timeout 60 s (F19).
+  MEASURED (seeds 1/7/42/101/2024 unless noted):
+  | config | company | acts | 2+cards | hidden | q<.9 | coord<.95 | peak debt |
+  | 3 cps→1/3s | 27.2–27.8 | 0.5/6.4/12.7–13.3/16.6–17.2/23.3–23.9/27.8 | 43–46 % | 418–440 s | 33–35 % | 76–80 % | 168 |
+  | 10 cps (seed 1) | 21.1 | 0.5/4.1/8.8/12.5/17.2/21.1 | 40 % | 300 s | 0 % | 100 % | 24 |
+  | greedy (seed 1) | 42.4 (still slower) | | 33 % | 268 s | 44 % | 88 % | 494 |
+  | seer (seed 1) | 30.2 | | 62 % | 687 s | 56 % | 78 % | 79 |
+  | experience 0.5 (seed 1) | 17.0 (< 20 floor) | | 50 % | 222 s | 0 % | 100 % | 93 |
+  Pressure now exists (was 0 % on 2+ cards and quality); act 1 lengthened 5.6 → 6.4 min. Still
+  open after E3: coordination below 0.95 most of the late game (capacity cards are capped — E4),
+  10 cps vs 3 cps ratio 0.76 (target ≥ 0.9 at E-end), greedy slower than baseline, experience 0.5
+  under 20 min.
+- F19: under the fully parallel Playwright run a real click takes ~1 s, so 20 paced presses
+  (buying Autocomplete) took ~25 s and four specs hit the 30 s default. Raised the default to
+  60 s in playwright.config.ts; nothing about the assertions changed.

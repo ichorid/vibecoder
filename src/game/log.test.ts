@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { catalog } from '../content/catalog';
-import { act, clickAndSettle } from '../../tests/helpers/run';
+import { act, AUTOCOMPLETE_PRICE, clickAndSettle } from '../../tests/helpers/run';
 import { createRun } from './createRun';
 import { appendLog } from './log';
 import { selectGame } from './selectors';
@@ -8,7 +8,7 @@ import { selectGame } from './selectors';
 describe('event log', () => {
   it('records a discovery line and shows at most five recent lines', () => {
     const run = act(
-      clickAndSettle(createRun(1, 'r'), 10, catalog),
+      clickAndSettle(createRun(1, 'r'), AUTOCOMPLETE_PRICE, catalog),
       { type: 'buyUpgrade', id: 'autocomplete' },
       catalog,
     );
