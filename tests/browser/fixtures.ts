@@ -44,6 +44,11 @@ export function lonelyRun(level: 'small' | 'large', seed = 31): RunState {
   throw new Error(`no ${level} intrusion reached`);
 }
 
+/** Save outside a PLAY session, so a reloaded page opens on Game (not on Cat). */
+function outsidePlay(run: RunState): RunState {
+  return run.catPlay ? applyCommand(run, { type: 'leaveCatPlay' }, run.activeMs, catalog).run : run;
+}
+
 /** Feed (but never pet or play) until the ignored cat leaves as a stray. */
 export function strayRun(seed = 33): RunState {
   let run = createRun(seed, `stray-${seed}`);
@@ -69,11 +74,11 @@ export function progressedRun(count: number, leavePending = false, seed = 41): R
   const play = playEvery();
   for (let i = 0; i < 60 * 600; i += 1) {
     if (run.pendingUnlockIds.length > 0) {
-      if (leavePending && run.unlockedTechnologyIds.length >= count) return run;
+      if (leavePending && run.unlockedTechnologyIds.length >= count) return outsidePlay(run);
       const id = run.pendingUnlockIds[0];
       if (id) run = applyCommand(run, { type: 'acknowledgeUnlock', id }, run.activeMs, catalog).run;
     }
-    if (run.unlockedTechnologyIds.length >= count) return run;
+    if (run.unlockedTechnologyIds.length >= count) return outsidePlay(run);
     if (run.activeMs % 1000 === 0) {
       run = applyCommand(run, { type: 'primaryAction' }, run.activeMs, catalog).run;
     }

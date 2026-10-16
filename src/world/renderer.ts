@@ -38,6 +38,7 @@ import type { RendererPort, WorldProjection, WorldTap } from './host';
 import { catLod, clusterLod, projectedSize, type CatLod, type ClusterLod } from './lod';
 import { planScene } from './scenePlan';
 import { hopPosition, planCatPath, type PathStep } from './catPath';
+import { clipToBox } from './linkGeometry';
 import {
   clampView,
   IDENTITY_VIEW,
@@ -227,8 +228,13 @@ export async function createPixiRenderer(
       const from = cluster.addition.anchor;
       const width = Math.max(1, cluster.addition.envelope.w / 160);
       for (const link of cluster.addition.links) {
-        if (!clusters.has(link.to)) continue;
-        const to = anchorOf(link.to);
+        const target = clusters.get(link.to);
+        if (!target) continue;
+        // Into the room picture: stop at its border, never across the programmer and the cat.
+        const to =
+          link.to === ROOM_ADDITION.id
+            ? clipToBox(from, anchorOf(link.to), target.bounds)
+            : anchorOf(link.to);
         links.moveTo(from.x, from.y).lineTo(to.x, to.y);
         links.stroke({ width, color: LINK_COLOR[theme], alpha: 0.55 });
         if (packet) {

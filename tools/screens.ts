@@ -154,6 +154,12 @@ const scenes: Record<string, Scene> = {
       },
     ]),
   ),
+  ...Object.fromEntries(
+    Array.from({ length: 28 }, (_, i) => i + 1).map((n) => [
+      `stage${n}`,
+      { width: 390, height: 844, save: () => saveText(progressedRun(n)) },
+    ]),
+  ),
   tech28Small: { width: 320, height: 568, save: () => saveText(progressedRun(28)) },
   stray: {
     width: 390,
@@ -211,7 +217,7 @@ for (const name of names.length ? names : Object.keys(scenes)) {
   await page.getByTestId('primary-action').waitFor();
   if (scene.dark) {
     await page.getByTestId('settings-button').click();
-    await page.getByRole('button', { name: 'Theme' }).click();
+    await page.getByRole('radio', { name: 'DARK' }).click();
     await page.keyboard.press('Escape');
   }
   await scene.act?.(page);
