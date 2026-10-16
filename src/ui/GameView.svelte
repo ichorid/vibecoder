@@ -203,13 +203,12 @@
         onclick={ship}
       >
         <span class="ship-icon" aria-hidden="true"><PixelIcon map={RELEASE_ICON} scale={2} /></span>
-        <!-- One line on a 320 px phone: what is left to earn, or the odds once it can ship. -->
+        <!-- One line on a 320 px phone: the fixed price, plus the odds once it can ship. -->
         <span class="ship-text"
           >{r.title} ·
           <span class="currency" aria-hidden="true"><PixelIcon map={CODE_ICON} scale={2} /></span
-          >{#if r.affordable}{formatAmount(r.price)} · retire {Number(
-              (r.retireChance * 100).toFixed(2),
-            )}%{:else}{formatAmount(r.shortfall)} to go{/if}</span
+          >{formatAmount(r.price)}{#if r.affordable}
+            · retire {Number((r.retireChance * 100).toFixed(2))}%{/if}</span
         >
         <span class="ship-go">SHIP</span>
       </button>
@@ -233,7 +232,7 @@
         <span class="ship-text"
           >DEMO #{d.number} ·
           <span class="currency" aria-hidden="true"><PixelIcon map={CODE_ICON} scale={2} /></span
-          >{#if d.affordable}{formatAmount(d.price)}{:else}{formatAmount(d.shortfall)} to go{/if}</span
+          >{formatAmount(d.price)}</span
         >
         <span class="ship-go">CODE IT</span>
       </button>

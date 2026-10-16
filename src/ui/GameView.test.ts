@@ -2,9 +2,11 @@
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createUiGame, nullRenderer } from '../../tests/helpers/uiGame';
+import { progressedRun } from '../../tests/browser/fixtures';
 import { AUTOCOMPLETE_PRICE } from '../../tests/helpers/run';
 import type { GameSnapshot } from '../app/createGame';
 import App from '../app/App.svelte';
+import { formatAmount } from './format';
 
 afterEach(() => {
   cleanup();
@@ -73,6 +75,31 @@ describe('Game controls', () => {
     await fireEvent.click(card);
     expect(t.latest()?.run.economy.output).toBe(6);
     expect(t.latest()?.run.upgradeLevels).toEqual({});
+  });
+
+  it('shows the fixed price on Ship It and the demo strip, not what is left to earn', () => {
+    const run = progressedRun(4, false);
+    const ui = createUiGame({ ...run, economy: { ...run.economy, output: 1 } });
+    let latest: GameSnapshot | undefined;
+    ui.game.api.subscribe((s) => {
+      latest = s;
+    });
+    render(App, {
+      props: {
+        api: ui.game.api,
+        illustrationUrl: () => null,
+        createRenderer: nullRenderer,
+        clock: { activeNow: () => ui.game.activeNow(), frames: () => () => {} },
+      },
+    });
+    const { release, demo } = latest?.game ?? {};
+    if (!release || !demo) throw new Error('both strips must be on offer');
+    expect(release.affordable || demo.affordable).toBe(false);
+    const ship = screen.getByTestId('ship-strip').textContent ?? '';
+    const code = screen.getByTestId('demo-strip').textContent ?? '';
+    expect(ship).toContain(formatAmount(release.price));
+    expect(code).toContain(formatAmount(demo.price));
+    expect(`${ship} ${code}`).not.toContain('to go');
   });
 
   it('removes a bought card, never shows more than three, and leaks no future title', async () => {
