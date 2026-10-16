@@ -125,6 +125,10 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   `freeze` event). Lifecycle browser tests dispatch synthetic events; real freezes need devices.
 - F12 (P10) A `disabled` button that has focus drops focus to `<body>`, so a dialog's Escape
   handler stops working — use `aria-disabled` for transient "busy" states.
+- F13 (P11) vite preview's SPA fallback serves the *game* for `/music-lab` (no slash); the game
+  entry redirects to `/music-lab/` before claiming the save lock.
+- F14 (P11) npm (this version) skips esbuild's postinstall under its install-script allowlist;
+  builds still work via `@esbuild/linux-x64`.
 
 ## Progress log
 
@@ -169,3 +173,5 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   music-browser 15, browser 43. Next: main P10 (P10.6 can now pass), then P11, then S08/S09.
 - 2026-10-16: P10 done headless (save fixtures/recovery, tab lock, lifecycle, context loss,
   mobile DOM, settings gate). game 363, browser 58. Device items unverified. Next P11.
+- 2026-10-16: P11 done headless (strategies, validation report, measurements, clean npm ci +
+  all gates, Lab path redirect). Device/human items blocked. Next: S08 (hardening), S09.

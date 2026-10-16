@@ -399,3 +399,13 @@ Covered by the S07 shared flow (`sound.spec.ts`, `settings.spec.ts`): Sound on/o
 
 `npm run check` OK; `test:game` 363/363; `test:music` 159/159; `test:music-browser` 15/15; `test:browser` 58/58; build within budgets (game initial JS 234 KiB gzip).
 Not verified: real iOS/Android lifecycle, audio unlock, context loss on mobile GPUs. Next: P11.
+
+## P11 — balance, acceptance, release build
+
+Status: **done as far as possible without devices**; P11.2 human mobile playthrough and P11.3
+device measurements are **blocked** (no phone, no human tester). Report: `docs/validation_report.md`.
+
+- P11.1 `tests/scenarios/strategies.test.ts`: 12 strategies (baseline on 4 seeds, no care, calm care, slow, high-frequency, overfeeding/recovery, pet only, long visits, bad purchases) with a 60-min cap and stall diagnostics. All within ranges on the first run (baseline 31.8 min, cat alive; no-care cat starves at 14.8 min while the company still lands at 31.8) → no balance change; tests are regression ranges.
+- P11.2 agent visual review only (contact sheet of all 28 illustrations, world progression, dark theme, memorial, endings) — not a substitute for the human pass.
+- P11.3 `tools/measure.ts` (headless desktop; methods in the report): no long tasks while idle in the late world, JS heap ≈ 10 MiB, GPU estimate ≤ 8 MiB, initial JS 234 KiB gzip. Not phone numbers.
+- P11.4 clean `npm ci` → all gates green; deployment paths/MIME checked; **finding:** vite preview serves the game for `/music-lab` (no slash) → the game entry now redirects to `/music-lab/` before booting (`lab.spec.ts`).

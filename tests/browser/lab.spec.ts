@@ -108,3 +108,12 @@ test('the Lab is usable by keyboard and at 390 px without horizontal overflow', 
   await page.getByRole('tab', { name: 'Random' }).click();
   await expect(page.getByRole('slider')).toHaveValue('0.5');
 });
+
+test('/music-lab without the trailing slash still opens the Lab, not the game', async ({
+  page,
+}) => {
+  await page.goto('/music-lab');
+  await expect(page.getByRole('heading', { name: 'Music Lab' })).toBeVisible();
+  expect(new URL(page.url()).pathname).toBe('/music-lab/');
+  expect(await page.evaluate(() => localStorage.getItem('vibe-coder.save'))).toBeNull();
+});

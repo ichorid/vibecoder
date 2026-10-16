@@ -8,6 +8,12 @@ import { SAVE_KEY } from './persistence/save';
 import RecoveryPanel from './ui/RecoveryPanel.svelte';
 import TabPanel from './ui/TabPanel.svelte';
 
+// Hosts with a single-page fallback serve this page for `/music-lab` (no slash): go to the
+// Lab's own directory entry instead of booting the game there.
+const toLab =
+  /^\/music-lab\/*$/.test(window.location.pathname) && !window.location.pathname.endsWith('/');
+if (toLab) window.location.replace(`/music-lab/${window.location.search}${window.location.hash}`);
+
 const target = document.getElementById('app');
 if (!target) {
   throw new Error('Missing #app mount point');
@@ -63,13 +69,14 @@ function start(bestEffort: boolean): void {
 let waiting: ReturnType<typeof mount> | null = null;
 const locks = (navigator as Navigator & { locks?: LockManagerLike }).locks;
 // The claim lives as long as the page: the lock is released when the tab closes.
-claimSaveOwnership(locks, {
-  onWaiting: () => {
-    waiting = mount(TabPanel, { target: root, props: { mode: 'waiting', onReload: reload } });
-  },
-  onOwner: () => {
-    if (waiting) void unmount(waiting);
-    waiting = null;
-    start(locks === undefined);
-  },
-});
+if (!toLab)
+  claimSaveOwnership(locks, {
+    onWaiting: () => {
+      waiting = mount(TabPanel, { target: root, props: { mode: 'waiting', onReload: reload } });
+    },
+    onOwner: () => {
+      if (waiting) void unmount(waiting);
+      waiting = null;
+      start(locks === undefined);
+    },
+  });
