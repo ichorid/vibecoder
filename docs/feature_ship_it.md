@@ -1,7 +1,11 @@
 # Feature: Ship It — launch windows, the wheel, and The Infinite Weekend
 
 Status: **implemented** (2026-10-16); deviations are listed in docs/agent_journal.md D26
-(schema 4, card order after choices, wheel-driven sounds). Replaces the one-click
+(schema 4, card order after choices, wheel-driven sounds). **Changed by the user (D27):** there
+are no launch windows any more — the next release is always on offer once the Terminal Agent
+exists; it needs at least its price in code and **spends all of the player's code**; after the
+five authored releases (v0.1–v3.0) they continue (v4.0, v5.0, …, ×6 each) with the last
+release's chance. §5.1's open/close rules below are history. Replaces the one-click
 `ship-original` → `three-users` ending. Numbers below are starting values; §12 lists what tuning
 may change and which tests guard it.
 

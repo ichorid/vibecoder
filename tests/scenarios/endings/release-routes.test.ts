@@ -41,7 +41,7 @@ describe('The Infinite Weekend', () => {
   });
 
   it('a player who ships every window wins 20 % of runs (statistical, real draw code)', () => {
-    const windows: TechnologyId[] = catalog.releases.windows.map((w) => w.technology);
+    const windows: TechnologyId[] = [catalog.releases.availableFrom];
     const RUNS = 5000;
     let wins = 0;
     for (let seed = 1; seed <= RUNS; seed += 1) {
@@ -53,6 +53,7 @@ describe('The Infinite Weekend', () => {
         economy: { ...fresh.economy, output: 1e12 },
       };
       for (let k = 0; k < 5 && run.status === 'playing'; k += 1) {
+        run = { ...run, economy: { ...run.economy, output: 1e12 } };
         run = applyCommand(run, { type: 'shipRelease' }, 0, catalog).run;
       }
       if (run.ending?.id === 'the-infinite-weekend') wins += 1;

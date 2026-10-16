@@ -4,13 +4,12 @@ import { applyCommand } from './commands';
 import type { Catalog } from './catalog';
 import { createRun } from './createRun';
 import { TECHNOLOGY_IDS, type TechnologyId } from './ids';
-import { jackpotHazard, openReleaseWindow } from './releases';
+import { jackpotHazard, nextRelease, releaseAt } from './releases';
 import { selectGame, selectRelease } from './selectors';
 import { stepRun } from './simulation';
 import type { RunState } from './types';
 
 const windows = catalog.releases.windows;
-const WINDOW_TECHS = windows.map((w) => w.technology);
 
 /** A run that has unlocked `ids` (in order) at `at`, with plenty of code to spend. */
 function withTechnologies(ids: readonly TechnologyId[], at = 0, output = 1e9): RunState {
@@ -26,16 +25,6 @@ function withTechnologies(ids: readonly TechnologyId[], at = 0, output = 1e9): R
     stats: { ...run.stats, lifetimeOutput: output },
   };
 }
-
-const later = (run: RunState, ids: readonly TechnologyId[], at: number): RunState => ({
-  ...run,
-  activeMs: at,
-  unlockedTechnologyIds: [...run.unlockedTechnologyIds, ...ids],
-  history: [
-    ...run.history,
-    ...ids.map((id) => ({ kind: 'technology' as const, id, activeMs: at })),
-  ],
-});
 
 const ship = (run: RunState, cat: Catalog = catalog) =>
   applyCommand(run, { type: 'shipRelease' }, run.activeMs, cat);
@@ -55,62 +44,62 @@ function withWeights(weights: readonly number[], overrides: Partial<Catalog['rel
 describe('jackpot odds', () => {
   it('weights sum to 20 and the shown hazard makes each window worth exactly its weight', () => {
     expect(windows.reduce((sum, w) => sum + w.jackpotWeight, 0)).toBe(20);
-    const hazards = windows.map((_, i) => jackpotHazard(windows, i));
+    const hazards = windows.map((_, i) => jackpotHazard(catalog.releases, i + 1));
     const expected = [0.002, 0.00802, 0.0202, 0.05155, 0.13043];
     hazards.forEach((h, i) => expect(h).toBeCloseTo(expected[i] ?? 0, 4));
     expect(hazards.reduce((p, h) => p * (1 - h), 1)).toBeCloseTo(0.8, 10);
+    // Releases after v3.0 keep its chance.
+    expect(jackpotHazard(catalog.releases, 9)).toBeCloseTo(expected[4] ?? 0, 4);
   });
 });
 
-describe('launch windows', () => {
-  it('open on the unlock of their technology, never before and never after the run ended', () => {
-    expect(openReleaseWindow(withTechnologies(['autocomplete']), catalog)).toBeNull();
+describe('the next release', () => {
+  it('is always on offer once the project works, never before and never after the end', () => {
+    expect(nextRelease(withTechnologies(['autocomplete']), catalog)).toBeNull();
     const run = withTechnologies(['autocomplete', 'terminal-agent']);
-    expect(openReleaseWindow(run, catalog)?.window).toBe(1);
-    expect(openReleaseWindow({ ...run, status: 'ended' }, catalog)).toBeNull();
+    expect(nextRelease(run, catalog)?.version).toBe('v0.1');
+    expect(nextRelease({ ...run, status: 'ended' }, catalog)).toBeNull();
+    // No time limit: an hour later it is still there.
+    expect(nextRelease({ ...run, activeMs: 3_600_000 }, catalog)?.version).toBe('v0.1');
   });
 
-  it('close only when three more technologies AND 240 s have passed; the last never closes', () => {
-    const open = withTechnologies(['terminal-agent'], 1000);
-    const three: TechnologyId[] = ['autonomous-edits', 'tool-permissions', 'ralph-loop'];
-    expect(openReleaseWindow(later(open, three, 1000 + 239_000), catalog)?.window).toBe(1);
-    expect(openReleaseWindow(later(open, three.slice(0, 2), 1000 + 400_000), catalog)?.window).toBe(
-      1,
-    );
-    expect(openReleaseWindow(later(open, three, 1000 + 240_000), catalog)).toBeNull();
-
-    const last = withTechnologies(['autonomous-company'], 0);
-    expect(openReleaseWindow({ ...last, activeMs: 3_600_000 }, catalog)?.window).toBe(5);
+  it('after the authored releases, the next ones keep coming, each ×6 dearer', () => {
+    const last = windows[windows.length - 1];
+    expect(releaseAt(catalog.releases, 6)).toMatchObject({
+      window: 6,
+      version: 'v4.0',
+      price: (last?.price ?? 0) * 6,
+    });
+    expect(releaseAt(catalog.releases, 7).version).toBe('v5.0');
   });
 
-  it('log a line when a window opens and when an unshipped one closes', () => {
+  it('logs a line once when a release becomes available', () => {
     let run = withTechnologies(['terminal-agent'], 0, 0);
     run = stepRun(run, 100, catalog).run;
-    expect(run.log.map((l) => l.text)).toContain(`🚢 ${windows[0]?.description}`);
-    run = later(run, ['autonomous-edits', 'tool-permissions', 'ralph-loop'], 300_000);
     run = stepRun(run, 100, catalog).run;
-    expect(run.log.map((l) => l.text)).toContain('⌛ The launch window for v0.1 closed.');
-    const again = stepRun(run, 100, catalog).run;
-    expect(again.log.filter((l) => l.text.includes('closed'))).toHaveLength(1);
+    const lines = run.log.map((l) => l.text).filter((t) => t.startsWith('🚢'));
+    expect(lines).toEqual([`🚢 ${windows[0]?.description}`]);
   });
 });
 
 describe('shipping a release', () => {
-  it('is rejected when closed, already shipped, unaffordable or after the end', () => {
+  it('is rejected before the project works, below the minimum, or after the end', () => {
     expect(ship(withTechnologies(['autocomplete'])).result).toBe('unavailable');
     const run = withTechnologies(['terminal-agent'], 0, 1999);
     expect(ship(run).result).toBe('unaffordable');
     const rich = withTechnologies(['terminal-agent']);
     const shipped = ship(rich, withWeights([0])).run;
-    expect(ship(shipped).result).toBe('unavailable');
+    // The next release is on offer at once; it just needs code again.
+    expect(nextRelease(shipped, catalog)?.version).toBe('v0.2');
+    expect(ship(shipped).result).toBe('unaffordable');
     expect(ship({ ...rich, status: 'ended' }).result).toBe('unavailable');
   });
 
-  it('spends exactly the price from the balance and leaves lifetime output alone', () => {
+  it('spends ALL the code (not just the minimum) and leaves lifetime output alone', () => {
     const run = withTechnologies(['terminal-agent'], 0, 5000);
     const shipped = ship(run, withWeights([0]));
     expect(shipped.result).toBe('applied');
-    expect(shipped.run.economy.output).toBe(3000);
+    expect(shipped.run.economy.output).toBe(0);
     expect(shipped.run.stats.lifetimeOutput).toBe(run.stats.lifetimeOutput);
     expect(shipped.run.releases).toHaveLength(1);
     expect(shipped.facts[0]).toMatchObject({ type: 'releaseShipped', window: 1 });
@@ -129,8 +118,10 @@ describe('shipping a release', () => {
 
   it('never repeats a slice or a comment within a run', () => {
     const noJackpot = withWeights([0, 0, 0, 0, 0]);
-    let run = withTechnologies(WINDOW_TECHS);
-    for (let i = 0; i < 5; i += 1) run = ship(run, noJackpot).run;
+    let run = withTechnologies(['terminal-agent']);
+    for (let i = 0; i < 5; i += 1) {
+      run = ship({ ...run, economy: { ...run.economy, output: 1e9 } }, noJackpot).run;
+    }
     expect(run.releases.map((r) => r.window)).toEqual([1, 2, 3, 4, 5]);
     expect(new Set(run.releases.map((r) => r.outcome)).size).toBe(5);
     expect(new Set(run.releases.map((r) => r.commentId)).size).toBe(5);

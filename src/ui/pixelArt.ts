@@ -67,25 +67,22 @@ export const settingsCog: PixelMap = {
   palette: { k: 'var(--ink)' },
 };
 
-/**
- * The cat died: a cat skull — big eye sockets, wide cheekbones tapering to a short muzzle with
- * a nose opening and two fangs — with pointed cat ears on top (not anatomy, just cool).
- */
-export const catSkull: PixelMap = {
+/** The cat died: a small memorial candle, burning. */
+export const catCandle: PixelMap = {
   rows: [
-    '.k........k.',
-    'kbk......kbk',
-    'kbbk.kk.kbbk',
-    'kbbbkbbkbbbk',
-    'kbbbbbbbbbbk',
-    'kbxxxbbxxxbk',
-    'kbxxxbbxxxbk',
-    '.kbbxbbxbbk.',
-    '..kkbxxbkk..',
-    '...kbbbbk...',
-    '...kbkkbk...',
+    '.....y......',
+    '....yoy.....',
+    '....yoy.....',
+    '.....r......',
+    '....kwk.....',
+    '....kwk.....',
+    '....kwk.....',
+    '....kwk.....',
+    '..kkkkkkk...',
+    '.kmmmmmmmk..',
+    '..kkkkkkk...',
   ],
-  palette: { b: '#ece6d6', x: '#2a2017', k: '#2a2017' },
+  palette: { y: '#f6c945', o: '#fff4c2', r: '#e8892f', k: '#2a2017', w: '#f3ead2', m: '#b7b3a9' },
 };
 
 /** The cat left as a stray: the sun going down over the horizon. */

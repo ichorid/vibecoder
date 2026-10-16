@@ -131,9 +131,10 @@ export const RELEASE_OUTCOME_IDS = [
 ] as const;
 export type ReleaseOutcomeId = (typeof RELEASE_OUTCOME_IDS)[number];
 
-/** Release windows, in run order. */
-export const RELEASE_WINDOWS = [1, 2, 3, 4, 5] as const;
-export type ReleaseWindow = (typeof RELEASE_WINDOWS)[number];
+/** A release's number in the run (1 = v0.1). There is always a next one. */
+export type ReleaseWindow = number;
+/** Upper bound for validation of saved releases. */
+export const MAX_RELEASES = 999;
 
 /** Manual responsibilities that technologies progressively automate. */
 export const RESPONSIBILITY_IDS = [

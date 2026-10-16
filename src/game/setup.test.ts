@@ -95,4 +95,15 @@ describe('setup view', () => {
     if (!pack) throw new Error('no pack');
     expect(upgradeImpact(run, pack, catalog)).toBeNull();
   });
+
+  it('explains money: useful code × $ per code, minus agents × running cost', () => {
+    const run = at('finance');
+    const money = selectSetup({ ...run, economy: { ...run.economy, revenue: 1e6 } }, catalog)
+      .economy.money;
+    if (!money) throw new Error('no money section');
+    expect(money.perCode).toBeCloseTo(0.02 * 2 * 1.25, 9);
+    expect(money.basePerCode).toBeCloseTo(0.02, 9);
+    expect(money.revenuePerSecond).toBeCloseTo(money.usefulCodePerSecond * money.perCode, 6);
+    expect(money.costPerSecond).toBeCloseTo(money.runningAgents * money.costPerAgent, 6);
+  });
 });

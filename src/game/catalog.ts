@@ -364,17 +364,19 @@ export interface EndingDefinition {
 /** Text that differs when there is no cat (dead or gone): no cat in any text or picture. */
 export type CatAwareText = string | { readonly alive: string; readonly absent: string };
 
-/** A launch window: opens when its technology is unlocked; one release per window. */
+/**
+ * One release, in order. The next one is always on offer: it needs at least `price` code, and
+ * shipping it spends all of the player's code.
+ */
 export interface ReleaseWindowDefinition {
   readonly window: ReleaseWindow;
   readonly version: string;
-  readonly technology: TechnologyId;
-  /** Paid from the spendable code balance. */
+  /** The least code needed; shipping spends all of it. */
   readonly price: number;
-  /** Percent of a whole run won at this window by a player who ships every time. */
+  /** Percent of a whole run won at this release by a player who ships every one. */
   readonly jackpotWeight: number;
   readonly title: string;
-  /** Card description; also the log line when the window opens. */
+  /** Card description; also the log line when it becomes available. */
   readonly description: string;
 }
 
@@ -392,17 +394,18 @@ export interface ReleaseComment {
 }
 
 export interface ReleaseContent {
+  /** The authored releases (v0.1 … v3.0); later ones are generated from the last. */
   readonly windows: readonly ReleaseWindowDefinition[];
+  /** Releases are on offer once this technology exists (the project works). */
+  readonly availableFrom: TechnologyId;
+  /** Each release after the authored ones needs this many times more code. */
+  readonly laterPriceGrowth: number;
+  readonly laterDescription: string;
   readonly slices: readonly ReleaseSliceDefinition[];
   /** Third-party top comments (attributed in their own file). */
   readonly comments: readonly ReleaseComment[];
-  /** A window closes once both this many more technologies and this much time passed. */
-  readonly closeAfterTechnologies: number;
-  readonly closeAfterMs: number;
   readonly jackpotEnding: EndingId;
   readonly jackpotLabel: string;
-  /** `{version}` is replaced. */
-  readonly closedText: string;
   /** `{version}` and `{label}` are replaced. */
   readonly shippedText: string;
 }

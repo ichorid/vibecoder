@@ -4,7 +4,7 @@
   import { formatActiveTime } from './format';
   import { flagIcon, palmIcon, trophyIcon } from './icons';
   import PixelIcon from './PixelIcon.svelte';
-  import { catSkull, catSunset, type PixelMap } from './pixelArt';
+  import { catCandle, catSunset, type PixelMap } from './pixelArt';
 
   interface Props {
     history: HistoryViewModel;
@@ -15,7 +15,7 @@
   const { history, onReturn, illustrationUrl = () => null }: Props = $props();
 
   const SYMBOLS: Record<Extract<HistoryIconViewModel, { kind: 'symbol' }>['id'], PixelMap> = {
-    'cat-died': catSkull,
+    'cat-died': catCandle,
     'cat-left': catSunset,
     achievement: trophyIcon,
     ending: flagIcon,

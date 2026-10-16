@@ -32,8 +32,10 @@ test('ship a release: wheel, result, back to work, a frame on the wall, the card
   await expect(page.getByTestId('release-wheel')).toContainText('Top comment:');
   await page.getByRole('button', { name: 'BACK TO WORK' }).click();
   await expect(page.getByTestId('release-wheel')).toHaveCount(0);
+  // The next release is on offer at once — and all the code is gone.
   await openUpgrades(page);
-  await expect(page.locator('[data-release]')).toHaveCount(0);
+  await expect(page.locator('[data-release="2"]')).toContainText('Ship v0.2');
+  await expect(page.locator('[data-release="1"]')).toHaveCount(0);
   await closeUpgrades(page);
   await expect(page.getByRole('list', { name: 'Recent events' })).toContainText('Shipped v0.1:');
   await expect(page.getByTestId('world-canvas')).toHaveAttribute('data-release-frames', '1');

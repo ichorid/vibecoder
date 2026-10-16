@@ -117,7 +117,12 @@ export function untilChoice(id: ChoiceId, seed = 51): RunState {
     playEvery(),
   ];
   for (let i = 0; i < 60 * 600; i += 1) {
-    if (selectGame(run, catalog).offers.some((o) => o.kind === 'choice' && o.id === id)) return run;
+    if (selectGame(run, catalog).offers.some((o) => o.kind === 'choice' && o.id === id)) {
+      // Save outside a PLAY session, so the reloaded page opens on Game.
+      return run.catPlay
+        ? applyCommand(run, { type: 'leaveCatPlay' }, run.activeMs, catalog).run
+        : run;
+    }
     for (const policy of policies) {
       for (const command of policy({ run, catalog }))
         run = applyCommand(run, command, run.activeMs, catalog).run;

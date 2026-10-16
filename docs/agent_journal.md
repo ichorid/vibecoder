@@ -119,6 +119,12 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   company at 43.3 min vs ~31.5 baseline and ships all five (v3.0 at 47.9); 5000-seed draw
   check gives 18–22 % jackpots. Jackpot route: seed 1868 wins at v0.1. Comments verified
   verbatim against pyjokes `jokes_en.py` (downloaded 2026-10-16).
+- D27 (user) Ship It without windows: the next release is always offered (from
+  `releases.availableFrom` = terminal-agent); minimum price as authored (2K…2.7M, then ×6) and
+  shipping sets code to 0. Hazard per release number, later ones keep v3.0's 13.04 %. Slices and
+  comments repeat only after all were used. Save: release number 1–999 (`MAX_RELEASES`). The
+  always-ship-and-save strategy became degenerate; replaced by "upgrades first, ship when
+  affordable": company at 33.9 min, releases at 11, 20, 28, 33 min (seed 1).
 - D5 (P02) App-level commands (`retrySave`, `setTheme`) go through the same public
   `dispatch` as game commands, so UI still sees only `{subscribe, dispatch}`.
 
@@ -316,3 +322,6 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   `upgradeImpact` (the economy recomputed with the card owned; packs none). Measured release
   windows on baseline (seeds 101/303): v0.1 2.3–7.2 min, v0.2 ~14.6–18.6, v1.0 ~21.7–25.7,
   v2.0 ~28.4–32.4 (card visible 3.5 of 4 min), v3.0 from ~31.5 and never closes.
+- 2026-10-16: D27 done; the dead cat's icon is a candle (header + History); OBSERVE presses
+  float "+1 existential dread" / "+1 boredom" (cosmetic); Setup's money section explains
+  revenue = useful code/s × $ per code (base × multipliers) and costs = agents × $/s + overhead.

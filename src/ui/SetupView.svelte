@@ -150,10 +150,22 @@
       <li>
         <span class="what">{@render ico(STAT_ICONS.revenue)}Revenue</span>
         <span class="value">+${n(e.money.revenuePerSecond)}/s</span>
+        <span class="note" data-testid="setup-revenue-why"
+          >{n(e.money.usefulCodePerSecond)} useful code/s × ${n(e.money.perCode)} per line of code{#if e.money.basePerCode > 0 && Math.abs(e.money.perCode - e.money.basePerCode) > 1e-9}
+            (${n(e.money.basePerCode)} from product management × {n(
+              e.money.perCode / e.money.basePerCode,
+            )} from marketing, finance and executives){/if}. Your own presses earn nothing; only the
+          agents' useful code is sold.</span
+        >
       </li>
       <li>
         <span class="what">{@render ico(icons.costIcon)}Operating costs</span>
         <span class="value">−${n(e.money.costPerSecond)}/s</span>
+        <span class="note"
+          >{n(e.money.runningAgents)} agents × ${n(e.money.costPerAgent)}/s each{#if e.money.overheadPerSecond > 0}
+            + ${n(e.money.overheadPerSecond)}/s fixed overhead from expanding{/if}. When the bank
+          cannot pay, agents sit idle.</span
+        >
       </li>
       <li class="total">
         <span class="what">{@render ico(STAT_ICONS.margin)}Margin</span>

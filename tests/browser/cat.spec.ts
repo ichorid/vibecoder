@@ -41,7 +41,7 @@ test('a dead cat stays dead: gray bars, memorial with two photos, no care', asyn
   expect(dead.cat.alive).toBe(false);
   await loadSave(page, saveText(dead));
   await expect(page.getByTestId('cat-button')).toHaveAttribute('aria-label', 'Cat. Gone.');
-  // A dead cat's header icon is a skull.
+  // A dead cat's header icon is a burning candle.
   await expect(page.getByTestId('cat-button')).toHaveAttribute('data-fate', 'dead');
   expect(await barWidth(page, 'health-bar')).toBe(0);
   expect(await barWidth(page, 'mood-bar')).toBe(0);

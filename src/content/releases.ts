@@ -1,16 +1,18 @@
 /**
- * Ship It: five launch windows, the release wheel and its silly outcomes (docs/feature_ship_it.md).
+ * Ship It: releases, the release wheel and its silly outcomes (docs/feature_ship_it.md).
  * Shipping has no economic reward; the joke, the frame on the wall and the lottery ticket are it.
  */
 import type { ReleaseContent } from '../game/catalog';
 import { releaseComments } from './releaseComments';
 
-/** Prices grow about ×6 per window; jackpot weights sum to 20 (% of a whole run). */
+/**
+ * The authored releases. Each needs about ×6 more code than the last and spends all of it;
+ * jackpot weights sum to 20 (% of a whole run for a player who ships the five).
+ */
 export const RELEASE_WINDOWS: ReleaseContent['windows'] = [
   {
     window: 1,
     version: 'v0.1',
-    technology: 'terminal-agent',
     price: 2_000,
     jackpotWeight: 0.2,
     title: 'Ship v0.1',
@@ -19,7 +21,6 @@ export const RELEASE_WINDOWS: ReleaseContent['windows'] = [
   {
     window: 2,
     version: 'v0.2',
-    technology: 'manager-agent',
     price: 12_000,
     jackpotWeight: 0.8,
     title: 'Ship v0.2',
@@ -28,7 +29,6 @@ export const RELEASE_WINDOWS: ReleaseContent['windows'] = [
   {
     window: 3,
     version: 'v1.0',
-    technology: 'custom-harness',
     price: 75_000,
     jackpotWeight: 2,
     title: 'Ship v1.0',
@@ -37,7 +37,6 @@ export const RELEASE_WINDOWS: ReleaseContent['windows'] = [
   {
     window: 4,
     version: 'v2.0',
-    technology: 'self-driving-repositories',
     price: 450_000,
     jackpotWeight: 5,
     title: 'Ship v2.0',
@@ -46,7 +45,6 @@ export const RELEASE_WINDOWS: ReleaseContent['windows'] = [
   {
     window: 5,
     version: 'v3.0',
-    technology: 'autonomous-company',
     price: 2_700_000,
     jackpotWeight: 12,
     title: 'Ship v3.0',
@@ -57,6 +55,9 @@ export const RELEASE_WINDOWS: ReleaseContent['windows'] = [
 
 export const releases: ReleaseContent = {
   windows: RELEASE_WINDOWS,
+  availableFrom: 'terminal-agent',
+  laterPriceGrowth: 6,
+  laterDescription: 'Ship it again. Nobody asked. Somebody will download it.',
   slices: [
     {
       id: 'three-users',
@@ -96,10 +97,7 @@ export const releases: ReleaseContent = {
     },
   ],
   comments: releaseComments,
-  closeAfterTechnologies: 3,
-  closeAfterMs: 240_000,
   jackpotEnding: 'the-infinite-weekend',
   jackpotLabel: 'RETIRE',
-  closedText: 'The launch window for {version} closed.',
   shippedText: 'Shipped {version}: {label}.',
 };

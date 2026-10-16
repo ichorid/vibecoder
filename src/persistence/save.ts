@@ -2,7 +2,7 @@ import {
   CHOICE_IDS,
   ENDING_IDS,
   RELEASE_OUTCOME_IDS,
-  RELEASE_WINDOWS,
+  MAX_RELEASES,
   TECHNOLOGY_IDS,
   type ReleaseWindow,
   UPGRADE_IDS,
@@ -25,8 +25,8 @@ import {
 const RELEASE_RESULTS = [...RELEASE_OUTCOME_IDS, 'jackpot'] as const;
 
 function releaseWindow(value: unknown, path: string): ReleaseWindow {
-  const window = num(value, path, { min: 1, max: RELEASE_WINDOWS.length, integer: true });
-  return window as ReleaseWindow;
+  const window = num(value, path, { min: 1, max: MAX_RELEASES, integer: true });
+  return window;
 }
 
 function decodeRelease(value: unknown, path: string): ReleaseRecord {
@@ -382,7 +382,7 @@ export function decodeRun(value: unknown, path = 'run'): RunState {
     attention: decodeAttention(raw.attention, `${path}.attention`),
     catPlaySeq: num(raw.catPlaySeq, `${path}.catPlaySeq`, { min: 0, integer: true }),
     choices: decodeChoices(raw.choices, `${path}.choices`),
-    releases: list(raw.releases, `${path}.releases`, decodeRelease, RELEASE_WINDOWS.length),
+    releases: list(raw.releases, `${path}.releases`, decodeRelease, MAX_RELEASES),
     ending: raw.ending === null ? null : decodeEnding(raw.ending, `${path}.ending`),
   };
   if ((run.status === 'ended') !== (run.ending !== null))

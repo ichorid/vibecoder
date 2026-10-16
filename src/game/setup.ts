@@ -4,7 +4,7 @@
  * function the simulation step uses, so the screen explains exactly what the game does.
  */
 import type { Catalog, Effect, UpgradeDefinition } from './catalog';
-import { deriveRates, economyFlows, upgradeLevel } from './economy';
+import { activeEffects, deriveRates, economyFlows, upgradeLevel } from './economy';
 import { cardEffects, effectText } from './effectText';
 import type { PrimaryActionId, TechnologyId, UpgradeId } from './ids';
 import { currentPrimaryAction } from './progression';
@@ -67,6 +67,14 @@ export interface SetupViewModel {
     /** Present once money matters (revenue or operating costs). */
     readonly money: {
       readonly revenue: number;
+      /** $ earned per unit of useful code (base × marketing/finance/executive multipliers). */
+      readonly perCode: number;
+      readonly basePerCode: number;
+      readonly usefulCodePerSecond: number;
+      readonly runningAgents: number;
+      readonly costPerAgent: number;
+      /** Fixed costs from decisions (e.g. expanding into every market). */
+      readonly overheadPerSecond: number;
       readonly revenuePerSecond: number;
       readonly costPerSecond: number;
       readonly marginPerSecond: number;
@@ -116,7 +124,7 @@ function pressEffect(
     case 'optimize':
       return `+${Math.round(b.optimizeStep * 100)}% efficiency for a while (up to +${Math.round(b.optimizeCap * 100)}%)`;
     case 'observe':
-      return 'nothing: the company runs itself';
+      return 'nothing (the company runs itself), +1 existential dread';
   }
 }
 
@@ -130,6 +138,14 @@ export function selectSetup(run: ReadonlyRun, catalog: Catalog): SetupViewModel 
     rates.monetization > 0 || f.costRate > 0
       ? {
           revenue: run.economy.revenue,
+          perCode: rates.monetization,
+          basePerCode: activeEffects(run, catalog)
+            .filter((e) => e.kind === 'monetization')
+            .reduce((sum, e) => sum + ('amount' in e ? e.amount : 0), 0),
+          usefulCodePerSecond: perSecond(f.useful),
+          runningAgents: f.runnable,
+          costPerAgent: rates.operatingCostPerAgent,
+          overheadPerSecond: rates.fixedOverheadPerSecond,
           revenuePerSecond: perSecond(f.earned),
           costPerSecond: f.costRate,
           marginPerSecond: perSecond(f.earned) - f.costRate,

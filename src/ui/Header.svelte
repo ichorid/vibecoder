@@ -3,7 +3,7 @@
   import AtlasSprite from './AtlasSprite.svelte';
   import type { DomSpriteSheet } from './contracts';
   import PixelIcon from './PixelIcon.svelte';
-  import { catFace, catSkull, catSunset, settingsCog } from './pixelArt';
+  import { catCandle, catFace, catSunset, settingsCog } from './pixelArt';
   import { describeLevel } from './format';
 
   interface Props {
@@ -47,7 +47,7 @@
             />
           {:else}
             <PixelIcon
-              map={cat.fate === 'alive' ? catFace : cat.fate === 'stray' ? catSunset : catSkull}
+              map={cat.fate === 'alive' ? catFace : cat.fate === 'stray' ? catSunset : catCandle}
               scale={3}
             />
           {/if}

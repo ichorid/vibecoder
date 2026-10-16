@@ -16,7 +16,7 @@ import { cardEffects } from './effectText';
 import { upgradeImpact } from './setup';
 import { deriveSeed } from './random';
 import { catAware } from './catAware';
-import { jackpotHazard, openReleaseWindow, releaseLabel } from './releases';
+import { jackpotHazard, nextRelease, releaseAt, releaseLabel } from './releases';
 import type {
   AttentionLevel,
   CareNote,
@@ -297,9 +297,9 @@ export function selectGame(run: ReadonlyRun, catalog: Catalog): GameViewModel {
       };
       return { card, order: 1000 + order, priority: CHOICE_PRIORITY };
     });
-  // The release card is a decision too, after the choices: an ending is never hidden behind a
-  // gamble. Mid-game at most one choice overlaps a launch window, so the release still shows.
-  const window = openReleaseWindow(run, catalog);
+  // The next release is always on offer (once the project works). It is a decision too, after
+  // the choices: an ending is never hidden behind a gamble.
+  const window = nextRelease(run, catalog);
   const releaseCards = window
     ? [
         {
@@ -313,8 +313,8 @@ export function selectGame(run: ReadonlyRun, catalog: Catalog): GameViewModel {
             price: window.price,
             affordable: run.economy.output >= window.price,
             effects: [
-              'no economy effect',
-              `${Number((jackpotHazard(catalog.releases.windows, catalog.releases.windows.indexOf(window)) * 100).toFixed(2))}% chance to retire`,
+              'spends ALL your code',
+              `${Number((jackpotHazard(catalog.releases, window.window) * 100).toFixed(2))}% chance to retire`,
             ],
           } satisfies ReleaseOfferViewModel as OfferViewModel,
           order: 2000,
@@ -439,12 +439,12 @@ export function selectHistory(
         }
         case 'release': {
           const record = run.releases.find((r) => r.window === entry.window);
-          const window = catalog.releases.windows.find((w) => w.window === entry.window);
+          const window = releaseAt(catalog.releases, entry.window);
           const label = record ? releaseLabel(record, catalog) : entry.outcome;
           return {
             kind: 'release',
             title: catalog.releases.shippedText
-              .replace('{version}', window?.version ?? `#${entry.window}`)
+              .replace('{version}', window.version)
               .replace('{label}', label),
             activeMs: entry.activeMs,
             icon: { kind: 'symbol', id: entry.outcome === 'jackpot' ? 'jackpot' : 'release' },
@@ -577,9 +577,8 @@ export function selectRelease(
 ): ReleaseWheelViewModel | null {
   const record = run.releases[index];
   const content = catalog.releases;
-  const windowIndex = content.windows.findIndex((w) => w.window === record?.window);
-  const window = content.windows[windowIndex];
-  if (!record || !window) return null;
+  if (!record) return null;
+  const window = releaseAt(content, record.window);
   const slices: WheelSliceViewModel[] = [
     ...content.slices.map((s) => ({
       id: s.id,
@@ -592,7 +591,7 @@ export function selectRelease(
   return {
     window: record.window,
     version: window.version,
-    hazard: jackpotHazard(content.windows, windowIndex),
+    hazard: jackpotHazard(content, record.window),
     slices,
     target: slices.findIndex((s) => s.id === record.outcome),
     spinSeed: deriveSeed(run.visualSeed, `release-${record.window}`),

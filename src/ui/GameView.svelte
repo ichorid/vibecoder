@@ -57,10 +57,25 @@
   let gains = $state<FloatingGain[]>([]);
   let nextGainId = 0;
 
+  /** OBSERVE changes nothing; the button still answers (cosmetic, for the lulz). */
+  const OBSERVE_GAINS = [
+    '+1 existential dread',
+    '+1 boredom',
+    '+1 existential dread',
+    '+1 staring',
+    '+1 boredom',
+    '+0 purpose',
+  ];
+  let observed = 0;
+
   function primary(event: MouseEvent) {
     // The gain of *this* press is read before dispatching; nothing floats if it adds nothing.
     const gain = game.primaryAction.gain;
-    if (dispatch({ type: 'primaryAction' }) !== 'applied' || !gain) return;
+    const observing = game.primaryAction.id === 'observe';
+    if (dispatch({ type: 'primaryAction' }) !== 'applied' || (!gain && !observing)) return;
+    const text = gain
+      ? gainText(gain, formatAmount)
+      : (OBSERVE_GAINS[observed++ % OBSERVE_GAINS.length] ?? '+1 boredom');
     const target = event.currentTarget as HTMLElement;
     const rect = target.getBoundingClientRect();
     const fromPointer = event.detail > 0 && rect.width > 0;
@@ -68,7 +83,7 @@
     nextGainId += 1;
     gains = [
       ...gains.slice(-(MAX_FLOATING - 1)),
-      { id: nextGainId, text: gainText(gain, formatAmount), x: Math.min(0.9, Math.max(0.1, x)) },
+      { id: nextGainId, text, x: Math.min(0.9, Math.max(0.1, x)) },
     ];
   }
 
