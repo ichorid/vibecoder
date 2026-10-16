@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "recursion-base",
+  "revision": 1,
+  "description": "Mechanical sequencing for the custom harness.",
+  "roles": {
+    "lead": {
+      "preset": "dark-fm"
+    },
+    "bass": {
+      "preset": "soft-triangle"
+    },
+    "arp": {
+      "preset": "chirp-arp"
+    },
+    "percussion": {
+      "preset": "mechanical-kit"
+    }
+  }
+}

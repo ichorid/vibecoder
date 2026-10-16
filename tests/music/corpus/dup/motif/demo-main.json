@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "demo-main",
+  "revision": 1,
+  "status": "demo",
+  "description": "Temporary demo motif: scale degrees 3-5-6-5 (C major: E-G-A-G; C Phrygian: Eb-G-Ab-G). Not the approved musical identity.",
+  "degrees": [3, 5, 6, 5],
+  "rhythmSteps": [2, 2, 4, 8],
+  "license": "CC0-1.0"
+}

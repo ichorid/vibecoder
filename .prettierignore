@@ -6,3 +6,5 @@ docs/design_references
 .serena
 tools/acceptance
 public/assets
+THIRD_PARTY_NOTICES.md
+src/music/data/pack.*.json

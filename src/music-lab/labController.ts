@@ -22,7 +22,9 @@ import { contentHash } from '../music/hash';
 import { createLibrary, patternKey, type MusicLibrary } from '../music/library';
 import type { AudioPreferenceStore } from '../music/preferences';
 import { EVOLUTION_TIMELINE, createTimelineDriver, planTimeline } from '../music/previewTimeline';
+import patternSchema from '../../music/PATTERN_SCHEMA.json';
 import { importCandidateText, type CandidateReport, type CandidateStore } from './candidates';
+import { formatFeedbackPrompt } from './feedback';
 import type { ReviewStore } from './reviewStore';
 import {
   approvedKeys,
@@ -34,6 +36,7 @@ import {
   mergeImport,
   resolveConflict as resolveReviewConflict,
   reviewFor,
+  type Result,
   type ReviewBook,
   type ReviewConflict,
   type ReviewStatus,
@@ -138,6 +141,8 @@ export interface LabController {
   /** APPROVE / REVISE / REJECT (or back to unreviewed); saves the current feedback draft. */
   decide(key: string, status: ReviewStatus): void;
   exportReviews(): string;
+  /** The composer prompt for one era: its revise/rejected versions plus approved metadata. */
+  feedbackPrompt(eraId: string): Result<string>;
   importReviews(text: string): void;
   resolveConflict(key: string, choice: 'keep-local' | 'use-import'): void;
   /** Discard unreadable stored reviews (explicit reviewer action). */
@@ -674,6 +679,40 @@ export function createLabController(options: LabControllerOptions): LabControlle
       });
     },
     exportReviews: () => encodeReviewEnvelope(book),
+    feedbackPrompt(eraId) {
+      if (!hashesReady) return { ok: false, error: 'Reviews are not ready yet.' };
+      const inEra = entries.filter((e) => e.eraId === eraId);
+      const approved = [];
+      const requested = [];
+      for (const entry of inEra) {
+        const version = versionOf(entry);
+        const pattern = catalog.patterns.find(
+          (p) => p.id === entry.id && p.revision === entry.revision,
+        );
+        if (!version || !pattern) continue;
+        const review = reviewFor(book, version);
+        if (review.status === 'approved') {
+          approved.push({ key: entry.key, hash: version.contentHash, rating: review.rating });
+        } else if (review.status === 'revise' || review.status === 'rejected') {
+          requested.push({
+            pattern,
+            hash: version.contentHash,
+            review: {
+              status: review.status,
+              rating: review.rating,
+              ...(review.feedback ? { feedback: review.feedback } : {}),
+            },
+          });
+        }
+      }
+      return formatFeedbackPrompt({
+        eraId,
+        catalog,
+        schemaText: JSON.stringify(patternSchema, null, 2),
+        approved,
+        requested,
+      });
+    },
     importReviews(text) {
       const decoded = decodeReviewEnvelope(text);
       if (!decoded.ok) {

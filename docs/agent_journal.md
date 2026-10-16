@@ -66,6 +66,10 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   arrangements of the era are not in the hash (they are mixes, chosen by the game). Local
   candidates with semantic errors are accepted (shown "cannot play", can't be approved);
   structural/catalog errors are rejected at import.
+- D20 (S06) Packs are generated JSON in `src/music/data/pack.{approved,demo}.json` (Prettier-
+  ignored; `music:check-pack` byte-compares). Exact duplicates under different IDs are validator
+  errors. Third-party notices come from the lockfile (`npm run notices`), not from node_modules
+  scans. vite-node strips the script path from `process.argv`: keep CLI and library in separate files.
 - D5 (P02) App-level commands (`retrySave`, `setTheme`) go through the same public
   `dispatch` as game commands, so UI still sees only `{subscribe, dispatch}`.
 
@@ -146,3 +150,6 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   test:music 95, test:music-browser 13, test:browser 36. Next S05 (reviews).
 - 2026-10-16: S05 done (SHA-256 review identity, review store/import/export/conflicts, approved
   Random bank, local candidates). test:music 124, music-browser 14, browser 38. Next S06.
+- 2026-10-16: S06 done (similarity, approved/demo packs, prompt formatter + CLI templates,
+  licenses/notices, music docs). test:music 149, browser 40. Next S07 (game integration);
+  S07 must add `music/binding.json` (README already documents it).

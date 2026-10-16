@@ -36,4 +36,21 @@ describe('music:validate', () => {
       /unknown era/,
     );
   });
+
+  it('reports exact duplicates as errors and unchanged revisions as warnings, with both IDs', () => {
+    const report = validateCorpus('tests/music/corpus/dup');
+    expect(report.errors.map((e) => e.message).join('\n')).toMatch(
+      /fixture-copy@1 .*fixture-ok@1.*identical music/,
+    );
+    expect(report.warnings.map((w) => w.message).join('\n')).toMatch(
+      /fixture-ok@1 .*fixture-ok@2.*identical music/,
+    );
+    expect(cli('--root', 'tests/music/corpus/dup').status).toBe(1);
+  });
+
+  it('the shared demo motif alone never makes the repository corpus fail', () => {
+    const report = validateCorpus('music');
+    expect(report.errors).toEqual([]);
+    expect(report.warnings.some((w) => /near variant|identical music/.test(w.message))).toBe(false);
+  });
 });

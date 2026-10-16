@@ -4,6 +4,7 @@
   import EntryList from './components/EntryList.svelte';
   import ExchangePanel from './components/ExchangePanel.svelte';
   import NowPlaying from './components/NowPlaying.svelte';
+  import PromptPanel from './components/PromptPanel.svelte';
   import ReviewPanel from './components/ReviewPanel.svelte';
 
   interface Props {
@@ -37,8 +38,8 @@
   const selectedEntry = $derived(view.entries.find((e) => e.key === view.single.selected) ?? null);
 
   /** Hand a text file to the reviewer (no server involved). */
-  function download(name: string, text: string) {
-    const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+  function download(name: string, text: string, type = 'application/json') {
+    const url = URL.createObjectURL(new Blob([text], { type }));
     const link = document.createElement('a');
     link.href = url;
     link.download = name;
@@ -257,6 +258,8 @@
       </ol>
     </section>
   {/if}
+
+  <PromptPanel eras={view.eras} build={(eraId: string) => lab.feedbackPrompt(eraId)} {download} />
 
   <ExchangePanel
     conflicts={view.reviews.conflicts}

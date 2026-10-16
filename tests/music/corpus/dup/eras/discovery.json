@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "id": "discovery",
+  "revision": 1,
+  "title": "Discovery",
+  "mood": "Cheerful, adventurous: orchestral-inspired NES chiptune.",
+  "clockGroup": "standard",
+  "defaults": {
+    "bpm": 120,
+    "bars": 4,
+    "stepsPerBar": 16,
+    "timeSignature": {
+      "numerator": 4,
+      "denominator": 4
+    }
+  },
+  "key": {
+    "tonic": "C",
+    "modes": ["major"]
+  },
+  "defaultArrangement": "discovery-base",
+  "emptyBankPolicy": "keep-current"
+}

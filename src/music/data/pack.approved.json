@@ -1,0 +1,590 @@
+{
+  "schemaVersion": 1,
+  "mode": "approved",
+  "eras": [
+    {
+      "schemaVersion": 1,
+      "id": "acceleration",
+      "revision": 1,
+      "title": "Acceleration",
+      "mood": "Excitement and optimism: energetic chiptune.",
+      "clockGroup": "standard",
+      "defaults": {
+        "bpm": 120,
+        "bars": 4,
+        "stepsPerBar": 16,
+        "timeSignature": {
+          "numerator": 4,
+          "denominator": 4
+        }
+      },
+      "key": {
+        "tonic": "G",
+        "modes": [
+          "major",
+          "mixolydian"
+        ]
+      },
+      "defaultArrangement": "acceleration-base",
+      "emptyBankPolicy": "keep-current",
+      "demoFallbackEra": "discovery"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "discovery",
+      "revision": 1,
+      "title": "Discovery",
+      "mood": "Cheerful, adventurous: orchestral-inspired NES chiptune.",
+      "clockGroup": "standard",
+      "defaults": {
+        "bpm": 120,
+        "bars": 4,
+        "stepsPerBar": 16,
+        "timeSignature": {
+          "numerator": 4,
+          "denominator": 4
+        }
+      },
+      "key": {
+        "tonic": "C",
+        "modes": [
+          "major"
+        ]
+      },
+      "defaultArrangement": "discovery-base",
+      "emptyBankPolicy": "keep-current"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "orchestration",
+      "revision": 1,
+      "title": "Orchestration",
+      "mood": "Intense, obsessive: mechanical layered chiptune.",
+      "clockGroup": "standard",
+      "defaults": {
+        "bpm": 120,
+        "bars": 4,
+        "stepsPerBar": 16,
+        "timeSignature": {
+          "numerator": 4,
+          "denominator": 4
+        }
+      },
+      "key": {
+        "tonic": "D",
+        "modes": [
+          "dorian"
+        ]
+      },
+      "defaultArrangement": "orchestration-base",
+      "emptyBankPolicy": "keep-current",
+      "demoFallbackEra": "discovery"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "recursion",
+      "revision": 1,
+      "title": "Recursion",
+      "mood": "Anxiety and complexity: dark synth-chiptune.",
+      "clockGroup": "standard",
+      "defaults": {
+        "bpm": 120,
+        "bars": 4,
+        "stepsPerBar": 16,
+        "timeSignature": {
+          "numerator": 4,
+          "denominator": 4
+        }
+      },
+      "key": {
+        "tonic": "A",
+        "modes": [
+          "minor"
+        ]
+      },
+      "defaultArrangement": "recursion-base",
+      "emptyBankPolicy": "keep-current",
+      "demoFallbackEra": "singularity"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "self-improvement",
+      "revision": 1,
+      "title": "Self-Improvement",
+      "mood": "Ominous, unstable: industrial cyberpunk.",
+      "clockGroup": "standard",
+      "defaults": {
+        "bpm": 120,
+        "bars": 4,
+        "stepsPerBar": 16,
+        "timeSignature": {
+          "numerator": 4,
+          "denominator": 4
+        }
+      },
+      "key": {
+        "tonic": "E",
+        "modes": [
+          "minor",
+          "phrygian"
+        ]
+      },
+      "defaultArrangement": "self-improvement-base",
+      "emptyBankPolicy": "keep-current",
+      "demoFallbackEra": "singularity"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "singularity",
+      "revision": 1,
+      "title": "Singularity",
+      "mood": "Cold, existential: minimalist cyberpunk.",
+      "clockGroup": "standard",
+      "defaults": {
+        "bpm": 120,
+        "bars": 4,
+        "stepsPerBar": 16,
+        "timeSignature": {
+          "numerator": 4,
+          "denominator": 4
+        }
+      },
+      "key": {
+        "tonic": "C",
+        "modes": [
+          "phrygian"
+        ]
+      },
+      "defaultArrangement": "singularity-base",
+      "emptyBankPolicy": "keep-current"
+    }
+  ],
+  "presets": [
+    {
+      "schemaVersion": 1,
+      "id": "bright-pulse",
+      "revision": 1,
+      "family": "pulse",
+      "level": 0.5,
+      "envelope": {
+        "attack": 0.005,
+        "decay": 0.12,
+        "sustain": 0.55,
+        "release": 0.08
+      },
+      "polyphony": 1,
+      "range": {
+        "low": "C4",
+        "high": "C7"
+      },
+      "pulseWidth": 0.25
+    },
+    {
+      "schemaVersion": 1,
+      "id": "chirp-arp",
+      "revision": 1,
+      "family": "arp",
+      "level": 0.3,
+      "envelope": {
+        "attack": 0.002,
+        "decay": 0.06,
+        "sustain": 0.2,
+        "release": 0.05
+      },
+      "polyphony": 2,
+      "range": {
+        "low": "C4",
+        "high": "C7"
+      },
+      "pulseWidth": 0.125
+    },
+    {
+      "schemaVersion": 1,
+      "id": "cold-pulse",
+      "revision": 1,
+      "family": "pulse",
+      "level": 0.38,
+      "envelope": {
+        "attack": 0.03,
+        "decay": 0.3,
+        "sustain": 0.4,
+        "release": 0.6
+      },
+      "polyphony": 1,
+      "range": {
+        "low": "C3",
+        "high": "C7"
+      },
+      "pulseWidth": 0.1,
+      "filterHz": 2400,
+      "detuneCents": -8
+    },
+    {
+      "schemaVersion": 1,
+      "id": "dark-fm",
+      "revision": 1,
+      "family": "pulse",
+      "level": 0.35,
+      "envelope": {
+        "attack": 0.01,
+        "decay": 0.25,
+        "sustain": 0.5,
+        "release": 0.3
+      },
+      "polyphony": 1,
+      "range": {
+        "low": "C3",
+        "high": "C6"
+      },
+      "fm": 3,
+      "distortion": 0.2
+    },
+    {
+      "schemaVersion": 1,
+      "id": "dissonant-arp",
+      "revision": 1,
+      "family": "arp",
+      "level": 0.25,
+      "envelope": {
+        "attack": 0.002,
+        "decay": 0.1,
+        "sustain": 0.3,
+        "release": 0.12
+      },
+      "polyphony": 2,
+      "range": {
+        "low": "C4",
+        "high": "C7"
+      },
+      "detuneCents": 18,
+      "pulseWidth": 0.2
+    },
+    {
+      "schemaVersion": 1,
+      "id": "drone-triangle",
+      "revision": 1,
+      "family": "triangle",
+      "level": 0.6,
+      "envelope": {
+        "attack": 0.2,
+        "decay": 0.5,
+        "sustain": 0.9,
+        "release": 1.2
+      },
+      "polyphony": 1,
+      "range": {
+        "low": "C1",
+        "high": "C4"
+      },
+      "detuneCents": 6
+    },
+    {
+      "schemaVersion": 1,
+      "id": "mechanical-kit",
+      "revision": 1,
+      "family": "noise",
+      "level": 0.55,
+      "envelope": {
+        "attack": 0.001,
+        "decay": 0.05,
+        "sustain": 0,
+        "release": 0.03
+      },
+      "polyphony": 3,
+      "filterHz": 6000
+    },
+    {
+      "schemaVersion": 1,
+      "id": "noise-kit",
+      "revision": 1,
+      "family": "noise",
+      "level": 0.5,
+      "envelope": {
+        "attack": 0.001,
+        "decay": 0.08,
+        "sustain": 0,
+        "release": 0.05
+      },
+      "polyphony": 3
+    },
+    {
+      "schemaVersion": 1,
+      "id": "soft-triangle",
+      "revision": 1,
+      "family": "triangle",
+      "level": 0.7,
+      "envelope": {
+        "attack": 0.005,
+        "decay": 0.2,
+        "sustain": 0.8,
+        "release": 0.08
+      },
+      "polyphony": 1,
+      "range": {
+        "low": "C2",
+        "high": "C4"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "square-pulse",
+      "revision": 1,
+      "family": "pulse",
+      "level": 0.45,
+      "envelope": {
+        "attack": 0.004,
+        "decay": 0.1,
+        "sustain": 0.6,
+        "release": 0.1
+      },
+      "polyphony": 1,
+      "range": {
+        "low": "C4",
+        "high": "C7"
+      },
+      "pulseWidth": 0.5
+    },
+    {
+      "schemaVersion": 1,
+      "id": "whisper-kit",
+      "revision": 1,
+      "family": "noise",
+      "level": 0.3,
+      "envelope": {
+        "attack": 0.001,
+        "decay": 0.04,
+        "sustain": 0,
+        "release": 0.08
+      },
+      "polyphony": 2,
+      "filterHz": 9000
+    }
+  ],
+  "arrangements": [
+    {
+      "schemaVersion": 1,
+      "id": "acceleration-base",
+      "revision": 1,
+      "description": "Bass enters with the first agent; busier pulse.",
+      "roles": {
+        "lead": {
+          "preset": "square-pulse"
+        },
+        "bass": {
+          "preset": "soft-triangle"
+        },
+        "arp": {
+          "preset": "chirp-arp",
+          "enabled": false
+        },
+        "percussion": {
+          "preset": "noise-kit"
+        }
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "discovery-base",
+      "revision": 1,
+      "description": "Lead with light percussion; the room and a cursor.",
+      "roles": {
+        "lead": {
+          "preset": "bright-pulse"
+        },
+        "bass": {
+          "preset": "soft-triangle",
+          "enabled": false
+        },
+        "arp": {
+          "preset": "chirp-arp",
+          "enabled": false
+        },
+        "percussion": {
+          "preset": "noise-kit",
+          "level": 0.6
+        }
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "discovery-support",
+      "revision": 1,
+      "description": "Lead with a light bass support (later manual-era milestones).",
+      "roles": {
+        "lead": {
+          "preset": "bright-pulse"
+        },
+        "bass": {
+          "preset": "soft-triangle",
+          "level": 0.6
+        },
+        "arp": {
+          "preset": "chirp-arp",
+          "enabled": false
+        },
+        "percussion": {
+          "preset": "noise-kit",
+          "level": 0.6
+        }
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "orchestration-base",
+      "revision": 1,
+      "description": "Arpeggios join with parallel agents.",
+      "roles": {
+        "lead": {
+          "preset": "square-pulse"
+        },
+        "bass": {
+          "preset": "soft-triangle"
+        },
+        "arp": {
+          "preset": "chirp-arp"
+        },
+        "percussion": {
+          "preset": "noise-kit"
+        }
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "orchestration-manager",
+      "revision": 1,
+      "description": "The manager adds a rhythmic layer.",
+      "roles": {
+        "lead": {
+          "preset": "square-pulse"
+        },
+        "bass": {
+          "preset": "soft-triangle"
+        },
+        "arp": {
+          "preset": "chirp-arp"
+        },
+        "percussion": {
+          "preset": "mechanical-kit",
+          "level": 0.8
+        }
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "recursion-base",
+      "revision": 1,
+      "description": "Mechanical sequencing for the custom harness.",
+      "roles": {
+        "lead": {
+          "preset": "dark-fm"
+        },
+        "bass": {
+          "preset": "soft-triangle"
+        },
+        "arp": {
+          "preset": "chirp-arp"
+        },
+        "percussion": {
+          "preset": "mechanical-kit"
+        }
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "recursion-meta",
+      "revision": 1,
+      "description": "The meta-harness adds a dissonant layer.",
+      "roles": {
+        "lead": {
+          "preset": "dark-fm"
+        },
+        "bass": {
+          "preset": "soft-triangle"
+        },
+        "arp": {
+          "preset": "dissonant-arp"
+        },
+        "percussion": {
+          "preset": "mechanical-kit"
+        }
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "self-improvement-base",
+      "revision": 1,
+      "description": "Darker timbres and control texture.",
+      "roles": {
+        "lead": {
+          "preset": "dark-fm"
+        },
+        "bass": {
+          "preset": "drone-triangle"
+        },
+        "arp": {
+          "preset": "dissonant-arp"
+        },
+        "percussion": {
+          "preset": "mechanical-kit"
+        }
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "singularity-base",
+      "revision": 1,
+      "description": "Sparse, cold: fewer voices.",
+      "roles": {
+        "lead": {
+          "preset": "cold-pulse"
+        },
+        "bass": {
+          "preset": "drone-triangle"
+        },
+        "arp": {
+          "preset": "chirp-arp",
+          "enabled": false
+        },
+        "percussion": {
+          "preset": "whisper-kit",
+          "level": 0.5
+        }
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "singularity-final",
+      "revision": 1,
+      "description": "Almost nothing left: a lead and a drone.",
+      "roles": {
+        "lead": {
+          "preset": "cold-pulse",
+          "level": 0.8
+        },
+        "bass": {
+          "preset": "drone-triangle",
+          "level": 0.7
+        },
+        "arp": {
+          "preset": "chirp-arp",
+          "enabled": false
+        },
+        "percussion": {
+          "preset": "whisper-kit",
+          "enabled": false
+        }
+      }
+    }
+  ],
+  "motifs": [],
+  "patterns": [],
+  "manifest": [],
+  "diagnostics": [
+    "acceleration: no approved patterns (the game stays silent for this era)",
+    "discovery: no approved patterns (the game stays silent for this era)",
+    "orchestration: no approved patterns (the game stays silent for this era)",
+    "recursion: no approved patterns (the game stays silent for this era)",
+    "self-improvement: no approved patterns (the game stays silent for this era)",
+    "singularity: no approved patterns (the game stays silent for this era)"
+  ]
+}

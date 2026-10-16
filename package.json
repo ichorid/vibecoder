@@ -1,5 +1,6 @@
 {
   "name": "vibe-coder",
+  "license": "(GPL-3.0-or-later AND CC-BY-4.0)",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -11,7 +12,7 @@
     "lint": "eslint src tests tools/*.ts tools/art tools/music art vite.config.ts vitest.config.ts playwright.config.ts",
     "format:check": "prettier --check .",
     "format": "prettier --write .",
-    "check": "npm run check:types && npm run lint && npm run format:check && npm run test:rules && npm run check:content && npm run check:release-content && npm run music:check-types && npm run music:validate",
+    "check": "npm run check:types && npm run lint && npm run format:check && npm run test:rules && npm run check:content && npm run check:release-content && npm run music:check-types && npm run music:validate && npm run music:check-pack && vite-node tools/notices.ts -- --check",
     "test:rules": "vitest run --config vitest.rules.config.ts",
     "test:game": "vitest run --config vitest.config.ts",
     "check:content": "vite-node tools/checkContent.ts && vite-node tools/art/export.ts -- --check",
@@ -23,6 +24,10 @@
     "music:types": "vite-node tools/music/generateTypes.ts",
     "music:check-types": "vite-node tools/music/generateTypes.ts -- --check && tsc -p tsconfig.music.json",
     "music:validate": "vite-node tools/music/validate.ts",
+    "music:pack": "vite-node tools/music/buildPack.ts",
+    "notices": "vite-node tools/notices.ts",
+    "music:prompt": "vite-node tools/music/generatePrompt.ts",
+    "music:check-pack": "vite-node tools/music/buildPack.ts -- --mode approved --check && vite-node tools/music/buildPack.ts -- --mode demo --check",
     "test:music-browser": "playwright test --config playwright.music.config.ts"
   },
   "dependencies": {

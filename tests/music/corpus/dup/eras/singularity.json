@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "id": "singularity",
+  "revision": 1,
+  "title": "Singularity",
+  "mood": "Cold, existential: minimalist cyberpunk.",
+  "clockGroup": "standard",
+  "defaults": {
+    "bpm": 120,
+    "bars": 4,
+    "stepsPerBar": 16,
+    "timeSignature": {
+      "numerator": 4,
+      "denominator": 4
+    }
+  },
+  "key": {
+    "tonic": "C",
+    "modes": ["phrygian"]
+  },
+  "defaultArrangement": "singularity-base",
+  "emptyBankPolicy": "keep-current"
+}

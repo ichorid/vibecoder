@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "recursion-meta",
+  "revision": 1,
+  "description": "The meta-harness adds a dissonant layer.",
+  "roles": {
+    "lead": {
+      "preset": "dark-fm"
+    },
+    "bass": {
+      "preset": "soft-triangle"
+    },
+    "arp": {
+      "preset": "dissonant-arp"
+    },
+    "percussion": {
+      "preset": "mechanical-kit"
+    }
+  }
+}

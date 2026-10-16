@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "acceleration-base",
+  "revision": 1,
+  "description": "Bass enters with the first agent; busier pulse.",
+  "roles": {
+    "lead": {
+      "preset": "square-pulse"
+    },
+    "bass": {
+      "preset": "soft-triangle"
+    },
+    "arp": {
+      "preset": "chirp-arp",
+      "enabled": false
+    },
+    "percussion": {
+      "preset": "noise-kit"
+    }
+  }
+}

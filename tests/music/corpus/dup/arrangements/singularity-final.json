@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "id": "singularity-final",
+  "revision": 1,
+  "description": "Almost nothing left: a lead and a drone.",
+  "roles": {
+    "lead": {
+      "preset": "cold-pulse",
+      "level": 0.8
+    },
+    "bass": {
+      "preset": "drone-triangle",
+      "level": 0.7
+    },
+    "arp": {
+      "preset": "chirp-arp",
+      "enabled": false
+    },
+    "percussion": {
+      "preset": "whisper-kit",
+      "enabled": false
+    }
+  }
+}
