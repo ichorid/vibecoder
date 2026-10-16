@@ -8,7 +8,7 @@ test('the world ticker stops while Game is hidden and resumes on return', async 
   await expect(canvas).toHaveAttribute('data-ticker', 'running');
   await page.getByTestId('cat-button').click();
   await expect(canvas).toHaveAttribute('data-ticker', 'stopped');
-  await page.getByRole('button', { name: '← GAME' }).click();
+  await page.getByRole('button', { name: '← BACK TO CODE' }).click();
   await expect(canvas).toHaveAttribute('data-ticker', 'running');
 });
 

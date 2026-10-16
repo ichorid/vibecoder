@@ -103,7 +103,7 @@ describe('Game controls', () => {
     t.tick(5000);
     expect(t.latest()?.run.pendingUnlockIds).toEqual(['autocomplete']);
     expect(screen.queryByRole('heading', { name: 'Autocomplete' })).toBeNull();
-    await fireEvent.click(screen.getByRole('button', { name: '← GAME' }));
+    await fireEvent.click(screen.getByRole('button', { name: '← BACK TO CODE' }));
     expect(screen.getByRole('heading', { name: 'Autocomplete' })).toBeTruthy();
     await fireEvent.click(screen.getByRole('button', { name: 'CONTINUE' }));
     expect(t.latest()?.run.pendingUnlockIds).toEqual([]);

@@ -1,11 +1,10 @@
 <script lang="ts">
-  import type { CatViewModel, StatViewModel } from '../game/selectors';
+  import type { CatViewModel } from '../game/selectors';
   import PixelIcon from './PixelIcon.svelte';
   import { catFace, catFaceGone } from './pixelArt';
-  import { describeLevel, formatAmount } from './format';
+  import { describeLevel } from './format';
 
   interface Props {
-    stats: readonly StatViewModel[];
     cat: CatViewModel;
     settingsOpen: boolean;
     onCat: () => void;
@@ -13,7 +12,7 @@
     onSettings: (event: MouseEvent) => void;
   }
 
-  const { stats, cat, settingsOpen, onCat, onHistory, onSettings }: Props = $props();
+  const { cat, settingsOpen, onCat, onHistory, onSettings }: Props = $props();
 
   const catLabel = $derived(
     cat.alive
@@ -71,16 +70,6 @@
       </button>
     </nav>
   </div>
-  {#if stats.length > 0}
-    <dl class="stats">
-      {#each stats as stat (stat.id)}
-        <div class="stat">
-          <dt>{stat.label}</dt>
-          <dd>{formatAmount(stat.value)}</dd>
-        </div>
-      {/each}
-    </dl>
-  {/if}
 </header>
 
 <style>
@@ -188,24 +177,5 @@
       padding: 0 5px;
       font-size: 12px;
     }
-  }
-  .stats {
-    display: flex;
-    gap: 14px;
-    margin: 4px 0 0;
-    font-size: 13px;
-  }
-  .stat {
-    display: flex;
-    gap: 6px;
-    align-items: baseline;
-  }
-  dt {
-    color: var(--ink-soft);
-  }
-  dd {
-    margin: 0;
-    font-weight: 800;
-    font-size: 16px;
   }
 </style>

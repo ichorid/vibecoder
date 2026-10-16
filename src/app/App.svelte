@@ -141,7 +141,6 @@
 
 <div class="app" data-view={view}>
   <Header
-    stats={$api.game.stats}
     cat={$api.cat}
     {settingsOpen}
     onCat={() => open('cat')}

@@ -14,12 +14,13 @@ test('from the empty room to a working terminal agent with real presses', async 
     await page.getByRole('button', { name: 'CONTINUE' }).click();
   }
   await expect(primary).toHaveText('PROMPT');
-  await expect(page.locator('header')).toContainText('Tokens');
+  await expect(page.getByTestId('stats')).toContainText('Tokens');
   await expect
     .poll(async () => (await page.getByTestId('world-canvas').getAttribute('data-built')) ?? '')
     .toContain('world-terminal-agent');
   // PROMPT queues tasks; the agent spends tokens.
-  const tokens = async () => Number((await page.locator('header dd').nth(1).textContent()) ?? '0');
+  const tokens = async () =>
+    Number((await page.getByTestId('stats').locator('dd').nth(1).textContent()) ?? '0');
   const before = await tokens();
   await primary.click();
   await primary.click();
@@ -31,7 +32,7 @@ test('the reviewer appears with debt in the header and can be bought', async ({ 
   const run = progressedRun(8);
   const rich = { ...run, economy: { ...run.economy, output: 50_000 } };
   await loadSave(page, saveText(rich));
-  await expect(page.locator('header')).toContainText('Debt');
+  await expect(page.getByTestId('stats')).toContainText('Debt');
   const reviewer = page.getByRole('button', { name: /Reviewer agent/ });
   await expect(reviewer).toBeEnabled();
   await reviewer.click();

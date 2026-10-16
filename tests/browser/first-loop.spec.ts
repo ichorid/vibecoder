@@ -18,7 +18,7 @@ test('first loop: write, buy, announce, visit Cat, next offer, reload', async ({
 
   await page.getByTestId('cat-button').click();
   await expect(page.getByRole('heading', { name: 'CAT' })).toBeVisible();
-  await page.getByRole('button', { name: '← GAME' }).click();
+  await page.getByRole('button', { name: '← BACK TO CODE' }).click();
   await expect(announcement).toBeVisible();
   await page.getByRole('button', { name: 'CONTINUE' }).click();
   await expect(announcement).toHaveCount(0);

@@ -61,7 +61,7 @@
 
 <section class="cat-view" aria-labelledby="cat-title">
   <div class="bar">
-    <button type="button" class="return" onclick={onReturn}>← GAME</button>
+    <button type="button" class="return" onclick={onReturn}>← BACK TO CODE</button>
     <h2 id="cat-title">CAT</h2>
   </div>
   {#if cat.alive}

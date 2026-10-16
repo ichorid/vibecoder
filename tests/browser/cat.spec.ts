@@ -31,7 +31,7 @@ test('FEED and PET act on the real cat; PET cooldown is cosmetic only', async ({
   await expect(mood).toHaveText('88');
   await expect(page.getByRole('button', { name: 'PLAY' })).toBeEnabled();
 
-  await page.getByRole('button', { name: '← GAME' }).click();
+  await page.getByRole('button', { name: '← BACK TO CODE' }).click();
   await expect.poll(() => barWidth(page, 'mood-bar')).toBeGreaterThan(moodBefore);
   await expect(page.locator('header')).not.toContainText(/fullness/i);
 });
@@ -57,7 +57,7 @@ test('a dead cat stays dead: gray bars, memorial with two photos, no care', asyn
   await page.reload();
   await page.getByTestId('cat-button').click();
   await expect(page.getByTestId('memorial')).toBeVisible();
-  await page.getByRole('button', { name: '← GAME' }).click();
+  await page.getByRole('button', { name: '← BACK TO CODE' }).click();
   await page.getByRole('button', { name: 'HISTORY' }).click();
   await expect(page.locator('section.history').getByText('The cat is gone.')).toBeVisible();
 });

@@ -14,7 +14,7 @@ test('one real Pixi canvas survives Game → Cat → Game and resizing', async (
   await pressPrimary(page, 3);
   await page.getByTestId('cat-button').click();
   await expect(page.getByRole('heading', { name: 'CAT' })).toBeVisible();
-  await page.getByRole('button', { name: '← GAME' }).click();
+  await page.getByRole('button', { name: '← BACK TO CODE' }).click();
   await expect(page.getByTestId('world-canvas')).toHaveCount(1);
   expect(
     await page

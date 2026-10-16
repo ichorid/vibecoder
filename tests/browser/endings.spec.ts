@@ -25,7 +25,7 @@ test('an ending, frozen Cat/History, restart with retained discoveries, then ano
   const before = await fullness.textContent();
   await page.waitForTimeout(6000);
   expect(await fullness.textContent()).toBe(before);
-  await page.getByRole('button', { name: '← GAME' }).click();
+  await page.getByRole('button', { name: '← BACK TO CODE' }).click();
   await page.getByRole('button', { name: 'HISTORY' }).click();
   await expect(page.locator('section.endings')).toContainText('Three Users');
   await page.getByRole('button', { name: '← GAME' }).click();

@@ -15,7 +15,7 @@ export async function pressPrimary(page: Page, count: number): Promise<void> {
 }
 
 export async function headerStat(page: Page): Promise<string> {
-  return (await page.locator('header dd').first().textContent()) ?? '';
+  return (await page.getByTestId('stats').locator('dd').first().textContent()) ?? '';
 }
 
 /** Install a save envelope before any app script runs (only on the first navigation). */

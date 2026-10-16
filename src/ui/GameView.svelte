@@ -8,6 +8,7 @@
   import EndingPanel from './EndingPanel.svelte';
   import UnlockAnnouncement from './UnlockAnnouncement.svelte';
   import FloatingGains from './FloatingGains.svelte';
+  import Stats from './Stats.svelte';
   import { MAX_FLOATING, type FloatingGain } from './floatingGains';
   import type { PrimaryGainViewModel } from '../game/selectors';
   import type { AttentionLevel } from '../game/types';
@@ -152,6 +153,7 @@
         <FloatingGains {gains} onDone={(id) => (gains = gains.filter((g) => g.id !== id))} />
       </div>
     {/if}
+    <Stats stats={game.stats} />
     {#if game.offers.length > 0 && !game.ending}
       <ul class="offers" aria-label="Upgrades">
         {#each game.offers as offer (offer.id)}

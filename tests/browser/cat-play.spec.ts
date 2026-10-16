@@ -43,7 +43,7 @@ test('PLAY stays inside Cat; pointer catch scores once even with the following c
   await page.getByTestId('catch-button').click();
   await page.getByTestId('catch-button').dispatchEvent('click');
 
-  await page.getByRole('button', { name: '← GAME' }).click();
+  await page.getByRole('button', { name: '← BACK TO CODE' }).click();
   await page.getByTestId('cat-button').click();
   await expect(page.getByTestId('cat-play')).toHaveCount(0);
   const after = await moodValue(page);

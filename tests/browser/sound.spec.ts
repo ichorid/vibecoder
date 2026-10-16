@@ -99,7 +99,7 @@ test('with an approved pack the game really plays, keeps playing across views, a
   await page.getByTestId('cat-button').click();
   const inCat = await starts(page);
   await expect.poll(() => starts(page), { timeout: 5_000 }).toBeGreaterThan(inCat);
-  await page.getByRole('button', { name: '← GAME' }).click();
+  await page.getByRole('button', { name: '← BACK TO CODE' }).click();
 
   // Hidden: no new notes; visible again: music continues.
   await hide(page, true);

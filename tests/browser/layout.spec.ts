@@ -29,6 +29,22 @@ for (const viewport of viewports) {
       expect(overflow).toBeLessThanOrEqual(0);
     });
 
+    test('counters sit right below the primary action, the cat stays in the header', async ({
+      page,
+    }) => {
+      await freshGame(page);
+      await page.getByTestId('primary-action').click();
+      const stats = await page.getByTestId('stats').boundingBox();
+      const primary = await page.getByTestId('primary-action').boundingBox();
+      const header = await page.locator('header').boundingBox();
+      if (!stats || !primary || !header) throw new Error('missing layout');
+      expect(stats.y).toBeGreaterThanOrEqual(primary.y + primary.height - 1);
+      expect(stats.y - (primary.y + primary.height)).toBeLessThan(24);
+      expect(stats.y + stats.height).toBeLessThanOrEqual(page.viewportSize()?.height ?? 0);
+      expect(stats.y).toBeGreaterThan(header.y + header.height);
+      await expect(page.locator('header').getByTestId('cat-button')).toBeVisible();
+    });
+
     test('cat button and its two tiny bars have the specified geometry', async ({ page }) => {
       await freshGame(page);
       const button = await page.getByTestId('cat-button').boundingBox();
