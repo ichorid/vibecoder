@@ -10,6 +10,8 @@ export function createCat(): CatState {
     overfeeding: 0,
     alive: true,
     diedAtActiveMs: null,
+    leftAtActiveMs: null,
+    ignoredMs: 0,
     needsElapsedMs: 0,
     pendingActions: 0,
     lastFedAtActiveMs: null,

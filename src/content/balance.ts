@@ -45,6 +45,8 @@ export const catBalance = {
   overfeedOverflowAt: 10,
   petMood: 3,
   petCooldownMs: 60_000 / CAT_INTENSITY,
+  // 24 minutes of begging at the original pace; at ×3 a fed cat nobody plays with leaves ~minute 11.
+  strayAfterIgnoredMs: (24 * 60_000) / CAT_INTENSITY,
 } as const satisfies CatBalance;
 
 /** Starting balance values (implementation plan §6). Tune with tests and a recorded reason. */
@@ -72,6 +74,7 @@ export const catPlayBalance = {
 export const attentionBalance = {
   smallBelowMood: 40,
   largeBelowMood: 20,
+  quietBelowHealth: catBalance.criticalBelow,
   smallIntervalMs: 45_000,
   smallDurationMs: 4000,
   largeIntervalMs: 25_000,

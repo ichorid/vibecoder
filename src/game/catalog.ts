@@ -44,6 +44,8 @@ export interface CatBalance {
   readonly overfeedOverflowAt: number;
   readonly petMood: number;
   readonly petCooldownMs: number;
+  /** Asking for attention this long without a break (and not critically weak), the cat leaves. */
+  readonly strayAfterIgnoredMs: number;
 }
 
 /** PLAY timing minigame. Positions are normalized track coordinates 0–1. */
@@ -72,6 +74,8 @@ export interface CatPlayBalance {
 export interface AttentionBalance {
   readonly smallBelowMood: number;
   readonly largeBelowMood: number;
+  /** Below this health the cat is too weak to ask for anything: no intrusions at all. */
+  readonly quietBelowHealth: number;
   readonly smallIntervalMs: number;
   readonly smallDurationMs: number;
   readonly largeIntervalMs: number;
@@ -324,7 +328,12 @@ export interface EndingDefinition {
   readonly id: EndingId;
   readonly title: string;
   /** Paragraphs by the cat's fate when the run ended. */
-  readonly text: { readonly alive: readonly string[]; readonly dead: readonly string[] };
+  readonly text: {
+    readonly alive: readonly string[];
+    readonly dead: readonly string[];
+    /** The cat left as a stray during the run. */
+    readonly stray: readonly string[];
+  };
   /** Optional automatic resolution; simultaneous candidates resolve by highest priority. */
   readonly automatic?: { readonly priority: number; readonly when: (run: ReadonlyRun) => boolean };
 }

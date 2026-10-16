@@ -257,7 +257,11 @@ function selectEnding(run: ReadonlyRun, catalog: Catalog): EndingViewModel | nul
   return {
     id: record.id,
     title: definition.title,
-    paragraphs: record.catAlive ? definition.text.alive : definition.text.dead,
+    paragraphs: record.catAlive
+      ? definition.text.alive
+      : record.catLeft
+        ? definition.text.stray
+        : definition.text.dead,
   };
 }
 
@@ -315,6 +319,8 @@ export function selectHistory(
 
 export interface CatViewModel {
   readonly alive: boolean;
+  /** Where the cat is: still here, dead (memorial), or gone as a stray (missing poster). */
+  readonly fate: 'alive' | 'dead' | 'stray';
   readonly health: number;
   readonly mood: number;
   readonly fullness: number;
@@ -356,6 +362,7 @@ export function selectCat(run: ReadonlyRun, catalog: Catalog): CatViewModel {
     run.activeMs - care.atActiveMs < catalog.catText.careMessageMs;
   return {
     alive: run.cat.alive,
+    fate: run.cat.alive ? 'alive' : run.cat.leftAtActiveMs !== null ? 'stray' : 'dead',
     health: run.cat.health,
     mood: run.cat.mood,
     fullness: run.cat.fullness,

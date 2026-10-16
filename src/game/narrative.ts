@@ -7,7 +7,7 @@ import type { Catalog } from './catalog';
 import { appendLog } from './log';
 import type { GameFact, RunState } from './types';
 
-const PRIORITY_FACTS = new Set<GameFact['type']>(['technologyDiscovered', 'catDied']);
+const PRIORITY_FACTS = new Set<GameFact['type']>(['technologyDiscovered', 'catDied', 'catLeft']);
 
 export function evaluateNarrative(
   run: RunState,

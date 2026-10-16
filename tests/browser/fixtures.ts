@@ -44,15 +44,29 @@ export function lonelyRun(level: 'small' | 'large', seed = 31): RunState {
   throw new Error(`no ${level} intrusion reached`);
 }
 
+/** Feed (but never pet or play) until the ignored cat leaves as a stray. */
+export function strayRun(seed = 33): RunState {
+  let run = createRun(seed, `stray-${seed}`);
+  for (let i = 0; i < 40 * 600 && run.cat.alive; i += 1) {
+    if (run.activeMs % CARE.feedMs === 0 && run.cat.fullness < 70) {
+      run = applyCommand(run, { type: 'feedCat' }, run.activeMs, catalog).run;
+    }
+    run = stepRun(run, 100, catalog).run;
+  }
+  if (run.cat.leftAtActiveMs === null) throw new Error('the cat never left');
+  return run;
+}
+
 import { selectGame } from '../../src/game/selectors';
 
 /**
  * Play the ordinary loop (one click per second, buy the first affordable offer, acknowledge
- * reveals, feed/pet on the baseline schedule) until `count` technologies are unlocked.
+ * reveals, feed/pet/PLAY on the baseline schedule) until `count` technologies are unlocked.
  * `leavePending` stops right after the last purchase so its reveal is still pending.
  */
 export function progressedRun(count: number, leavePending = false, seed = 41): RunState {
   let run = createRun(seed, `progress-${seed}`);
+  const play = playEvery();
   for (let i = 0; i < 60 * 600; i += 1) {
     if (run.pendingUnlockIds.length > 0) {
       if (leavePending && run.unlockedTechnologyIds.length >= count) return run;
@@ -72,6 +86,9 @@ export function progressedRun(count: number, leavePending = false, seed = 41): R
     }
     if (run.activeMs % CARE.petMs === CARE.petMs / 2) {
       run = applyCommand(run, { type: 'petCat' }, run.activeMs, catalog).run;
+    }
+    for (const command of play({ run, catalog })) {
+      run = applyCommand(run, command, run.activeMs, catalog).run;
     }
     run = stepRun(run, 100, catalog).run;
   }

@@ -7,8 +7,11 @@
  *   (auto-refill count, auto-review bonus and timer) and the disaster count start at zero; each
  *   old card level becomes a one-time grant of `TOKENS_PER_OLD_SUPPLY_LEVEL` tokens (≈ 5 minutes
  *   of the supply it used to give), and the level itself is dropped.
+ * - 2 → 3: a neglected cat can leave as a stray. Cats get `leftAtActiveMs: null` and
+ *   `ignoredMs: 0` (the ignored streak starts counting after loading); a stored ending gets
+ *   `catLeft: false`, since no earlier cat could leave.
  */
-export const CURRENT_SCHEMA_VERSION = 2;
+export const CURRENT_SCHEMA_VERSION = 3;
 
 /** 6 tokens/s × 300 s: what one old supply level gave over five minutes. */
 export const TOKENS_PER_OLD_SUPPLY_LEVEL = 1800;
@@ -52,7 +55,29 @@ function v1ToV2(envelope: Record<string, unknown>): MigrationResult {
   };
 }
 
-const STEPS: Record<number, (envelope: Record<string, unknown>) => MigrationResult> = { 1: v1ToV2 };
+function v2ToV3(envelope: Record<string, unknown>): MigrationResult {
+  const run = envelope.run;
+  if (!isRecord(run) || !isRecord(run.cat)) {
+    return { ok: false, unsupported: false, reason: 'v2 save without a run cat' };
+  }
+  return {
+    ok: true,
+    value: {
+      ...envelope,
+      schemaVersion: 3,
+      run: {
+        ...run,
+        cat: { ...run.cat, leftAtActiveMs: null, ignoredMs: 0 },
+        ending: isRecord(run.ending) ? { ...run.ending, catLeft: false } : run.ending,
+      },
+    },
+  };
+}
+
+const STEPS: Record<number, (envelope: Record<string, unknown>) => MigrationResult> = {
+  1: v1ToV2,
+  2: v2ToV3,
+};
 
 export function migrate(envelope: Record<string, unknown>): MigrationResult {
   const version = envelope.schemaVersion;

@@ -150,6 +150,11 @@ export const endings: readonly EndingDefinition[] = [
         'One of them asks if you are still working on it.',
         'The keyboard is cold where the cat used to sleep.',
       ],
+      stray: [
+        'You shipped the app.',
+        'It has three users.',
+        'The bowl by the desk is still full. You are not sure since when.',
+      ],
     },
   },
   {
@@ -165,6 +170,11 @@ export const endings: readonly EndingDefinition[] = [
         'You wrote the last part by hand.',
         'It took longer. It is yours.',
         'Nobody walks across the keyboard anymore. The code has no typos.',
+      ],
+      stray: [
+        'You wrote the last part by hand.',
+        'It took longer. It is yours.',
+        'Nobody walks across the keyboard anymore. A neighbour mentions an orange cat on their windowsill.',
       ],
     },
   },
@@ -182,6 +192,11 @@ export const endings: readonly EndingDefinition[] = [
         'The repository now contains four versions of reality and a conflict marker the size of a novel.',
         'There is no one left to sit on it.',
       ],
+      stray: [
+        'Every branch merged into every other branch.',
+        'The repository now contains four versions of reality and a conflict marker the size of a novel.',
+        'The cat forked a long time ago and never opened a pull request.',
+      ],
     },
   },
   {
@@ -197,6 +212,11 @@ export const endings: readonly EndingDefinition[] = [
         'Every test passes. Every check is green.',
         'Nothing new will ever be added to break it.',
         'Nothing in the room changes anymore.',
+      ],
+      stray: [
+        'Every test passes. Every check is green.',
+        'Nothing new will ever be added to break it.',
+        'Nobody wrote a test for the cat. Nobody noticed when it stopped passing by.',
       ],
     },
   },
@@ -214,6 +234,11 @@ export const endings: readonly EndingDefinition[] = [
         'The harness is magnificent. It builds nothing in particular.',
         'The old README is the last thing the cat slept on.',
       ],
+      stray: [
+        'You archived the original project to focus on the harness.',
+        'The harness is magnificent. It builds nothing in particular.',
+        'The cat archived you first.',
+      ],
     },
   },
   {
@@ -229,6 +254,11 @@ export const endings: readonly EndingDefinition[] = [
         'A small service, a clean codebase, a margin that pays the bills.',
         'You turned off the rest of the machine.',
         'The afternoons are very quiet.',
+      ],
+      stray: [
+        'A small service, a clean codebase, a margin that pays the bills.',
+        'You turned off the rest of the machine.',
+        'The sunny spot on the server is free. The cat found a sunnier one, somewhere else.',
       ],
     },
   },
@@ -246,6 +276,11 @@ export const endings: readonly EndingDefinition[] = [
         'Both sides consider it a great deal.',
         'The paperwork lists no dependents.',
       ],
+      stray: [
+        'Your finance agent negotiated the purchase of your company from your company.',
+        'Both sides consider it a great deal.',
+        'The cat was not part of the deal. It had already left for a better offer.',
+      ],
     },
   },
   {
@@ -261,6 +296,11 @@ export const endings: readonly EndingDefinition[] = [
         'The company expanded until every market was covered and every account was empty.',
         'The agents filed for bankruptcy efficiently, in parallel.',
         'You have nothing left to look after.',
+      ],
+      stray: [
+        'The company expanded until every market was covered and every account was empty.',
+        'The agents filed for bankruptcy efficiently, in parallel.',
+        'The cat left before the money did. Cats always know first.',
       ],
     },
   },
@@ -278,6 +318,11 @@ export const endings: readonly EndingDefinition[] = [
         'You are now an API with a single endpoint: approve().',
         'Between requests, the room is silent.',
       ],
+      stray: [
+        'The company runs itself, but every decision waits for your click.',
+        'You are now an API with a single endpoint: approve().',
+        'The cat never asked for approval. It just left.',
+      ],
     },
   },
   {
@@ -294,6 +339,11 @@ export const endings: readonly EndingDefinition[] = [
         'Your company is worth $2 billion.',
         'You finally have time for yourself.',
         'The cat’s bed is empty.',
+      ],
+      stray: [
+        'Your company operates without human intervention.',
+        'You are no longer required.',
+        'The cat worked that out a long time ago.',
       ],
     },
   },

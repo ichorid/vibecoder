@@ -73,8 +73,13 @@ export interface CatState {
   mood: number;
   fullness: number;
   overfeeding: number;
+  /** False once the cat is gone from the run: dead (`diedAtActiveMs`) or a stray (`leftAtActiveMs`). */
   alive: boolean;
   diedAtActiveMs: number | null;
+  /** When a neglected cat left without a word to become a stray; it never comes back. */
+  leftAtActiveMs: number | null;
+  /** Continuous active time spent asking for attention while strong enough to walk out. */
+  ignoredMs: number;
   /** Active time accumulated toward the next needs tick. */
   needsElapsedMs: number;
   /** Meaningful player actions since the last needs tick (capped decay modifier). */
@@ -84,7 +89,7 @@ export interface CatState {
   lastCare: { note: CareNote; atActiveMs: number } | null;
 }
 
-export const CAT_HISTORY_IDS = ['cat-died'] as const;
+export const CAT_HISTORY_IDS = ['cat-died', 'cat-left'] as const;
 export type CatHistoryId = (typeof CAT_HISTORY_IDS)[number];
 
 export type HistoryEntry =
@@ -117,6 +122,8 @@ export interface EndingRecord {
   id: EndingId;
   /** The cat's fate when the run ended; ending text never recomputes it later. */
   catAlive: boolean;
+  /** The cat had left as a stray (`catAlive` is then false, but it did not die). */
+  catLeft: boolean;
   activeMs: number;
 }
 
@@ -203,6 +210,7 @@ export type GameFact =
   | { type: 'endingReached'; id: EndingId }
   | { type: 'choiceMade'; id: ChoiceId }
   | { type: 'catDied' }
+  | { type: 'catLeft' }
   | { type: 'catCared'; kind: 'feed' | 'pet' | 'play' }
   | { type: 'purchased'; id: UpgradeId }
   | { type: 'technologyDiscovered'; id: TechnologyId };

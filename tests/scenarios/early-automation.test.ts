@@ -13,6 +13,7 @@ import {
   baselineBuyer,
   baselineCare,
   baselinePrimary,
+  playEvery,
   type Policy,
 } from '../helpers/scenario';
 import { applyCommand } from '../../src/game/commands';
@@ -36,6 +37,7 @@ function play(seed: number, target: string, limitMs: number, extra: Policy[] = [
     baselineBuyer,
     acknowledgeReveals,
     ...baselineCare,
+    playEvery(),
     ...extra,
   ];
   const unlockAt: Record<string, number> = {};

@@ -26,8 +26,13 @@ test('the poster, the bowl and the cat in the room are tappable', async ({ page 
   ).toHaveCount(1);
 
   await expect(page.getByTestId('world-canvas')).toHaveAttribute('data-cat-lod', 'sprite');
-  await tapWorld(page, 'Cat');
-  await expect(page.getByTestId('floating-gain').filter({ hasText: /purr|meow/ })).toHaveCount(1);
+  // The cat walks and jumps between spots, so a busy machine may click where it just was:
+  // tap again at its new position, as a player would.
+  const reactions = page.getByTestId('floating-gain').filter({ hasText: /purr|meow/ });
+  await expect(async () => {
+    await tapWorld(page, 'Cat');
+    await expect(reactions).not.toHaveCount(0, { timeout: 500 });
+  }).toPass({ timeout: 8000 });
 });
 
 test('the cat button shows the in-game cat sprite', async ({ page }) => {

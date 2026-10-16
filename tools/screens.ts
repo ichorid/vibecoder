@@ -3,7 +3,13 @@
  * Usage: npx vite-node tools/screens.ts -- <outDir> [scene...]   (preview on 127.0.0.1:4173)
  */
 import { chromium, type Page } from '@playwright/test';
-import { lonelyRun, neglectedRun, progressedRun, saveText } from '../tests/browser/fixtures';
+import {
+  lonelyRun,
+  neglectedRun,
+  progressedRun,
+  saveText,
+  strayRun,
+} from '../tests/browser/fixtures';
 
 type Scene = {
   width: number;
@@ -32,6 +38,12 @@ const scenes: Record<string, Scene> = {
     width: 390,
     height: 844,
     save: () => saveText(neglectedRun()),
+    act: async (page) => page.getByTestId('cat-button').click(),
+  },
+  stray: {
+    width: 390,
+    height: 844,
+    save: () => saveText(strayRun()),
     act: async (page) => page.getByTestId('cat-button').click(),
   },
   cat: { width: 390, height: 844, act: async (page) => page.getByTestId('cat-button').click() },

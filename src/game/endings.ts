@@ -13,7 +13,12 @@ export function endRun(run: RunState, id: EndingId): Transition {
     run: {
       ...run,
       status: 'ended',
-      ending: { id, catAlive: run.cat.alive, activeMs: run.activeMs },
+      ending: {
+        id,
+        catAlive: run.cat.alive,
+        catLeft: run.cat.leftAtActiveMs !== null,
+        activeMs: run.activeMs,
+      },
       history: [...run.history, { kind: 'ending', id, activeMs: run.activeMs }],
       catPlay: null,
       attention: { ...run.attention, nextAtMs: null, visibleUntilMs: null, level: null },

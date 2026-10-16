@@ -123,6 +123,14 @@ current progression card is always first; at most three cards.
 start: Code · 04: Code, Tokens · 05: Code, Tokens, Debt · 20: Code, Debt, Automation ·
 24: Revenue, Code, Automation · 26: Revenue, Margin, Automation.
 
+## Cat fates (user request, after S09)
+
+Three fates: **alive**, **dead** (starved; candle log line, memorial with two photos) and
+**stray**: a cat that begs for attention (mood < 40) for 8 active minutes in a row while not
+critically weak walks out silently: no log line, no banner, a "The cat left. Nobody noticed
+when." History entry, a MISSING poster in Cat, and the `stray` text in every ending. A
+critically weak cat (health < 20) stops all intrusions and lies still.
+
 ## Endings (P09) — offer conditions and decision
 
 | Ending | Card appears when | Decision | Route test |

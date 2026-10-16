@@ -8,7 +8,7 @@ import { selectGame } from './selectors';
 import { stepRun } from './simulation';
 import type { RunState } from './types';
 
-const text = { alive: ['Alive.'], dead: ['Gone.'] };
+const text = { alive: ['Alive.'], dead: ['Gone.'], stray: ['Left.'] };
 const endingA: EndingDefinition = { id: 'three-users', title: 'A', text };
 const endingB: EndingDefinition = { id: 'the-last-programmer', title: 'B', text };
 
@@ -35,7 +35,12 @@ describe('ending resolver', () => {
     const ended = applyCommand(run, { type: 'choose', id: 'ship-original' }, 0, cat);
     expect(ended.result).toBe('applied');
     expect(ended.run.status).toBe('ended');
-    expect(ended.run.ending).toEqual({ id: 'three-users', catAlive: true, activeMs: 0 });
+    expect(ended.run.ending).toEqual({
+      id: 'three-users',
+      catAlive: true,
+      catLeft: false,
+      activeMs: 0,
+    });
     expect(ended.run.history.filter((e) => e.kind === 'ending')).toHaveLength(1);
     expect(ended.facts).toContainEqual({ type: 'endingReached', id: 'three-users' });
     expect(selectGame(ended.run, cat).ending?.paragraphs).toEqual(['Alive.']);

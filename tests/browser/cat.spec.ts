@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { freshGame, loadSave } from './helpers';
-import { neglectedRun, saveText } from './fixtures';
+import { neglectedRun, saveText, strayRun } from './fixtures';
 
 async function barWidth(page: Page, id: 'health-bar' | 'mood-bar'): Promise<number> {
   return page
@@ -70,4 +70,28 @@ test('tapping the cat in the Cat view meows and counts as PET', async ({ page })
   await page.getByRole('button', { name: 'Tap the cat' }).click();
   await expect(page.getByTestId('floating-gain').filter({ hasText: 'meow' })).toHaveCount(1);
   await expect.poll(async () => Number(await mood.textContent())).toBeGreaterThan(before);
+});
+
+test('a stray cat left without a word: no log line, a missing poster, no care', async ({
+  page,
+}) => {
+  const stray = strayRun();
+  expect(stray.cat.leftAtActiveMs).not.toBeNull();
+  await loadSave(page, saveText(stray));
+  await expect(page.getByTestId('cat-button')).toHaveAttribute('aria-label', 'Cat. Gone.');
+  const log = page.getByRole('list', { name: 'Recent events' });
+  await expect(log).not.toContainText(/left|gone|stray/i);
+
+  await page.getByTestId('cat-button').click();
+  const poster = page.getByTestId('missing-poster');
+  await expect(poster).toBeVisible();
+  await expect(poster).toContainText('MISSING');
+  await expect(page.getByTestId('memorial')).toHaveCount(0);
+  for (const name of ['FEED', 'PLAY', 'PET']) {
+    await expect(page.getByRole('button', { name })).toHaveCount(0);
+  }
+
+  await page.getByRole('button', { name: '← BACK TO CODE' }).click();
+  await page.getByRole('button', { name: 'HISTORY' }).click();
+  await expect(page.getByText('The cat left. Nobody noticed when.')).toBeVisible();
 });

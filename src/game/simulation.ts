@@ -50,6 +50,7 @@ export function stepRun(run: RunState, stepMs: number, catalog: Catalog): Transi
   const cat = updateCat(next.cat, stepMs, catalog.balance.cat);
   next = { ...next, cat: cat.cat };
   if (cat.events.some((event) => event.type === 'died')) next = recordDeath(next, catalog, facts);
+  else if (cat.events.some((event) => event.type === 'left')) next = recordStray(next, facts);
   else if (next.catPlay) {
     next = withSession(next, advanceSession(sessionOf(next), activeMs, catalog.balance.catPlay));
   }
@@ -76,6 +77,17 @@ function recordDeath(run: RunState, catalog: Catalog, facts: GameFact[]): RunSta
     history: [...run.history, { kind: 'cat', id: 'cat-died', activeMs: run.activeMs }],
   };
   return appendLog(dead, `🕯️ ${catalog.catText.conditions.dead}`, catalog);
+}
+
+/** The cat walks out: its time and one History entry, but no log line — nobody saw it go. */
+function recordStray(run: RunState, facts: GameFact[]): RunState {
+  facts.push({ type: 'catLeft' });
+  return {
+    ...run,
+    cat: { ...run.cat, alive: false, leftAtActiveMs: run.activeMs },
+    catPlay: null,
+    history: [...run.history, { kind: 'cat', id: 'cat-left', activeMs: run.activeMs }],
+  };
 }
 
 /**

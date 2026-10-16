@@ -88,6 +88,18 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   token acceptance now asserts "tokens short > 20 s and ≥ 3 packs" (agents no longer idle at 0
   because a pack is bought first). Merge-conflict route excludes review capacity from its first
   phase (its premise is "no extra review").
+- D25 (user request) Weak cat goes quiet; ignored cat leaves as a stray. Health below
+  `criticalBelow` (20) → no intrusions (`attentionBalance.quietBelowHealth`); the world cat
+  already sleeps in place when critical. "Ignored" = mood below `attentionBelow` (40, the
+  begging band), not `lonelyBelow`: at ×3 intensity mood falls ~16/min, so it sits under 70
+  even with PET every 20 s. After `strayAfterIgnoredMs` (24 min / intensity = 8 min) of
+  continuous begging while not critical, the cat leaves: `alive=false`, `leftAtActiveMs`,
+  history `cat-left`, fact `catLeft`, NO log line (narrative quiet that step). Feed-only cat
+  leaves ≈ 10.75 min; a starving cat dies first (critical cats don't count). Fate texts
+  `text.stray` for all ten endings; `EndingRecord.catLeft`. Cat view shows a MISSING poster.
+  Save schema 3 (2→3 adds `leftAtActiveMs: null`, `ignoredMs: 0`, `ending.catLeft: false`);
+  v1/v2 fixtures kept, v3 + `v3-stray-cat` added. Feed+pet-only scenarios (early-automation,
+  cat-independence, `progressedRun`) now also PLAY, as the plan's baseline care does.
 - D5 (P02) App-level commands (`retrySave`, `setTheme`) go through the same public
   `dispatch` as game commands, so UI still sees only `{subscribe, dispatch}`.
 
@@ -207,3 +219,5 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   then a 450 ms arc in the 'play' pose; `WorldAddition.catSurfaces`). A cat in mid-air lands
   before taps/mood changes take effect. Queued: low-health cat goes quiet + stray ending,
   then docs/feature_ship_it.md.
+- 2026-10-16: cat jump committed (c204c0e). Quiet weak cat + stray fate (D25) done. Next:
+  docs/feature_ship_it.md.

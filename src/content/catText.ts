@@ -20,6 +20,9 @@ export const catText = {
     playWin: 'The cat looks extremely pleased with itself.',
     playLose: 'The mouse got away. The cat pretends it meant to do that.',
   },
-  history: { 'cat-died': 'The cat is gone.' },
+  history: {
+    'cat-died': 'The cat is gone.',
+    'cat-left': 'The cat left. Nobody noticed when.',
+  },
   careMessageMs: 8000,
 } as const satisfies CatText;

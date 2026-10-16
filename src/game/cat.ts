@@ -16,7 +16,7 @@ export interface CatConditions {
   readonly dead: boolean;
 }
 
-export type CatEvent = { type: 'died' };
+export type CatEvent = { type: 'died' } | { type: 'left' };
 
 export interface CatUpdate {
   readonly cat: CatState;
@@ -52,8 +52,13 @@ export function noteMeaningfulAction(cat: CatState): CatState {
  * 3. sickness (from the tick's starting pressure) costs mood and health down to a floor,
  * 4. starvation damage from the decayed fullness, 5. recovery when fed and not sick,
  * 6. terminal death at zero health. Only starvation can bring health to zero.
+ * 7. being ignored: continuous time asking for attention (mood below `attentionBelow`) while not
+ *    critically weak; at the limit the cat leaves.
  */
-function needsTick(cat: CatState, balance: CatBalance): { cat: CatState; died: boolean } {
+function needsTick(
+  cat: CatState,
+  balance: CatBalance,
+): { cat: CatState; died: boolean; left: boolean } {
   const perTick = (perMinute: number) => (perMinute * balance.needsTickMs) / 60_000;
   const modifier = Math.min(
     balance.accelerationCap,
@@ -82,16 +87,22 @@ function needsTick(cat: CatState, balance: CatBalance): { cat: CatState; died: b
   }
 
   const died = health <= 0;
+  const strong = health >= balance.criticalBelow;
+  const ignoredMs =
+    strong && clamp(mood) < balance.attentionBelow ? cat.ignoredMs + balance.needsTickMs : 0;
+  const left = !died && ignoredMs >= balance.strayAfterIgnoredMs;
   return {
     died,
+    left,
     cat: {
       ...cat,
       fullness,
+      ignoredMs,
       mood: clamp(mood),
       health: clamp(health),
       overfeeding: Math.max(0, cat.overfeeding - perTick(balance.overfeedingDecayPerMinute)),
       pendingActions: 0,
-      alive: !died,
+      alive: !died && !left,
     },
   };
 }
@@ -107,6 +118,7 @@ export function updateCat(cat: CatState, elapsedMs: number, balance: CatBalance)
     );
     next = ticked.cat;
     if (ticked.died) return { cat: { ...next, needsElapsedMs: 0 }, events: [{ type: 'died' }] };
+    if (ticked.left) return { cat: { ...next, needsElapsedMs: 0 }, events: [{ type: 'left' }] };
   }
   return { cat: next, events: [] };
 }
@@ -169,7 +181,8 @@ const NO_ATTENTION = { nextAtMs: null, visibleUntilMs: null, level: null } as co
 /**
  * Foreground intrusions on the active clock: below mood 40 small ones, below 20 large ones,
  * each for a short time with an interval before the next (the first after one interval).
- * Time spent away from Game is not queued: only the current window can be visible.
+ * Time spent away from Game is not queued: only the current window can be visible. A critically
+ * weak cat stops asking.
  */
 export function updateAttention(
   attention: AttentionState,
@@ -177,13 +190,15 @@ export function updateAttention(
   at: number,
   balance: AttentionBalance,
 ): AttentionState {
-  const level: AttentionLevel | null = !cat.alive
-    ? null
-    : cat.mood < balance.largeBelowMood
-      ? 'large'
-      : cat.mood < balance.smallBelowMood
-        ? 'small'
-        : null;
+  // A critically weak cat no longer asks for anything; it just lies there.
+  const level: AttentionLevel | null =
+    !cat.alive || cat.health < balance.quietBelowHealth
+      ? null
+      : cat.mood < balance.largeBelowMood
+        ? 'large'
+        : cat.mood < balance.smallBelowMood
+          ? 'small'
+          : null;
   if (level === null) {
     return attention.nextAtMs === null && attention.visibleUntilMs === null
       ? attention

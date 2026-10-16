@@ -8,6 +8,7 @@ import {
   baselineCare,
   buyFirstAffordable,
   every,
+  playEvery,
   pressPrimary,
   runScenario,
 } from '../helpers/scenario';
@@ -20,6 +21,7 @@ describe('cat care is independent of productivity', () => {
     const cared = runScenario(createRun(5, 'a'), catalog, THIRTY_MINUTES, [
       ...economy,
       ...baselineCare,
+      playEvery(),
     ]).run;
     const neglected = runScenario(createRun(5, 'b'), catalog, THIRTY_MINUTES, economy).run;
 

@@ -3,6 +3,7 @@
   import CatPlay from './CatPlay.svelte';
   import type { Dispatch, PresentationClock } from './contracts';
   import Memorial from './Memorial.svelte';
+  import MissingPoster from './MissingPoster.svelte';
   import AtlasSprite from './AtlasSprite.svelte';
   import type { DomSpriteSheet } from './contracts';
   import PixelIcon from './PixelIcon.svelte';
@@ -127,6 +128,8 @@
         <button type="button" onclick={pet}>PET</button>
       </div>
     {/if}
+  {:else if cat.fate === 'stray'}
+    <MissingPoster />
   {:else}
     <Memorial urls={memorialUrls} />
   {/if}

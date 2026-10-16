@@ -180,6 +180,7 @@ function decodeEnding(value: unknown, path: string): NonNullable<RunState['endin
   return {
     id: oneOf(raw.id, `${path}.id`, ENDING_IDS),
     catAlive: bool(raw.catAlive, `${path}.catAlive`),
+    catLeft: bool(raw.catLeft, `${path}.catLeft`),
     activeMs: num(raw.activeMs, `${path}.activeMs`, nonNegative),
   };
 }
@@ -247,15 +248,20 @@ function decodeCat(value: unknown, path: string): CatState {
     overfeeding: num(raw.overfeeding, `${path}.overfeeding`, nonNegative),
     alive: bool(raw.alive, `${path}.alive`),
     diedAtActiveMs: nullableNum(raw.diedAtActiveMs, `${path}.diedAtActiveMs`, nonNegative),
+    leftAtActiveMs: nullableNum(raw.leftAtActiveMs, `${path}.leftAtActiveMs`, nonNegative),
+    ignoredMs: num(raw.ignoredMs, `${path}.ignoredMs`, nonNegative),
     needsElapsedMs: num(raw.needsElapsedMs, `${path}.needsElapsedMs`, { min: 0, max: 60_000 }),
     pendingActions: num(raw.pendingActions, `${path}.pendingActions`, { min: 0, integer: true }),
     lastFedAtActiveMs: nullableNum(raw.lastFedAtActiveMs, `${path}.lastFedAtActiveMs`, nonNegative),
     lastPetAtActiveMs: nullableNum(raw.lastPetAtActiveMs, `${path}.lastPetAtActiveMs`, nonNegative),
     lastCare: decodeLastCare(raw.lastCare, `${path}.lastCare`),
   };
-  if (!cat.alive && cat.diedAtActiveMs === null) fail(path, 'dead cat without a death time');
-  if (cat.alive && cat.diedAtActiveMs !== null) fail(path, 'living cat with a death time');
-  if (!cat.alive && cat.health !== 0) fail(path, 'dead cat with nonzero health');
+  const died = cat.diedAtActiveMs !== null;
+  const left = cat.leftAtActiveMs !== null;
+  if (!cat.alive && died === left) fail(path, 'gone cat needs exactly one of death or leaving');
+  if (cat.alive && died) fail(path, 'living cat with a death time');
+  if (cat.alive && left) fail(path, 'present cat with a leaving time');
+  if (died && cat.health !== 0) fail(path, 'dead cat with nonzero health');
   return cat;
 }
 
