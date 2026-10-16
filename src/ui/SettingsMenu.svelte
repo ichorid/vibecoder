@@ -3,6 +3,8 @@
   import type { AudioControls, CheckpointInfo, ThemePreference } from './contracts';
   import { formatActiveTime } from './format';
 
+  const SOURCE_URL = 'https://github.com/ichorid/vibecoder';
+
   interface Props {
     theme: ThemePreference;
     audio: AudioControls;
@@ -164,12 +166,16 @@
         {/if}
       </div>
     {/if}
-    {#if credits.length > 0}
-      <div class="credits" data-testid="credits">
-        <span class="credits-title">Credits</span>
-        {#each credits as line (line)}<p class="note">{line}</p>{/each}
-      </div>
-    {/if}
+    <div class="credits" data-testid="credits">
+      <span class="credits-title">Credits</span>
+      <p class="note">
+        © GPLv3 Vadim Bulavintsev 2026. Contribute and source at:
+        <a href={SOURCE_URL} target="_blank" rel="noopener noreferrer"
+          >github.com/ichorid/vibecoder</a
+        >
+      </p>
+      {#each credits as line (line)}<p class="note">{line}</p>{/each}
+    </div>
   {:else}
     <div class="head">
       <button type="button" class="back" onclick={() => (page = 'main')} data-autofocus
@@ -232,6 +238,9 @@
     margin-top: 8px;
     padding-top: 6px;
     border-top: 2px solid var(--border);
+  }
+  .credits a {
+    color: var(--ink);
   }
   .credits-title {
     font-size: 12px;
