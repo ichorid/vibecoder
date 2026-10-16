@@ -20,6 +20,7 @@ import {
 } from 'pixi.js';
 import { toPixiSheet, type AtlasData } from '../content/atlas';
 import {
+  presentAdditions,
   ROOM_ADDITION,
   sceneEnvelope,
   withRoomExtras,
@@ -560,6 +561,25 @@ export async function createPixiRenderer(
 
   function reconcile(): void {
     if (!projection) return;
+    // A new run (or anything that un-discovers technologies): remove what no longer exists, so
+    // the scene, the links, the camera and the cat start over with the run.
+    const present = new Set(presentAdditions(projection.technologyIds).map((a) => a.id));
+    const stale = [...clusters.keys()].filter((id) => !present.has(id));
+    if (stale.length > 0) {
+      for (const id of stale) {
+        clusters.get(id)?.detail.parent?.destroy({ children: true });
+        clusters.delete(id);
+      }
+      rebuildLinks();
+      envelopeIds = [];
+      transition = null;
+      view = IDENTITY_VIEW;
+      catPosition.x = 30;
+      catPosition.y = 10;
+      catTarget = null;
+      catPath = [];
+      plannedFor = null;
+    }
     // A newly shipped release or bought compute slot: rebuild the room with it in place.
     const room = clusters.get(ROOM_ADDITION.id);
     if (room && (framesBuilt !== projection.releases || computeBuilt !== projection.computeSlots)) {

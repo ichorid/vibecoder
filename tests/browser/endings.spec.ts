@@ -40,6 +40,8 @@ test('an ending, frozen Cat/History, restart with retained discoveries, then ano
   await expect(page.getByTestId('primary-action')).toHaveText('WRITE CODE');
   await expect(page.getByTestId('ending-panel')).toHaveCount(0);
   await expect(page.getByTestId('cat-button')).not.toHaveAttribute('aria-label', 'Cat. Gone.');
+  // The world starts over with the run: only the room, nothing left from the old network.
+  await expect(page.getByTestId('world-canvas')).toHaveAttribute('data-built', 'room');
   await page.reload();
   await page.getByRole('button', { name: 'HISTORY' }).click();
   await expect(page.locator('section.endings')).toContainText('The Forgotten Project');
