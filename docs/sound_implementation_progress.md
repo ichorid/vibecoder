@@ -31,3 +31,15 @@ RED: both new RuleTester suites failed against a no-op rule. GREEN: Tone only in
 
 `npm run check` (now incl. `music:check-types`, `music:validate`) OK; `test:music` 28/28; `test:rules` 3/3; `test:game` 332/332; build unchanged (no audio in the game bundle). Nothing sounds yet.
 Next: S01.1.
+
+## S01 — musical time, shuffle-bag, phrase plan
+
+Status: **done**
+
+- S01.1 `src/music/core/timing.ts`, `tests/music/timing.test.ts`. RED 4/5 against stubs. GREEN: PPQ 192, 4/4, 16 steps → 48 ticks/step, 3 072 ticks and 8 s per phrase; 3/4 and 6/8 counted in quarter notes; unrepresentable grids are errors (no rounding); note ending on the boundary allowed; tempo override policy (single audition / era boundary yes, bank only at equal tempo).
+- S01.2 `src/music/core/{shuffleBag,random}.ts`, `shuffleBag.test.ts`. RED 5/5. GREEN: each candidate once per bag, no repeat across bag boundaries for ≥2 candidates (40 seeds), reproducible and JSON-serializable state, singleton repeats, empty → `unavailable`, candidate change rebuilds without removed versions. Music has its own mulberry32.
+- S01.3 weights (already satisfied by the S01.2 weighted permutation — tests passed on first run), `src/music/core/compatibility.ts`, `weights.test.ts`. RED for compatibility 2/2. GREEN: weights order without duplicates (heavier first in 140+/200 seeds), weight 0 excluded, invalid weights ignored; bank check rejects clock mismatch and disallowed exit→entry pairs across all ordered pairs (rollover), even in the same key.
+- S01.4 `src/music/core/phrasePlanner.ts`, `phrasePlanner.test.ts`. RED 4/4. GREEN: absolute ticks with a shared phrase start, disabled/unassigned/silent events dropped and counted, per-role polyphony and global cap 8, source untouched; 30-minute (225-phrase) fake schedule keeps exact boundaries with ≤2 live phrases. One test assumed event order and was corrected.
+
+Exit: `test:music` 49/49; `npm run check` OK. Not yet: anything audible (S02).
+Next: S02.1.
