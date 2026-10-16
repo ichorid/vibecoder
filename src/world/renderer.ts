@@ -25,6 +25,7 @@ import {
   sceneEnvelope,
   withRoomExtras,
   worldAdditions,
+  type Placement,
   type WorldAddition,
 } from '../content/world';
 import {
@@ -38,6 +39,7 @@ import type { RendererPort, WorldProjection, WorldTap } from './host';
 import { catLod, clusterLod, projectedSize, type CatLod, type ClusterLod } from './lod';
 import { planScene } from './scenePlan';
 import { hopPosition, planCatPath, type PathStep } from './catPath';
+import { coversCat } from './catDepth';
 import { clipToBox } from './linkGeometry';
 import {
   clampView,
@@ -68,6 +70,9 @@ interface Cluster {
   readonly compact: Sprite | null;
   readonly dot: Graphics;
   readonly bounds: { x: number; y: number; w: number; h: number };
+  /** Copies of the placements that can stand in front of the cat, drawn above the cat layer. */
+  readonly front: Container;
+  readonly covers: readonly { placement: Placement; original: AnimatedSprite; copy: Sprite }[];
   lod: ClusterLod | null;
   revealStart: number | null;
 }
@@ -133,7 +138,9 @@ export async function createPixiRenderer(
   const catLayer = new Container();
   // Tap targets on the room (poster, cat bowl) sit under the cat, so the cat wins a shared tap.
   const hitLayer = new Container();
-  root.addChild(links, clusterLayer, signalLayer, hitLayer, catLayer);
+  // Room sprites the cat can walk behind (the programmer, for a cat on the desk) are mirrored here.
+  const frontLayer = new Container();
+  root.addChild(links, clusterLayer, signalLayer, hitLayer, catLayer, frontLayer);
   app.stage.addChild(root);
 
   const sheets = new Map<WorldProjection['theme'], Promise<LoadedSheet>>();
@@ -178,6 +185,8 @@ export async function createPixiRenderer(
     let minY = Infinity;
     let maxX = -Infinity;
     let maxY = -Infinity;
+    const front = new Container();
+    const covers: Cluster['covers'][number][] = [];
     for (const placement of addition.placements) {
       const sprite = makeSprite(placement.sprite);
       if (!sprite) continue;
@@ -185,6 +194,14 @@ export async function createPixiRenderer(
       sprite.position.set(placement.x, placement.y);
       sprite.scale.set(scale);
       detail.addChild(sprite);
+      if (placement.coversCatAbove !== undefined) {
+        const copy = new Sprite(sprite.texture);
+        copy.position.copyFrom(sprite.position);
+        copy.scale.copyFrom(sprite.scale);
+        copy.visible = false;
+        front.addChild(copy);
+        covers.push({ placement, original: sprite, copy });
+      }
       minX = Math.min(minX, placement.x);
       minY = Math.min(minY, placement.y);
       maxX = Math.max(maxX, placement.x + sprite.width);
@@ -204,12 +221,15 @@ export async function createPixiRenderer(
     const group = new Container();
     group.addChild(detail, ...(compact ? [compact] : []), dot);
     clusterLayer.addChild(group);
+    frontLayer.addChild(front);
     clusters.set(addition.id, {
       addition,
       detail,
       compact,
       dot,
       bounds,
+      front,
+      covers,
       lod: null,
       revealStart: reveal ? now : null,
     });
@@ -571,6 +591,32 @@ export async function createPixiRenderer(
   let computeBuilt = 0;
   let plantBuilt = 'ok';
 
+  function dropCluster(id: string): void {
+    const cluster = clusters.get(id);
+    cluster?.detail.parent?.destroy({ children: true });
+    cluster?.front.destroy({ children: true });
+    clusters.delete(id);
+  }
+
+  /** The cat walks behind a covering sprite: its copy shows, in step, over the cat. */
+  function updateCatCover(): void {
+    const catShown = catSprite?.visible === true;
+    for (const cluster of clusters.values()) {
+      const group = cluster.detail.parent;
+      cluster.front.visible = catShown && cluster.detail.visible;
+      if (!cluster.front.visible) continue;
+      if (group) {
+        cluster.front.alpha = group.alpha;
+        cluster.front.scale.copyFrom(group.scale);
+        cluster.front.position.copyFrom(group.position);
+      }
+      for (const cover of cluster.covers) {
+        cover.copy.visible = coversCat(cover.placement, catPosition.y);
+        cover.copy.texture = cover.original.texture;
+      }
+    }
+  }
+
   function reconcile(): void {
     if (!projection) return;
     // A new run (or anything that un-discovers technologies): remove what no longer exists, so
@@ -578,10 +624,7 @@ export async function createPixiRenderer(
     const present = new Set(presentAdditions(projection.technologyIds).map((a) => a.id));
     const stale = [...clusters.keys()].filter((id) => !present.has(id));
     if (stale.length > 0) {
-      for (const id of stale) {
-        clusters.get(id)?.detail.parent?.destroy({ children: true });
-        clusters.delete(id);
-      }
+      for (const id of stale) dropCluster(id);
       rebuildLinks();
       envelopeIds = [];
       transition = null;
@@ -599,8 +642,7 @@ export async function createPixiRenderer(
       computeBuilt !== projection.computeSlots ||
       plantBuilt !== projection.plant;
     if (room && changedRoom) {
-      room.detail.parent?.destroy({ children: true });
-      clusters.delete(ROOM_ADDITION.id);
+      dropCluster(ROOM_ADDITION.id);
       const addition = additionFor(ROOM_ADDITION.id);
       if (addition) buildCluster(addition, false);
       rebuildLinks();
@@ -693,6 +735,7 @@ export async function createPixiRenderer(
     applyCamera();
     updateClusters();
     updateCat(ticker.deltaMS);
+    updateCatCover();
     publishState();
   };
   app.ticker.add(tick);
@@ -708,6 +751,7 @@ export async function createPixiRenderer(
     // Rebuild every cluster from the same unlocked IDs with the other palette.
     const ids = [...clusters.keys()];
     clusterLayer.removeChildren().forEach((child) => child.destroy({ children: true }));
+    frontLayer.removeChildren().forEach((child) => child.destroy({ children: true }));
     clusters.clear();
     for (const id of ids) {
       const addition = additionFor(id);
@@ -738,6 +782,7 @@ export async function createPixiRenderer(
       void setTheme(world.theme).then(() => reconcile());
       reconcile();
       updateCat(0);
+      updateCatCover();
       publishState();
       app.render();
     },

@@ -24,6 +24,8 @@ export interface Placement {
   readonly x: number;
   readonly y: number;
   readonly scale?: number;
+  /** Drawn over the world cat while the cat's feet are above this y (the cat is behind it). */
+  readonly coversCatAbove?: number;
 }
 
 export interface WorldAddition {
@@ -357,7 +359,8 @@ export const ROOM_ADDITION: WorldAddition = {
     { sprite: 'room-desk', x: -38, y: 6 },
     { sprite: 'room-monitor', x: 2, y: -25 },
     { sprite: 'cat-bowl', x: 50, y: 46 },
-    { sprite: 'programmer-typing', x: -36, y: -20 },
+    // The programmer's chair ends at y 50: a cat on the desk top walks behind them.
+    { sprite: 'programmer-typing', x: -36, y: -20, coversCatAbove: 50 },
   ],
   links: [],
   lodSprite: 'lod-terminal',
