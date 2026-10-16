@@ -1,11 +1,6 @@
 import type { Catalog } from '../game/catalog';
 import { applyCommand, type CommandResult } from '../game/commands';
-import {
-  selectGame,
-  selectHistory,
-  type GameViewModel,
-  type HistoryViewModel,
-} from '../game/selectors';
+import { selectCat, selectGame, selectHistory, selectWorld } from '../game/selectors';
 import { stepRun } from '../game/simulation';
 import type { GameCommand, GameFact, ReadonlyRun, RunState } from '../game/types';
 import {
@@ -13,8 +8,8 @@ import {
   CURRENT_SCHEMA_VERSION,
   type ProfileState,
   type SaveAdapter,
-  type Theme,
 } from '../persistence/save';
+import type { AppCommand, SaveStatus, UiGameApi, UiSnapshot } from '../ui/contracts';
 import { createSnapshotStore, type Readable } from './gameStore';
 import {
   createRuntime,
@@ -28,23 +23,20 @@ import {
 /** Dirty runs are written at least this often (active time). */
 export const PERIODIC_SAVE_MS = 5000;
 
-export type SaveStatus = 'ok' | 'failed' | 'disabled';
+export type { AppCommand, SaveStatus };
 
-/** Commands handled by app composition rather than the simulation. */
-export type AppCommand = { type: 'retrySave' } | { type: 'setTheme'; theme: Theme };
-
-export interface GameSnapshot {
+/** UI read models plus the committed run for app-level consumers (world, tests). */
+export interface GameSnapshot extends UiSnapshot {
   readonly run: ReadonlyRun;
-  readonly game: GameViewModel;
-  readonly history: HistoryViewModel;
-  readonly profile: Readonly<ProfileState>;
-  readonly save: { readonly status: SaveStatus };
 }
 
 /** The narrow API handed to UI components. No setters, no raw mutable state. */
 export interface PublicGameApi extends Readable<GameSnapshot> {
   dispatch(command: GameCommand | AppCommand): CommandResult;
 }
+
+/** Compile-time proof that the public API satisfies the UI contract. */
+export type PublicApiSatisfiesUi = PublicGameApi extends UiGameApi ? true : never;
 
 export interface PersistenceOptions {
   adapter: SaveAdapter;
@@ -90,6 +82,8 @@ export function createGame(options: GameOptions): Game {
     run,
     game: selectGame(run, catalog),
     history: selectHistory(run, catalog),
+    cat: selectCat(run),
+    world: selectWorld(run),
     profile,
     save: { status: saveStatus },
   });

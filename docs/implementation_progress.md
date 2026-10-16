@@ -122,3 +122,47 @@ RED: 5/7 failed before persistence wiring. GREEN: periodic save every 5 active s
 
 `npm run check` OK (incl. `check:content`); `npm run test:game` 81/81; build OK; acceptance 37/37.
 Next: P03.1.
+
+## Task: P03 (three mobile views and first canvas)
+
+Status: **done** (temporary art; device checks pending)
+
+### P03.1 DOM shell and navigation
+
+Files: `src/app/App.svelte`, `src/ui/{Header,GameView,HistoryView,CatView,SettingsMenu,PixelIcon,RecoveryPanel}.svelte`, `src/ui/{contracts,format,pixelArt,styles.css}`, `src/app/bootstrap.ts`, `src/main.ts`, `src/app/App.test.ts`.
+RED caveat: components were written before their tests; RED shown by mutation (pushState→replaceState breaks the Back test; removing the theme dispatch breaks the theme test; empty History list breaks the History test).
+GREEN: one `view` enum + same-page history entries, Back/return to Game, reload opens Game, same run/economy across views, theme in Settings saved in profile. Corrupt/unsupported save → RecoveryPanel (retry / explicit confirmed new run), never auto-overwritten.
+
+### P03.2 primary input and announcement
+
+Files: `GameView.svelte`, `UnlockAnnouncement.svelte`, `src/ui/GameView.test.ts`, bounded run log (`src/game/log.ts`, `log.test.ts`).
+GREEN (tests written after components; verified failing paths by inspection): one command per press, disabled unaffordable card, ≤3 cards, bought card disappears with focus moved to next card/primary, no future title in text/labels/hidden DOM, announcement keeps CAT/HISTORY usable and waits while Cat is open, CONTINUE acknowledges. Missing illustration → pixel fallback frame.
+
+### P03.3 header geometry and layout
+
+Files: `Header.svelte` CSS, `playwright.config.ts`, `tests/browser/layout.spec.ts`, `test:browser`.
+RED: at 320×568 the header overflowed horizontally by 8 px. GREEN: narrow-width header tightening. Verified in Chromium: primary visible, no horizontal scroll at 320/390; CAT hit area ≥44×44; both bars ≤ icon width, 3 px tall, 2 px gaps, below the icon; no %/fullness/labels; keyboard reaches Cat/HISTORY/Settings/WRITE CODE; theme does not change progress.
+
+### P03.4 Pixi host
+
+Files: `src/world/{host,renderer}.ts`, `WorldCanvas.svelte`, `host.test.ts`, `tests/browser/world.spec.ts`.
+RED: 5/5 host lifecycle tests failed against a no-op host. GREEN: renderer created once, requests before readiness applied later, destroy exactly once (also when disposed before ready), activity toggles ticker only, failure reported. Real Pixi 8 app (lazy chunk), 30 fps ticker, nearest sampling, DPR≤2; browser: one canvas, same element after Game→Cat→Game, resize keeps progress.
+
+### P03.5 first vertical flow
+
+`tests/browser/first-loop.spec.ts`: write → buy → NEW TECHNOLOGY → Cat → Game → CONTINUE → next offer → reload → same code/offer/history; no future title before prerequisites. Initial RED was a test timing bug (read before the 100 ms step) fixed with polling.
+
+### P03.6 settings, sound, music submenu
+
+Files: `SettingsMenu.svelte`, `AudioControls.svelte`, `unavailableAudio` contract, `tests/browser/settings.spec.ts`.
+GREEN: Settings → theme, Sound switch (disabled, honestly labeled unavailable until S07), Music › volume slider + Music Lab link to `/music-lab/` (entry created in S04; currently 404), Back returns to Settings, Escape closes and refocuses the opener; no route/view change.
+
+### Temporary visuals
+
+Room/programmer/cat are Pixi Graphics rectangles; header cat icon and Cat portrait are inline pixel maps; technology illustrations are missing (fallback frame). All replaced in P06.
+
+### Exit gate
+
+`npm run check` OK; `test:game` 101/101; `test:browser` 9/9 (mobile Chromium emulation only); build OK (initial JS ≈29 KiB gzip + lazy Pixi ≈76 KiB + renderer backend chunk).
+Not verified: real iOS/Android devices.
+Next: P04.1.

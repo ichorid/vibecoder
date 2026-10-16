@@ -1,6 +1,6 @@
 import type { Catalog } from './catalog';
 import { upgradeLevel, upgradePrice } from './economy';
-import type { PrimaryActionId } from './ids';
+import type { PrimaryActionId, TechnologyId, UpgradeId } from './ids';
 import { currentPrimaryAction, findTechnology, isUpgradeOffered } from './progression';
 import type { ReadonlyRun } from './types';
 
@@ -8,7 +8,7 @@ import type { ReadonlyRun } from './types';
 export const MAX_OFFERS = 3;
 
 export interface OfferViewModel {
-  readonly id: string;
+  readonly id: UpgradeId;
   readonly title: string;
   readonly description: string;
   readonly price: number;
@@ -22,10 +22,15 @@ export interface StatViewModel {
 }
 
 export interface AnnouncementViewModel {
-  readonly id: string;
+  readonly id: TechnologyId;
   readonly title: string;
   readonly description: string;
   readonly illustrationId: string;
+}
+
+export interface LogLineViewModel {
+  readonly text: string;
+  readonly activeMs: number;
 }
 
 export interface GameViewModel {
@@ -33,6 +38,7 @@ export interface GameViewModel {
   readonly stats: readonly StatViewModel[];
   readonly offers: readonly OfferViewModel[];
   readonly announcement: AnnouncementViewModel | null;
+  readonly log: readonly LogLineViewModel[];
 }
 
 export interface HistoryEntryViewModel {
@@ -77,6 +83,7 @@ export function selectGame(run: ReadonlyRun, catalog: Catalog): GameViewModel {
           illustrationId: pending.illustrationId,
         }
       : null,
+    log: run.log.slice(-catalog.balance.logVisibleLines),
   };
 }
 
@@ -96,4 +103,31 @@ export function selectHistory(run: ReadonlyRun, catalog: Catalog): HistoryViewMo
       }
     }),
   };
+}
+
+export interface CatViewModel {
+  readonly alive: boolean;
+  readonly health: number;
+  readonly mood: number;
+  readonly fullness: number;
+}
+
+/** Cat status for the header bars and Cat view. Fullness is shown only in Cat. */
+export function selectCat(run: ReadonlyRun): CatViewModel {
+  return {
+    alive: run.cat.alive,
+    health: run.cat.health,
+    mood: run.cat.mood,
+    fullness: run.cat.fullness,
+  };
+}
+
+export interface WorldViewModel {
+  readonly technologyIds: readonly TechnologyId[];
+  readonly catAlive: boolean;
+}
+
+/** Discovered-world projection for the renderer: unlocked IDs and the cat's lifecycle fact. */
+export function selectWorld(run: ReadonlyRun): WorldViewModel {
+  return { technologyIds: run.unlockedTechnologyIds, catAlive: run.cat.alive };
 }

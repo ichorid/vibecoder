@@ -40,6 +40,11 @@ export type HistoryEntry =
   | { kind: 'technology'; id: TechnologyId; activeMs: number }
   | { kind: 'event'; textId: string; activeMs: number };
 
+export interface LogEntry {
+  text: string;
+  activeMs: number;
+}
+
 export interface RunState {
   id: string;
   status: RunStatus;
@@ -52,6 +57,8 @@ export interface RunState {
   stats: RunStats;
   cat: CatState;
   history: HistoryEntry[];
+  /** Bounded recent flavor/event lines; significant records live in `history`. */
+  log: LogEntry[];
   unlockedTechnologyIds: TechnologyId[];
   upgradeLevels: Partial<Record<UpgradeId, number>>;
   pendingUnlockIds: TechnologyId[];

@@ -8,6 +8,10 @@ import type { ReadonlyRun } from './types';
 export interface BalanceDefinition {
   /** Output queued by one accepted WRITE CODE before technology bonuses. */
   readonly manualOutputPerAction: number;
+  /** Recent ambient log lines kept in the run. */
+  readonly logMemoryLimit: number;
+  /** Recent log lines shown in Game. */
+  readonly logVisibleLines: number;
 }
 
 /** Small effect union; derived rates are recomputed from ownership, never stacked in state. */

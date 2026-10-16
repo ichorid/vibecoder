@@ -18,6 +18,11 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   buying it lets `resolveDiscoveries` unlock the tech in the same dispatch. Offers are
   declarative `requires` (+ optional `extraCondition`) because content may only type-import
   game code. Autocomplete offer appears at lifetime output ≥5 (not at t=0).
+- D6 (P03) Views get typed read models + `dispatch` via `src/ui/contracts.ts`; App passes
+  `illustrationUrl` (from content manifest) and an injectable `createRenderer` (jsdom tests use
+  `nullRenderer`). Svelte props use `const { … } = $props()` (lint prefer-const).
+- D7 (P03) GameView stays mounted (hidden) while History/Cat are open so the single Pixi
+  canvas is never recreated; WorldCanvas only toggles ticker activity.
 - D5 (P02) App-level commands (`retrySave`, `setTheme`) go through the same public
   `dispatch` as game commands, so UI still sees only `{subscribe, dispatch}`.
 
@@ -29,6 +34,14 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   `case 'primaryAction'` as the *invalid* variant; once P01 added that real command the fixture
   compiled cleanly. Changed the case to `'launchRockets'` (intent unchanged: invalid variant).
 
+- F3 Playwright pinned to **1.61.1**: it matches the cached `~/.cache/ms-playwright/chromium-1228`;
+  `npx playwright install` refuses to download on this host (ubuntu26.04 unsupported). CI on
+  ubuntu-latest can still run `npx playwright install --with-deps chromium`.
+
+- F4 `pkill -f "vite preview"` kills the calling shell too (its own command line matches) — use
+  `pkill -f "[v]ite preview"`. Playwright `reuseExistingServer` silently serves a *stale* build
+  if a manual preview is still running; stop it before `npm run test:browser`.
+
 ## Progress log
 
 - 2026-10-16: P00 verified + committed. Next: P01.
@@ -37,3 +50,5 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   off the raw run.
 - 2026-10-16: P02 done (economy, 3 techs, discoveries, selectors, validator, save/autosave).
   81 tests. Next P03 (Svelte views, Playwright).
+- 2026-10-16: P03 done (Svelte shell, header bars, Pixi host, first-loop + settings specs).
+  101 unit/component + 9 browser tests. Next P04 (cat needs, FEED/PET, death).

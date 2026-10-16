@@ -1,5 +1,5 @@
 import { TECHNOLOGY_IDS, UPGRADE_IDS, isUpgradeId, type UpgradeId } from '../game/ids';
-import type { CatState, HistoryEntry, RunState } from '../game/types';
+import type { CatState, HistoryEntry, LogEntry, RunState } from '../game/types';
 import {
   DecodeError,
   bool,
@@ -92,6 +92,14 @@ function decodeHistoryEntry(value: unknown, path: string): HistoryEntry {
   }
 }
 
+function decodeLogEntry(value: unknown, path: string): LogEntry {
+  const raw = record(value, path);
+  return {
+    text: str(raw.text, `${path}.text`, 500),
+    activeMs: num(raw.activeMs, `${path}.activeMs`, nonNegative),
+  };
+}
+
 function decodeUpgradeLevels(value: unknown, path: string): Partial<Record<UpgradeId, number>> {
   const raw = record(value, path);
   const levels: Partial<Record<UpgradeId, number>> = {};
@@ -131,6 +139,7 @@ export function decodeRun(value: unknown, path = 'run'): RunState {
     },
     cat: decodeCat(raw.cat, `${path}.cat`),
     history: list(raw.history, `${path}.history`, decodeHistoryEntry, 2000),
+    log: list(raw.log, `${path}.log`, decodeLogEntry, 200),
     unlockedTechnologyIds: uniqueList(
       raw.unlockedTechnologyIds,
       `${path}.unlockedTechnologyIds`,

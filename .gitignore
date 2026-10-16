@@ -5,3 +5,5 @@ dist
 tools/acceptance/fixtures/types/tsconfig.stub.json
 
 .serena
+test-results
+playwright-report

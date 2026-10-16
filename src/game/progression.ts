@@ -1,6 +1,7 @@
 import type { Catalog, Requirements, TechnologyDefinition, UpgradeDefinition } from './catalog';
 import { upgradeLevel } from './economy';
 import type { PrimaryActionId } from './ids';
+import { appendLog } from './log';
 import type { Transition } from './simulation';
 import type { GameFact, ReadonlyRun, RunState } from './types';
 
@@ -61,6 +62,7 @@ export function resolveDiscoveries(run: RunState, catalog: Catalog): Transition 
         { kind: 'technology', id: technology.id, activeMs: next.activeMs },
       ],
     };
+    next = appendLog(next, `${technology.title} unlocked.`, catalog);
     facts.push({ type: 'technologyDiscovered', id: technology.id });
   }
   return { run: next, facts };

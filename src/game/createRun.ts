@@ -29,6 +29,7 @@ export function createRun(seed: number, runId: string): RunState {
     stats: { lifetimeOutput: 0 },
     cat: createCat(),
     history: [],
+    log: [],
     unlockedTechnologyIds: [],
     upgradeLevels: {},
     pendingUnlockIds: [],
