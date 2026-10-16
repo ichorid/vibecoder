@@ -243,3 +243,7 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
 - 2026-10-16: stray cat committed (e4f6b76). Ship It (D26) done: rules, content, schema 4,
   wheel, ending picture (2 variants), wall frames, sounds, credits/notices, scenarios, browser
   specs. All user-queued requests are done.
+- 2026-10-16: user requests: PROMPT icon is a keyboard with a lit Enter key (WRITE CODE keeps
+  the small keyboard); code prices show the code icon (revenue keeps `$`); bought compute
+  slots stack as rack units on the room floor by the left wall (`withRoomExtras`,
+  `WorldViewModel.computeSlots`, canvas `data-compute-slots`), up to the 8-level cap.

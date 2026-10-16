@@ -73,6 +73,14 @@ const scenes: Record<string, Scene> = {
     height: 844,
     save: () => saveText(shippedThrice()),
   },
+  compute: {
+    width: 390,
+    height: 844,
+    save: () => {
+      const run = progressedRun(4, false, 41);
+      return saveText({ ...run, upgradeLevels: { ...run.upgradeLevels, 'compute-slot': 8 } });
+    },
+  },
   tech28Small: { width: 320, height: 568, save: () => saveText(progressedRun(28)) },
   stray: {
     width: 390,

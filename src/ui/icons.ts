@@ -109,19 +109,20 @@ export const writeCodeIcon: PixelMap = {
   palette: { k: 'var(--ink)', w: 'var(--panel)' },
 };
 
+/** PROMPT: a full keyboard with the Enter key lit (type the prompt, send it). */
 export const promptIcon: PixelMap = {
   rows: [
-    '...k.k.....k.k...',
-    '..khkhk...khkhk..',
-    '..khkhk.k.khkhk..',
-    'k.khkhkkhkkhkhk.k',
-    'khkhhhhkhkhhhhkhk',
-    'khhhhhhkhkhhhhhhk',
-    '.khhhhhk.khhhhhk.',
-    '..khhhk...khhhk..',
-    '...kkk.....kkk...',
+    '.................',
+    'kkkkkkkkkkkkkkkkk',
+    'kwkwkwkwkwkwkwkwk',
+    'kkkkkkkkkkkkkkkkk',
+    'kkwkwkwkwkwkwkggk',
+    'kkkkkkkkkkkkkkggk',
+    'kkkwwwwwwwwwkkggk',
+    'kkkkkkkkkkkkkkkkk',
+    '.................',
   ],
-  palette: { h: '#f1c69a', k: 'var(--ink)' },
+  palette: { g: '#7ee2a8', k: 'var(--ink)', w: 'var(--panel)' },
 };
 
 export const delegateIcon: PixelMap = {

@@ -50,6 +50,8 @@ export interface WorldAddition {
   readonly final?: boolean;
   /** Wall spots for framed releases, filled in ship order (Ship It). */
   readonly frameSlots?: readonly Point[];
+  /** Where bought compute slots stack, bottom unit first. */
+  readonly computeSlots?: readonly Point[];
 }
 
 /** Portrait framing centered on (cx, cy) with the given width. */
@@ -371,17 +373,27 @@ export const ROOM_ADDITION: WorldAddition = {
   description: 'A programmer types at a desk in a cozy room',
   // A column of framed releases on the wall left of the poster.
   frameSlots: [-56, -45, -34, -23, -12].map((y) => ({ x: -84, y })),
+  // Bought compute slots stack on the floor by the left wall, 4 px apart (shared outline).
+  computeSlots: Array.from({ length: 8 }, (_, i) => ({ x: -84, y: 53 - i * 4 })),
 };
 
-/** An addition with its first `releases` frame slots filled by framed releases. */
-export function withReleaseFrames(addition: WorldAddition, releases: number): WorldAddition {
-  const slots = (addition.frameSlots ?? []).slice(0, Math.max(0, releases));
-  if (slots.length === 0) return addition;
+/** What the player bought that shows up in the room. */
+export interface RoomExtras {
+  readonly releases: number;
+  readonly computeSlots: number;
+}
+
+/** An addition with framed releases on the wall and the bought compute slots stacked up. */
+export function withRoomExtras(addition: WorldAddition, extras: RoomExtras): WorldAddition {
+  const frames = (addition.frameSlots ?? []).slice(0, Math.max(0, extras.releases));
+  const compute = (addition.computeSlots ?? []).slice(0, Math.max(0, extras.computeSlots));
+  if (frames.length === 0 && compute.length === 0) return addition;
   return {
     ...addition,
     placements: [
       ...addition.placements,
-      ...slots.map((slot) => ({ sprite: 'release-frame', x: slot.x, y: slot.y })),
+      ...frames.map((slot) => ({ sprite: 'release-frame', x: slot.x, y: slot.y })),
+      ...compute.map((slot) => ({ sprite: 'compute-slot', x: slot.x, y: slot.y })),
     ],
   };
 }

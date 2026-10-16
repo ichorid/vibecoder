@@ -22,7 +22,7 @@ import { toPixiSheet, type AtlasData } from '../content/atlas';
 import {
   ROOM_ADDITION,
   sceneEnvelope,
-  withReleaseFrames,
+  withRoomExtras,
   worldAdditions,
   type WorldAddition,
 } from '../content/world';
@@ -435,20 +435,24 @@ export async function createPixiRenderer(
     }
   }
 
-  /** The authored addition, with the room's framed releases for the current projection. */
+  /** The authored addition, with the room's bought extras for the current projection. */
   function additionFor(id: string): WorldAddition | undefined {
     const addition = ADDITIONS.get(id);
     return addition && id === ROOM_ADDITION.id
-      ? withReleaseFrames(addition, projection?.releases ?? 0)
+      ? withRoomExtras(addition, {
+          releases: projection?.releases ?? 0,
+          computeSlots: projection?.computeSlots ?? 0,
+        })
       : addition;
   }
   let framesBuilt = 0;
+  let computeBuilt = 0;
 
   function reconcile(): void {
     if (!projection) return;
-    // A newly shipped release: rebuild the room with one more frame on the wall.
+    // A newly shipped release or bought compute slot: rebuild the room with it in place.
     const room = clusters.get(ROOM_ADDITION.id);
-    if (room && framesBuilt !== projection.releases) {
+    if (room && (framesBuilt !== projection.releases || computeBuilt !== projection.computeSlots)) {
       room.detail.parent?.destroy({ children: true });
       clusters.delete(ROOM_ADDITION.id);
       const addition = additionFor(ROOM_ADDITION.id);
@@ -456,6 +460,7 @@ export async function createPixiRenderer(
       rebuildLinks();
     }
     framesBuilt = projection.releases;
+    computeBuilt = projection.computeSlots;
     const plan = planScene(new Set(clusters.keys()), projection, active);
     for (const id of plan.build) {
       const addition = additionFor(id);
@@ -492,6 +497,7 @@ export async function createPixiRenderer(
     for (const cluster of clusters.values()) sprites += cluster.detail.children.length;
     data.sprites = String(sprites);
     data.releaseFrames = String(framesBuilt);
+    data.computeSlots = String(computeBuilt);
     // Screen centres of the tap targets (CSS px on the canvas), empty when not tappable.
     const at = (x: number, y: number) => {
       const p = root.toGlobal(new Point(x, y));

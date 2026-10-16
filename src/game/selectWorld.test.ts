@@ -30,4 +30,12 @@ describe('world projection', () => {
       true,
     );
   });
+
+  it('counts bought compute slots and shipped releases for the room', () => {
+    const run = createRun(1, 'r');
+    const bought = { ...run, upgradeLevels: { 'compute-slot': 3 } };
+    expect(selectWorld(bought, catalog).computeSlots).toBe(3);
+    expect(selectWorld(run, catalog).computeSlots).toBe(0);
+    expect(selectWorld(run, catalog).releases).toBe(0);
+  });
 });

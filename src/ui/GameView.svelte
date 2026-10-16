@@ -11,7 +11,8 @@
   import FloatingGains from './FloatingGains.svelte';
   import Stats from './Stats.svelte';
   import PixelIcon from './PixelIcon.svelte';
-  import { ACTION_ICONS, cardIcon, DECISION_ICON, RELEASE_ICON } from './cardIcons';
+  import { ACTION_ICONS, cardIcon, DECISION_ICON, RELEASE_ICON, STAT_ICONS } from './cardIcons';
+  const CODE_ICON = STAT_ICONS.output;
   import { gainText, MAX_FLOATING, type FloatingGain } from './floatingGains';
   import type { AttentionLevel } from '../game/types';
 
@@ -192,7 +193,11 @@
                   >
                 </span>
                 <span class="price"
-                  >{offer.currency === 'revenue' ? '$' : ''}{formatAmount(offer.price)}</span
+                  >{#if offer.currency === 'revenue'}${:else}<span
+                      class="currency"
+                      aria-hidden="true"
+                      data-testid="price-code-icon"><PixelIcon map={CODE_ICON} scale={2} /></span
+                    >{/if}{formatAmount(offer.price)}</span
                 >
               </button>
             {:else if offer.kind === 'release'}
@@ -214,8 +219,11 @@
                   >
                 </span>
                 <span class="price ship"
-                  ><span>{formatAmount(offer.price)}</span><span class="ship-label">SHIP</span
-                  ></span
+                  ><span class="amount"
+                    ><span class="currency" aria-hidden="true" data-testid="price-code-icon"
+                      ><PixelIcon map={CODE_ICON} scale={2} /></span
+                    >{formatAmount(offer.price)}</span
+                  ><span class="ship-label">SHIP</span></span
                 >
               </button>
             {:else if confirming === offer.id}
@@ -396,6 +404,14 @@
     display: flex;
     flex-direction: column;
     line-height: 1.1;
+  }
+  .currency {
+    display: inline-flex;
+    vertical-align: middle;
+    margin-right: 2px;
+  }
+  .amount {
+    white-space: nowrap;
   }
   .ship-label {
     font-size: 11px;

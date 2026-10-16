@@ -17,6 +17,7 @@ const world: WorldProjection = {
   pendingRevealId: null,
   cat: { alive: true, presentation: 'normal', round: false },
   releases: 0,
+  computeSlots: 0,
   theme: 'light',
   reducedMotion: false,
 };

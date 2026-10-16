@@ -183,6 +183,18 @@ function releaseFrame(p: Palette): PixelCanvas {
   return c;
 }
 
+/** One bought compute slot: a small rack server unit; units stack 4 px apart (shared edge). */
+function computeSlot(p: Palette, frame: number): PixelCanvas {
+  const c = createCanvas(14, 5);
+  c.rect(0, 0, 14, 5, p.outline);
+  c.rect(1, 1, 12, 3, p.metalDark);
+  c.rect(1, 1, 12, 1, p.metal);
+  for (let x = 6; x < 12; x += 2) c.set(x, 2, p.screenDark);
+  c.set(2, 2, frame === 0 ? p.ledGreen : p.glowDim);
+  c.set(4, 2, frame === 1 ? p.ledAmber : p.metalDark);
+  return c;
+}
+
 export function roomSprites(p: Palette): SpriteFrames[] {
   return [
     { tag: 'room-back', frameMs: 1000, frames: [roomBack(p)] },
@@ -191,5 +203,6 @@ export function roomSprites(p: Palette): SpriteFrames[] {
     { tag: 'programmer-typing', frameMs: 180, frames: [0, 1].map((f) => programmer(p, f)) },
     { tag: 'cat-bowl', frameMs: 1000, frames: [bowl(p)] },
     { tag: 'release-frame', frameMs: 1000, frames: [releaseFrame(p)] },
+    { tag: 'compute-slot', frameMs: 520, frames: [0, 1].map((f) => computeSlot(p, f)) },
   ];
 }

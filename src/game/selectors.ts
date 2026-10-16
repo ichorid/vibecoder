@@ -490,6 +490,8 @@ export interface WorldViewModel {
   };
   /** Shipped releases (each hangs framed on the room wall). */
   readonly releases: number;
+  /** Bought compute slots (each stacks as a server unit in the room). */
+  readonly computeSlots: number;
 }
 
 /** Discovered-world projection for the renderer: unlocked IDs and the cat's presentation facts. */
@@ -504,6 +506,7 @@ export function selectWorld(run: ReadonlyRun, catalog: Catalog): WorldViewModel 
       round: run.cat.alive && conditions.overfed,
     },
     releases: run.releases.length,
+    computeSlots: run.upgradeLevels['compute-slot'] ?? 0,
   };
 }
 

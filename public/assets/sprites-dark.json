@@ -60,6 +60,18 @@
    "w": 7,
    "h": 9
   },
+  "compute-slot-0": {
+   "x": 453,
+   "y": 198,
+   "w": 14,
+   "h": 5
+  },
+  "compute-slot-1": {
+   "x": 467,
+   "y": 198,
+   "w": 14,
+   "h": 5
+  },
   "cat-idle-0": {
    "x": 98,
    "y": 160,
@@ -637,7 +649,7 @@
    "h": 8
   },
   "kit-packet-0": {
-   "x": 453,
+   "x": 482,
    "y": 198,
    "w": 5,
    "h": 5
@@ -688,6 +700,13 @@
     "release-frame-0"
    ],
    "frameMs": 1000
+  },
+  "compute-slot": {
+   "frames": [
+    "compute-slot-0",
+    "compute-slot-1"
+   ],
+   "frameMs": 520
   },
   "cat-idle": {
    "frames": [
