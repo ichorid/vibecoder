@@ -33,6 +33,16 @@ export const achievements: readonly AchievementDefinition[] = [
     when: (run) => has(run, 'autonomous-company'),
   },
   {
+    id: 'first-release',
+    title: 'Shipped it (three users, probably)',
+    when: (run) => run.releases.length >= 1,
+  },
+  {
+    id: 'serial-shipper',
+    title: 'Serial shipper: five releases',
+    when: (run) => run.releases.length >= 5,
+  },
+  {
     id: 'still-purring',
     title: 'Still purring at the end of everything',
     when: (run) => has(run, 'autonomous-company') && run.cat.alive,

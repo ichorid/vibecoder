@@ -13,7 +13,7 @@ const has = (run: ReadonlyRun, id: string) =>
   (run.unlockedTechnologyIds as readonly string[]).includes(id);
 const chose = (run: ReadonlyRun, id: string) => Object.keys(run.choices).includes(id);
 
-/** The original project counts as shippable once this much code was ever written. */
+/** "Finish it yourself" needs the original project to exist: this much code ever written. */
 const PROJECT_READY_OUTPUT = 1000;
 const SUSTAINED_MS = 120_000;
 const MANUAL_FINISH_ACTIONS = 120;
@@ -89,7 +89,13 @@ export const choices: readonly ChoiceDefinition[] = [
   {
     id: 'archive-original',
     title: 'Archive the original project',
-    description: 'The thing you set out to build is still unshipped. The harness needs you more.',
+    description: (run) => {
+      const n = run.releases.length;
+      if (n === 0)
+        return 'The thing you set out to build is still unshipped. The harness needs you more.';
+      const times = n === 1 ? 'once' : `${n} times`;
+      return `You shipped it ${times}. Nobody noticed. The harness needs you more.`;
+    },
     confirm: 'This ends the run.',
     available: (run) => has(run, 'custom-harness') && !has(run, 'evaluations'),
     ends: 'the-forgotten-project',
@@ -123,20 +129,14 @@ export const choices: readonly ChoiceDefinition[] = [
     confirm: 'Further automation will not be offered in this run.',
     available: (run) => has(run, 'reviewer') && !has(run, 'manager-agent'),
   },
-  {
-    id: 'ship-original',
-    title: 'Ship the original project',
-    description: 'It works. It is small. Nobody asked for more infrastructure yet.',
-    confirm: 'This ends the run.',
-    available: (run) => has(run, 'terminal-agent') && !has(run, 'reviewer') && projectReady(run),
-    ends: 'three-users',
-  },
 ];
 
 export const endings: readonly EndingDefinition[] = [
   {
+    // The old one-click "Ship the original project" ending; releases replaced it (Ship It).
     id: 'three-users',
     title: 'Three Users',
+    legacy: true,
     text: {
       alive: [
         'You shipped the app.',
@@ -344,6 +344,33 @@ export const endings: readonly EndingDefinition[] = [
         'Your company operates without human intervention.',
         'You are no longer required.',
         'The cat worked that out a long time ago.',
+      ],
+    },
+  },
+  {
+    id: 'the-infinite-weekend',
+    title: 'The Infinite Weekend',
+    jackpot: true,
+    illustrationId: 'infinite-weekend',
+    text: {
+      alive: [
+        'One release, out of nowhere, took off.',
+        'You sold it before anyone asked what it does.',
+        'Now there is a beach, a hammock, and no roadmap.',
+        'The cat sleeps on your chest. Neither of you has checked the metrics.',
+      ],
+      dead: [
+        'One release, out of nowhere, took off.',
+        'You sold it before anyone asked what it does.',
+        'Now there is a beach, a hammock, and no roadmap.',
+        'The hammock has room for two.',
+      ],
+      // No cat means no cat, in text and picture alike (docs/feature_ship_it.md §5.5).
+      stray: [
+        'One release, out of nowhere, took off.',
+        'You sold it before anyone asked what it does.',
+        'Now there is a beach, a hammock, and no roadmap.',
+        'The hammock has room for two.',
       ],
     },
   },

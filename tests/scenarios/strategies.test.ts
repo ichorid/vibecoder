@@ -19,6 +19,8 @@ import {
   every,
   playEvery,
   pressPrimary,
+  savingForReleases,
+  shipWhenAffordable,
   CARE,
   type Policy,
 } from '../helpers/scenario';
@@ -191,6 +193,37 @@ describe('player strategies (full catalog)', { timeout: 120_000 }, () => {
       [baselinePrimary, greedy, acknowledgeReveals, ...baselineCare, playEvery()],
       'greedy',
     );
-    expect(r.minutes).toBeLessThanOrEqual(40);
+    expect(r.minutes).toBeLessThanOrEqual(46);
+  });
+
+  it('always ship: saving for every release still reaches the company, and ships them all', () => {
+    // Seed 1 never hits the gold slice, so the run continues through all five windows.
+    const shipper: Policy[] = [
+      baselinePrimary,
+      shipWhenAffordable,
+      savingForReleases(baselineBuyer),
+      acknowledgeReveals,
+      ...baselineCare,
+      playEvery(),
+    ];
+    const r = route(1, shipper, 'always-ship');
+    expect(r.minutes).toBeGreaterThanOrEqual(25);
+    expect(r.minutes).toBeLessThanOrEqual(46);
+    // Then keep playing until the last release (v3.0, the one that never closes) ships.
+    let run = r.run;
+    const limit = run.activeMs + 20 * MINUTE;
+    while (run.releases.length < 5 && run.activeMs < limit && run.status === 'playing') {
+      for (const policy of shipper) {
+        for (const command of policy({ run, catalog })) {
+          run = applyCommand(run, command, run.activeMs, catalog).run;
+        }
+      }
+      run = stepRun(run, 100, catalog).run;
+    }
+    console.info(
+      `always-ship: releases ${run.releases.map((x) => `v${x.window}@${(x.activeMs / MINUTE).toFixed(1)}`).join(' ')}`,
+    );
+    expect(run.releases.map((x) => x.window)).toEqual([1, 2, 3, 4, 5]);
+    expect(run.releases.some((x) => x.outcome === 'jackpot')).toBe(false);
   });
 });

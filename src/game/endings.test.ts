@@ -13,7 +13,7 @@ const endingA: EndingDefinition = { id: 'three-users', title: 'A', text };
 const endingB: EndingDefinition = { id: 'the-last-programmer', title: 'B', text };
 
 const finish: ChoiceDefinition = {
-  id: 'ship-original',
+  id: 'force-merge',
   title: 'Finish',
   description: 'Ends the run.',
   confirm: 'Really?',
@@ -30,9 +30,9 @@ describe('ending resolver', () => {
     const cat = testCatalog();
     const run = createRun(1, 'r');
     expect(
-      selectGame(run, cat).offers.some((o) => o.kind === 'choice' && o.id === 'ship-original'),
+      selectGame(run, cat).offers.some((o) => o.kind === 'choice' && o.id === 'force-merge'),
     ).toBe(true);
-    const ended = applyCommand(run, { type: 'choose', id: 'ship-original' }, 0, cat);
+    const ended = applyCommand(run, { type: 'choose', id: 'force-merge' }, 0, cat);
     expect(ended.result).toBe('applied');
     expect(ended.run.status).toBe('ended');
     expect(ended.run.ending).toEqual({
@@ -48,12 +48,12 @@ describe('ending resolver', () => {
 
   it('freezes time, needs and commands after the ending; repeating changes nothing', () => {
     const cat = testCatalog();
-    const ended = act(createRun(1, 'r'), { type: 'choose', id: 'ship-original' }, cat);
+    const ended = act(createRun(1, 'r'), { type: 'choose', id: 'force-merge' }, cat);
     expect(steps(ended, 600, cat)).toBe(ended);
     for (const type of ['primaryAction', 'feedCat', 'petCat', 'startCatPlay'] as const) {
       expect(applyCommand(ended, { type }, 0, cat).result).toBe('unavailable');
     }
-    const again = applyCommand(ended, { type: 'choose', id: 'ship-original' }, 0, cat);
+    const again = applyCommand(ended, { type: 'choose', id: 'force-merge' }, 0, cat);
     expect(again.result).toBe('unavailable');
     expect(again.run).toBe(ended);
   });
@@ -89,7 +89,7 @@ describe('ending resolver', () => {
   it('rejects a choice that is not currently available', () => {
     const cat = testCatalog({ choices: [{ ...finish, available: () => false }] });
     expect(
-      applyCommand(createRun(1, 'r'), { type: 'choose', id: 'ship-original' }, 0, cat).result,
+      applyCommand(createRun(1, 'r'), { type: 'choose', id: 'force-merge' }, 0, cat).result,
     ).toBe('unavailable');
   });
 });

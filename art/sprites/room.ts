@@ -169,6 +169,20 @@ function bowl(p: Palette): PixelCanvas {
   return c;
 }
 
+/** A shipped release, framed on the wall: a tiny certificate with a launch rocket. */
+function releaseFrame(p: Palette): PixelCanvas {
+  const c = createCanvas(7, 9);
+  c.rect(0, 0, 7, 9, p.gold);
+  c.rect(1, 1, 5, 7, p.paper);
+  c.rect(3, 2, 1, 3, p.metal);
+  c.set(3, 1, p.ledRed);
+  c.set(2, 4, p.ledRed);
+  c.set(4, 4, p.ledRed);
+  c.set(3, 5, p.lampGlow);
+  c.rect(2, 7, 3, 1, p.paperShade);
+  return c;
+}
+
 export function roomSprites(p: Palette): SpriteFrames[] {
   return [
     { tag: 'room-back', frameMs: 1000, frames: [roomBack(p)] },
@@ -176,5 +190,6 @@ export function roomSprites(p: Palette): SpriteFrames[] {
     { tag: 'room-monitor', frameMs: 260, frames: [0, 1, 2].map((f) => monitor(p, f)) },
     { tag: 'programmer-typing', frameMs: 180, frames: [0, 1].map((f) => programmer(p, f)) },
     { tag: 'cat-bowl', frameMs: 1000, frames: [bowl(p)] },
+    { tag: 'release-frame', frameMs: 1000, frames: [releaseFrame(p)] },
   ];
 }

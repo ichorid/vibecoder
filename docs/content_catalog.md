@@ -123,6 +123,22 @@ current progression card is always first; at most three cards.
 start: Code · 04: Code, Tokens · 05: Code, Tokens, Debt · 20: Code, Debt, Automation ·
 24: Revenue, Code, Automation · 26: Revenue, Margin, Automation.
 
+## Ship It (user request; design in docs/feature_ship_it.md)
+
+| Window | Version | Opens at | Price | Jackpot weight | Wheel shows |
+| --- | --- | --- | --- | --- | --- |
+| 1 | v0.1 | terminal-agent | 2 000 | 0.2 | 0.2 % |
+| 2 | v0.2 | manager-agent | 12 000 | 0.8 | 0.8 % |
+| 3 | v1.0 | custom-harness | 75 000 | 2 | 2.02 % |
+| 4 | v2.0 | self-driving-repositories | 450 000 | 5 | 5.15 % |
+| 5 | v3.0 | autonomous-company | 2 700 000 | 12 | 13.04 % |
+
+A window closes after 3 more technologies AND 240 s (window 5 never). One release per window,
+paid from the code balance, no economic reward. Draw: `rng.release` only (jackpot → unused
+slice → unused comment). Always shipping wins 20 % of runs; it costs ~12 min of saving
+(company at 43 min, seed 1). The release card sorts after choice cards (journal D26).
+`three-users` is a legacy ending (old profiles only); The Infinite Weekend is the tenth.
+
 ## Cat fates (user request, after S09)
 
 Three fates: **alive**, **dead** (starved; candle log line, memorial with two photos) and

@@ -1,10 +1,29 @@
 <script lang="ts">
   import type { EndingViewModel } from '../game/selectors';
 
-  const { ending }: { ending: EndingViewModel } = $props();
+  interface Props {
+    ending: EndingViewModel;
+    illustrationUrl?: (illustrationId: string) => string | null;
+  }
+
+  const { ending, illustrationUrl = () => null }: Props = $props();
+  const picture = $derived(ending.illustrationId ? illustrationUrl(ending.illustrationId) : null);
+  let failed = $state(false);
 </script>
 
 <section class="ending" aria-labelledby="ending-title" data-testid="ending-panel">
+  {#if picture && !failed}
+    <img
+      class="picture pixelated"
+      src={picture}
+      alt=""
+      width="128"
+      height="96"
+      data-testid="ending-picture"
+      data-picture={ending.illustrationId}
+      onerror={() => (failed = true)}
+    />
+  {/if}
   <p class="kicker">ENDING</p>
   <h2 id="ending-title">{ending.title}</h2>
   {#each ending.paragraphs as paragraph, i (i)}
@@ -25,6 +44,12 @@
     border: 3px solid var(--border);
     box-shadow: 0 4px 0 var(--shadow);
     overflow: auto;
+  }
+  .picture {
+    align-self: center;
+    width: min(256px, 100%);
+    height: auto;
+    border: 3px solid var(--border);
   }
   .kicker {
     margin: 0;

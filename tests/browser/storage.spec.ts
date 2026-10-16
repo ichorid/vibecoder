@@ -65,7 +65,7 @@ test('a corrupt save is left untouched; a new run keeps independently valid endi
   page,
 }) => {
   const good = JSON.parse(
-    saveWithProfile(untilChoice('ship-original'), [
+    saveWithProfile(untilChoice('keep-manual'), [
       { id: 'three-users', runId: 'old', activeMs: 1000, order: 1 },
     ]),
   ) as Record<string, unknown>;

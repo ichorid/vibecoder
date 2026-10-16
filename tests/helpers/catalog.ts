@@ -1,5 +1,6 @@
 import { attentionBalance, balance, catBalance, catPlayBalance } from '../../src/content/balance';
 import { catText } from '../../src/content/catText';
+import { releases } from '../../src/content/releases';
 import type { Catalog } from '../../src/game/catalog';
 
 /** Minimal catalog with one manual action, for core ordering tests. */
@@ -9,6 +10,7 @@ export function createTestCatalog(): Catalog {
     endings: [],
     events: [],
     achievements: [],
+    releases: { ...releases, windows: [] },
 
     catText,
     balance: {

@@ -2,6 +2,8 @@ import type {
   ChoiceId,
   EndingId,
   PrimaryActionId,
+  ReleaseOutcomeId,
+  ReleaseWindow,
   ResponsibilityId,
   TechnologyId,
   UpgradeId,
@@ -315,7 +317,8 @@ export interface AchievementDefinition {
 export interface ChoiceDefinition {
   readonly id: ChoiceId;
   readonly title: string;
-  readonly description: string;
+  /** Static text, or one that reads the run (e.g. how many releases shipped). */
+  readonly description: string | ((run: ReadonlyRun) => string);
   /** Destructive commitments ask for an inline confirmation with this text. */
   readonly confirm?: string;
   readonly available: (run: ReadonlyRun) => boolean;
@@ -336,10 +339,63 @@ export interface EndingDefinition {
   };
   /** Optional automatic resolution; simultaneous candidates resolve by highest priority. */
   readonly automatic?: { readonly priority: number; readonly when: (run: ReadonlyRun) => boolean };
+  /** Reached by a release jackpot rather than a choice or a rule. */
+  readonly jackpot?: boolean;
+  /** No longer reachable; kept so old profiles and saves still show it. */
+  readonly legacy?: boolean;
+  /** Ending picture, exported with the cat (`<id>`) and without it (`<id>-nocat`). */
+  readonly illustrationId?: string;
+}
+
+/** Text that differs when there is no cat (dead or gone): no cat in any text or picture. */
+export type CatAwareText = string | { readonly alive: string; readonly absent: string };
+
+/** A launch window: opens when its technology is unlocked; one release per window. */
+export interface ReleaseWindowDefinition {
+  readonly window: ReleaseWindow;
+  readonly version: string;
+  readonly technology: TechnologyId;
+  /** Paid from the spendable code balance. */
+  readonly price: number;
+  /** Percent of a whole run won at this window by a player who ships every time. */
+  readonly jackpotWeight: number;
+  readonly title: string;
+  /** Card description; also the log line when the window opens. */
+  readonly description: string;
+}
+
+export interface ReleaseSliceDefinition {
+  readonly id: ReleaseOutcomeId;
+  /** Short wheel label (≤ 10 characters). */
+  readonly label: CatAwareText;
+  /** The result card body. */
+  readonly text: CatAwareText;
+}
+
+export interface ReleaseComment {
+  readonly id: string;
+  readonly text: string;
+}
+
+export interface ReleaseContent {
+  readonly windows: readonly ReleaseWindowDefinition[];
+  readonly slices: readonly ReleaseSliceDefinition[];
+  /** Third-party top comments (attributed in their own file). */
+  readonly comments: readonly ReleaseComment[];
+  /** A window closes once both this many more technologies and this much time passed. */
+  readonly closeAfterTechnologies: number;
+  readonly closeAfterMs: number;
+  readonly jackpotEnding: EndingId;
+  readonly jackpotLabel: string;
+  /** `{version}` is replaced. */
+  readonly closedText: string;
+  /** `{version}` and `{label}` are replaced. */
+  readonly shippedText: string;
 }
 
 export interface Catalog {
   readonly choices: readonly ChoiceDefinition[];
+  readonly releases: ReleaseContent;
   readonly endings: readonly EndingDefinition[];
   readonly events: readonly EventDefinition[];
   readonly achievements: readonly AchievementDefinition[];

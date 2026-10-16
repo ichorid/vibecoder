@@ -6,11 +6,13 @@
     theme: Theme;
     audio: AudioControls;
     musicLabHref: string;
+    /** Attribution lines for third-party content (shown under Credits). */
+    credits?: readonly string[];
     onTheme: (theme: Theme) => void;
     onClose: () => void;
   }
 
-  const { theme, audio, musicLabHref, onTheme, onClose }: Props = $props();
+  const { theme, audio, musicLabHref, credits = [], onTheme, onClose }: Props = $props();
   let panel: HTMLElement | undefined = $state();
   let page = $state<'main' | 'music'>('main');
 
@@ -91,6 +93,12 @@
       {/if}
     </p>
     <button type="button" class="item" onclick={() => (page = 'music')}>Music ›</button>
+    {#if credits.length > 0}
+      <div class="credits" data-testid="credits">
+        <span class="credits-title">Credits</span>
+        {#each credits as line (line)}<p class="note">{line}</p>{/each}
+      </div>
+    {/if}
   {:else}
     <div class="head">
       <button type="button" class="back" onclick={() => (page = 'main')} data-autofocus
@@ -115,6 +123,16 @@
     background: var(--panel);
     border: 3px solid var(--border);
     box-shadow: 0 4px 0 var(--shadow);
+  }
+  .credits {
+    margin-top: 8px;
+    padding-top: 6px;
+    border-top: 2px solid var(--border);
+  }
+  .credits-title {
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 0.1em;
   }
   .head {
     display: flex;

@@ -3,6 +3,7 @@ import { createCanvas } from '../../art/lib/canvas';
 import { pack } from '../../art/lib/pack';
 import { encodePng } from '../../art/lib/png';
 import { ILLUSTRATIONS, renderIllustration } from '../../art/illustrations';
+import { infiniteWeekend } from '../../art/illustrations/endings';
 import { keyboardPhoto, lapPhoto } from '../../art/illustrations/memorial';
 import { THEMES } from '../../art/palette';
 import { allSprites } from '../../art/sprites';
@@ -58,5 +59,7 @@ export function outputs(): Map<string, Buffer> {
   }
   files.set('memorial/keyboard.png', encodePng(keyboardPhoto()));
   files.set('memorial/lap.png', encodePng(lapPhoto()));
+  files.set('endings/infinite-weekend.png', encodePng(infiniteWeekend(true)));
+  files.set('endings/infinite-weekend-nocat.png', encodePng(infiniteWeekend(false)));
   return files;
 }

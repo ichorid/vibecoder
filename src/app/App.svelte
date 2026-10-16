@@ -19,9 +19,10 @@
   import { formatAmount } from '../ui/format';
   import WorldCanvas from '../world/WorldCanvas.svelte';
   import { describeScene } from '../content/world';
+  import { RELEASE_COMMENTS_ATTRIBUTION } from '../content/releaseComments';
   import { atlasUrl, memorialUrls } from './assetUrls';
   import { loadDomSheet } from './domSheet';
-  import type { DomSpriteSheet } from '../ui/contracts';
+  import type { DomSpriteSheet, WheelSound } from '../ui/contracts';
 
   interface Props {
     api: UiGameApi;
@@ -192,6 +193,7 @@
         theme={$api.profile.theme}
         {audio}
         musicLabHref={`${import.meta.env.BASE_URL}music-lab/`}
+        credits={[RELEASE_COMMENTS_ATTRIBUTION]}
         onTheme={setTheme}
         onClose={closeSettings}
       />
@@ -224,6 +226,8 @@
         attention={view === 'game' ? $api.cat.attention : undefined}
         onCatOverlay={() => open('cat')}
         {sprites}
+        {reducedMotion}
+        onSound={(id: WheelSound) => audio.effect?.(id)}
       >
         {#snippet world()}
           <WorldCanvas

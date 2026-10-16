@@ -4,6 +4,7 @@ import { balance } from './balance';
 import { catText } from './catText';
 import { choices, endings } from './endings';
 import { events } from './events';
+import { releases } from './releases';
 import { technologies } from './technologies';
 import { upgrades } from './upgrades';
 
@@ -13,6 +14,7 @@ export const catalog: Catalog = {
   catText,
   choices,
   endings,
+  releases,
   events,
   achievements,
   primaryActionLabels: {

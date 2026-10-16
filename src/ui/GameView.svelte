@@ -2,15 +2,16 @@
   import { tick, type Snippet } from 'svelte';
   import type { ChoiceId, TechnologyId, UpgradeId } from '../game/ids';
   import type { GameViewModel, OfferViewModel } from '../game/selectors';
-  import type { Dispatch, DomSpriteSheet } from './contracts';
+  import type { Dispatch, DomSpriteSheet, WheelSound } from './contracts';
   import { formatActiveTime, formatAmount } from './format';
   import CatOverlay from './CatOverlay.svelte';
   import EndingPanel from './EndingPanel.svelte';
+  import ReleaseWheel from './ReleaseWheel.svelte';
   import UnlockAnnouncement from './UnlockAnnouncement.svelte';
   import FloatingGains from './FloatingGains.svelte';
   import Stats from './Stats.svelte';
   import PixelIcon from './PixelIcon.svelte';
-  import { ACTION_ICONS, cardIcon, DECISION_ICON } from './cardIcons';
+  import { ACTION_ICONS, cardIcon, DECISION_ICON, RELEASE_ICON } from './cardIcons';
   import { gainText, MAX_FLOATING, type FloatingGain } from './floatingGains';
   import type { AttentionLevel } from '../game/types';
 
@@ -22,6 +23,8 @@
     onCatOverlay?: () => void;
     sprites?: DomSpriteSheet | null;
     world?: Snippet;
+    reducedMotion?: boolean;
+    onSound?: ((id: WheelSound) => void) | undefined;
   }
 
   const {
@@ -32,6 +35,8 @@
     onCatOverlay,
     sprites = null,
     world,
+    reducedMotion = false,
+    onSound,
   }: Props = $props();
   let controls: HTMLElement | undefined = $state();
 
@@ -82,6 +87,24 @@
     if (offer.kind === 'choice') choose(offer.id, offer.confirm);
   }
 
+  /** The window whose release wheel is showing (only right after shipping; never on reload). */
+  let wheelWindow = $state<number | null>(null);
+  const wheel = $derived(
+    wheelWindow !== null && game.lastRelease?.window === wheelWindow ? game.lastRelease : null,
+  );
+
+  async function ship() {
+    if (dispatch({ type: 'shipRelease' }) !== 'applied') return;
+    await tick();
+    wheelWindow = game.lastRelease?.window ?? null;
+  }
+
+  async function closeWheel() {
+    wheelWindow = null;
+    await tick();
+    controls?.querySelector<HTMLButtonElement>('.offer, .primary')?.focus();
+  }
+
   function restart() {
     confirmingRestart = false;
     dispatch({ type: 'restart' });
@@ -95,8 +118,8 @@
 <section class="game-view" aria-label="Game">
   <div class="world" data-testid="world">
     {@render world?.()}
-    {#if game.ending}
-      <EndingPanel ending={game.ending} />
+    {#if game.ending && !wheel}
+      <EndingPanel ending={game.ending} {illustrationUrl} />
     {/if}
   </div>
   <div class="controls" bind:this={controls}>
@@ -172,6 +195,29 @@
                   >{offer.currency === 'revenue' ? '$' : ''}{formatAmount(offer.price)}</span
                 >
               </button>
+            {:else if offer.kind === 'release'}
+              <button
+                type="button"
+                class="offer release"
+                data-release={offer.window}
+                disabled={!offer.affordable}
+                aria-describedby="release-{offer.window}-desc"
+                onclick={ship}
+              >
+                <span class="card-icon" aria-hidden="true"
+                  ><PixelIcon map={RELEASE_ICON} scale={3} /></span
+                >
+                <span class="offer-text">
+                  <span class="offer-title">{offer.title}</span>
+                  <span class="offer-desc" id="release-{offer.window}-desc"
+                    >{offer.description}</span
+                  >
+                </span>
+                <span class="price ship"
+                  ><span>{formatAmount(offer.price)}</span><span class="ship-label">SHIP</span
+                  ></span
+                >
+              </button>
             {:else if confirming === offer.id}
               <div class="offer choice confirm" role="group" aria-label="Confirm {offer.title}">
                 <span class="offer-text">
@@ -213,6 +259,9 @@
       </ol>
     {/if}
   </div>
+  {#if wheel}
+    <ReleaseWheel {wheel} {reducedMotion} sound={onSound} onDone={closeWheel} />
+  {/if}
   <!-- A discovery takes over everything below the header (which stays usable). -->
   {#if !game.ending && game.announcement}
     {@const announcement = game.announcement}
@@ -338,6 +387,19 @@
   }
   .offer.choice {
     border-style: dashed;
+  }
+  .offer.release {
+    border-color: #c99a1e;
+    background: color-mix(in srgb, #f6c945 18%, var(--panel));
+  }
+  .ship {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.1;
+  }
+  .ship-label {
+    font-size: 11px;
+    letter-spacing: 0.08em;
   }
   .choose {
     font-size: 11px;

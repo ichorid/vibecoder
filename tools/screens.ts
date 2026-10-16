@@ -40,6 +40,40 @@ const scenes: Record<string, Scene> = {
     save: () => saveText(neglectedRun()),
     act: async (page) => page.getByTestId('cat-button').click(),
   },
+  ship: { width: 390, height: 844, save: () => saveText(readyToShip(41)) },
+  wheel: {
+    width: 390,
+    height: 844,
+    save: () => saveText(readyToShip(41)),
+    act: async (page) => {
+      await page.locator('[data-release="1"]').click();
+      await page.waitForTimeout(1500);
+    },
+  },
+  wheelResult: {
+    width: 390,
+    height: 844,
+    save: () => saveText(readyToShip(41)),
+    act: async (page) => {
+      await page.locator('[data-release="1"]').click();
+      await page.waitForTimeout(4600);
+    },
+  },
+  weekend: {
+    width: 390,
+    height: 844,
+    save: () => saveText(readyToShip(1868)),
+    act: async (page) => {
+      await page.locator('[data-release="1"]').click();
+      await page.waitForTimeout(5500);
+    },
+  },
+  frames: {
+    width: 390,
+    height: 844,
+    save: () => saveText(shippedThrice()),
+  },
+  tech28Small: { width: 320, height: 568, save: () => saveText(progressedRun(28)) },
   stray: {
     width: 390,
     height: 844,
@@ -57,6 +91,25 @@ const scenes: Record<string, Scene> = {
     },
   },
 };
+
+/** A run at the Terminal Agent with enough code to ship v0.1. */
+function readyToShip(seed: number) {
+  const run = progressedRun(4, false, seed);
+  return { ...run, economy: { ...run.economy, output: run.economy.output + 2500 } };
+}
+
+/** Three framed releases on the wall (synthetic records; the room shows one frame each). */
+function shippedThrice() {
+  const run = progressedRun(4, false, 41);
+  const releases = ([1, 2, 3] as const).map((window) => ({
+    window,
+    outcome: 'pivot' as const,
+    commentId: `c0${window}`,
+    catAlive: true,
+    activeMs: run.activeMs,
+  }));
+  return { ...run, releases };
+}
 
 const [outDir = '.', ...names] = process.argv.slice(2).filter((a) => a !== '--');
 const browser = await chromium.launch();

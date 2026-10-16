@@ -9,6 +9,7 @@ import {
   isUpgradeOffered,
   resolveDiscoveries,
 } from './progression';
+import { shipRelease } from './releases';
 import type { Transition } from './simulation';
 import type { GameCommand, RunState } from './types';
 
@@ -99,6 +100,11 @@ export function applyCommand(
         facts: [{ type: 'choiceMade', id: choice.id }, ...ended.facts],
         result: 'applied',
       };
+    }
+    case 'shipRelease': {
+      const shipped = shipRelease(run, catalog);
+      if (!shipped.accepted) return reject(run, shipped.reason);
+      return { ...shipped.transition, result: 'applied' };
     }
     case 'feedCat': {
       const fed = feedCat(run.cat, run.rng.cat, activeTimestamp, catalog.balance.cat);

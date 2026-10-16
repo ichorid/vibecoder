@@ -123,5 +123,62 @@ export function validateContent({
   const cycle = findCycle(catalog);
   if (cycle) issues.push({ message: `prerequisite cycle: ${cycle.join(' → ')}` });
 
+  checkReleases(catalog, issues);
   return issues;
+}
+
+/** Ship It content: five windows in catalog order with growing prices, odds summing to 20 %. */
+function checkReleases(catalog: Catalog, issues: ContentIssue[]): void {
+  const { windows, slices, comments } = catalog.releases;
+  if (windows.length !== 5) issues.push({ message: `releases: ${windows.length} windows, not 5` });
+  const order = catalog.technologies.map((t) => t.id as string);
+  windows.forEach((window, i) => {
+    const previous = windows[i - 1];
+    if (!order.includes(window.technology)) {
+      issues.push({
+        message: `release ${window.version}: unknown technology "${window.technology}"`,
+      });
+    }
+    if (previous && order.indexOf(window.technology) <= order.indexOf(previous.technology)) {
+      issues.push({ message: `release ${window.version}: technologies out of catalog order` });
+    }
+    if (previous && window.price <= previous.price) {
+      issues.push({ message: `release ${window.version}: price does not increase` });
+    }
+  });
+  const weights = windows.reduce((sum, w) => sum + w.jackpotWeight, 0);
+  if (Math.abs(weights - 20) > 1e-9) {
+    issues.push({ message: `releases: jackpot weights sum to ${weights}, not 20` });
+  }
+  for (const slice of slices) {
+    const labels =
+      typeof slice.label === 'string' ? [slice.label] : [slice.label.alive, slice.label.absent];
+    if (labels.some((label) => label.length === 0 || label.length > 10)) {
+      issues.push({ message: `release slice "${slice.id}": label must be 1–10 characters` });
+    }
+    const texts =
+      typeof slice.text === 'string' ? [slice.text] : [slice.text.alive, slice.text.absent];
+    if (texts.some((text) => text.length === 0)) {
+      issues.push({ message: `release slice "${slice.id}": empty text` });
+    }
+  }
+  if (slices.length < windows.length) {
+    issues.push({ message: 'releases: fewer slices than windows (outcomes would repeat)' });
+  }
+  if (comments.length < windows.length) {
+    issues.push({ message: 'releases: fewer comments than windows (comments would repeat)' });
+  }
+  for (const comment of comments) {
+    if (comment.text.length > 140) {
+      issues.push({ message: `release comment "${comment.id}": longer than 140 characters` });
+    }
+  }
+  for (const id of duplicates(comments.map((c) => c.id))) {
+    issues.push({ message: `duplicate release comment id "${id}"` });
+  }
+  if (!catalog.endings.some((e) => e.id === catalog.releases.jackpotEnding && e.jackpot)) {
+    issues.push({
+      message: `releases: jackpot ending "${catalog.releases.jackpotEnding}" is missing`,
+    });
+  }
 }

@@ -1,7 +1,10 @@
 import {
   CHOICE_IDS,
   ENDING_IDS,
+  RELEASE_OUTCOME_IDS,
+  RELEASE_WINDOWS,
   TECHNOLOGY_IDS,
+  type ReleaseWindow,
   UPGRADE_IDS,
   isUpgradeId,
   type UpgradeId,
@@ -15,8 +18,31 @@ import {
   type RunStats,
   type HistoryEntry,
   type LogEntry,
+  type ReleaseRecord,
   type RunState,
 } from '../game/types';
+
+const RELEASE_RESULTS = [...RELEASE_OUTCOME_IDS, 'jackpot'] as const;
+
+function releaseWindow(value: unknown, path: string): ReleaseWindow {
+  const window = num(value, path, { min: 1, max: RELEASE_WINDOWS.length, integer: true });
+  return window as ReleaseWindow;
+}
+
+function decodeRelease(value: unknown, path: string): ReleaseRecord {
+  const raw = record(value, path);
+  const outcome = oneOf(raw.outcome, `${path}.outcome`, RELEASE_RESULTS);
+  const release: ReleaseRecord = {
+    window: releaseWindow(raw.window, `${path}.window`),
+    outcome,
+    commentId: raw.commentId === null ? null : str(raw.commentId, `${path}.commentId`, 40),
+    catAlive: bool(raw.catAlive, `${path}.catAlive`),
+    activeMs: num(raw.activeMs, `${path}.activeMs`, nonNegative),
+  };
+  if ((outcome === 'jackpot') !== (release.commentId === null))
+    fail(path, 'a jackpot has no comment and every other release has one');
+  return release;
+}
 import {
   DecodeError,
   bool,
@@ -274,6 +300,7 @@ function decodeHistoryEntry(value: unknown, path: string): HistoryEntry {
     'event',
     'achievement',
     'ending',
+    'release',
   ] as const);
   switch (kind) {
     case 'cat':
@@ -286,6 +313,13 @@ function decodeHistoryEntry(value: unknown, path: string): HistoryEntry {
       return { kind, id: str(raw.id, `${path}.id`, 80), activeMs };
     case 'ending':
       return { kind, id: oneOf(raw.id, `${path}.id`, ENDING_IDS), activeMs };
+    case 'release':
+      return {
+        kind,
+        window: releaseWindow(raw.window, `${path}.window`),
+        outcome: oneOf(raw.outcome, `${path}.outcome`, RELEASE_RESULTS),
+        activeMs,
+      };
   }
 }
 
@@ -321,6 +355,7 @@ export function decodeRun(value: unknown, path = 'run'): RunState {
       economy: num(rng.economy, `${path}.rng.economy`, uint32),
       cat: num(rng.cat, `${path}.rng.cat`, uint32),
       narrative: num(rng.narrative, `${path}.rng.narrative`, uint32),
+      release: num(rng.release, `${path}.rng.release`, uint32),
     },
     visualSeed: num(raw.visualSeed, `${path}.visualSeed`, uint32),
     economy: decodeNumbers(economy, ECONOMY_FIELDS, `${path}.economy`),
@@ -346,6 +381,7 @@ export function decodeRun(value: unknown, path = 'run'): RunState {
     attention: decodeAttention(raw.attention, `${path}.attention`),
     catPlaySeq: num(raw.catPlaySeq, `${path}.catPlaySeq`, { min: 0, integer: true }),
     choices: decodeChoices(raw.choices, `${path}.choices`),
+    releases: list(raw.releases, `${path}.releases`, decodeRelease, RELEASE_WINDOWS.length),
     ending: raw.ending === null ? null : decodeEnding(raw.ending, `${path}.ending`),
   };
   if ((run.status === 'ended') !== (run.ending !== null))
@@ -353,6 +389,9 @@ export function decodeRun(value: unknown, path = 'run'): RunState {
   if (run.catPlay && !run.cat.alive) fail(`${path}.catPlay`, 'play session with a dead cat');
   if (run.catPlay && run.catPlay.attemptId > run.catPlaySeq) {
     fail(`${path}.catPlay`, 'attempt ID ahead of sequence');
+  }
+  if (new Set(run.releases.map((r) => r.window)).size !== run.releases.length) {
+    fail(`${path}.releases`, 'two releases in one window');
   }
   if (run.pendingUnlockIds.some((id) => !run.unlockedTechnologyIds.includes(id))) {
     fail(`${path}.pendingUnlockIds`, 'pending unlock that is not unlocked');

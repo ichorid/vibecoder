@@ -107,6 +107,9 @@
   .entry.cat::before {
     background: #e8892f;
   }
+  .entry.release::before {
+    background: #59b7ff;
+  }
   .time {
     color: var(--ink-soft);
     min-width: 4.5ch;

@@ -2,9 +2,18 @@ import { catConditions, visibleAttention, type CatConditions } from './cat';
 import type { ReadonlyPlay } from './catPlaySession';
 import type { CatPresentation, Catalog, StatId, UpgradeDefinition } from './catalog';
 import { automationFraction, deriveRates, offerPrice, tokenPack } from './economy';
-import type { ChoiceId, EndingId, PrimaryActionId, TechnologyId, UpgradeId } from './ids';
+import type {
+  ChoiceId,
+  EndingId,
+  PrimaryActionId,
+  ReleaseWindow,
+  TechnologyId,
+  UpgradeId,
+} from './ids';
 import { isChoiceOffered } from './endings';
 import { currentPrimaryAction, findTechnology, isUpgradeOffered } from './progression';
+import { deriveSeed } from './random';
+import { catAware, jackpotHazard, openReleaseWindow, releaseLabel } from './releases';
 import type {
   AttentionLevel,
   CareNote,
@@ -39,12 +48,52 @@ export interface ChoiceOfferViewModel {
   readonly confirm: string | null;
 }
 
-export type OfferViewModel = UpgradeOfferViewModel | ChoiceOfferViewModel;
+/** The open launch window: ship a release for code; no confirmation, the wheel shows the odds. */
+export interface ReleaseOfferViewModel {
+  readonly kind: 'release';
+  readonly id: 'release';
+  readonly window: ReleaseWindow;
+  readonly version: string;
+  readonly title: string;
+  readonly description: string;
+  readonly price: number;
+  readonly affordable: boolean;
+}
+
+export type OfferViewModel = UpgradeOfferViewModel | ChoiceOfferViewModel | ReleaseOfferViewModel;
+
+/** One slice of the release wheel, in drawing order (the gold slice is last). */
+export interface WheelSliceViewModel {
+  readonly id: string;
+  readonly label: string;
+  readonly gold: boolean;
+}
+
+/** The wheel for a release that is already committed; the UI only animates toward it. */
+export interface ReleaseWheelViewModel {
+  readonly window: ReleaseWindow;
+  readonly version: string;
+  /** The true chance of the gold slice on this spin (0–1). */
+  readonly hazard: number;
+  readonly slices: readonly WheelSliceViewModel[];
+  /** Index into `slices` of where the wheel lands. */
+  readonly target: number;
+  /** Presentation-only seed for spin turns and the landing point inside the slice. */
+  readonly spinSeed: number;
+  readonly result: {
+    readonly jackpot: boolean;
+    readonly label: string;
+    readonly text: string;
+    readonly comment: string | null;
+  };
+}
 
 export interface EndingViewModel {
   readonly id: EndingId;
   readonly title: string;
   readonly paragraphs: readonly string[];
+  /** Picture asset ID, chosen by the cat's presence when the run ended (null: no picture). */
+  readonly illustrationId: string | null;
 }
 
 export interface StatViewModel {
@@ -82,10 +131,12 @@ export interface GameViewModel {
   readonly announcement: AnnouncementViewModel | null;
   readonly log: readonly LogLineViewModel[];
   readonly ending: EndingViewModel | null;
+  /** The most recently shipped release, for the wheel right after shipping (null: none). */
+  readonly lastRelease: ReleaseWheelViewModel | null;
 }
 
 export interface HistoryEntryViewModel {
-  readonly kind: 'technology' | 'cat' | 'event' | 'achievement' | 'ending';
+  readonly kind: 'technology' | 'cat' | 'event' | 'achievement' | 'ending' | 'release';
   readonly title: string;
   readonly activeMs: number;
 }
@@ -211,19 +262,47 @@ export function selectGame(run: ReadonlyRun, catalog: Catalog): GameViewModel {
         kind: 'choice',
         id: choice.id,
         title: choice.title,
-        description: choice.description,
+        description:
+          typeof choice.description === 'string' ? choice.description : choice.description(run),
         confirm: choice.confirm ?? null,
       };
       return { card, order: 1000 + order, priority: CHOICE_PRIORITY };
     });
+  // The release card is a decision too, after the choices: an ending is never hidden behind a
+  // gamble. Mid-game at most one choice overlaps a launch window, so the release still shows.
+  const window = openReleaseWindow(run, catalog);
+  const releaseCards = window
+    ? [
+        {
+          card: {
+            kind: 'release',
+            id: 'release',
+            window: window.window,
+            version: window.version,
+            title: window.title,
+            description: window.description,
+            price: window.price,
+            affordable: run.economy.output >= window.price,
+          } satisfies ReleaseOfferViewModel as OfferViewModel,
+          order: 2000,
+          priority: CHOICE_PRIORITY,
+        },
+      ]
+    : [];
   // While a progression card is showing, at most two decision cards share the surface so the
   // route keeps room for the next discovery; at the end decisions may fill all three.
   const progressionShown = upgradeCards.some(
     ({ card }) => findUpgradeDefinition(catalog, card.id)?.discovers,
   );
-  const offers = [...upgradeCards, ...choiceCards.slice(0, progressionShown ? 2 : MAX_OFFERS)]
+  // With a progression card the release competes for the two decision slots. Without one (the
+  // end game: three ending choices, and window 5 never closes) it is an extra fourth card.
+  const decisions = progressionShown
+    ? [...choiceCards, ...releaseCards].slice(0, 2)
+    : [...choiceCards.slice(0, MAX_OFFERS), ...releaseCards];
+  const limit = MAX_OFFERS + (progressionShown ? 0 : releaseCards.length);
+  const offers = [...upgradeCards, ...decisions]
     .sort((a, b) => a.priority - b.priority || a.order - b.order)
-    .slice(0, MAX_OFFERS)
+    .slice(0, limit)
     .map(({ card }) => card);
   const pendingId = run.pendingUnlockIds[0];
   const pending = pendingId === undefined ? undefined : findTechnology(catalog, pendingId);
@@ -245,6 +324,7 @@ export function selectGame(run: ReadonlyRun, catalog: Catalog): GameViewModel {
       : null,
     log: run.log.slice(-catalog.balance.logVisibleLines),
     ending: selectEnding(run, catalog),
+    lastRelease: selectRelease(run, catalog, run.releases.length - 1),
   };
 }
 
@@ -253,10 +333,12 @@ function selectEnding(run: ReadonlyRun, catalog: Catalog): EndingViewModel | nul
   const record = run.ending;
   if (!record) return null;
   const definition = catalog.endings.find((e) => e.id === record.id);
-  if (!definition) return { id: record.id, title: record.id, paragraphs: [] };
+  if (!definition) return { id: record.id, title: record.id, paragraphs: [], illustrationId: null };
+  const picture = definition.illustrationId;
   return {
     id: record.id,
     title: definition.title,
+    illustrationId: picture ? `ending-${picture}${record.catAlive ? '' : '-nocat'}` : null,
     paragraphs: record.catAlive
       ? definition.text.alive
       : record.catLeft
@@ -312,6 +394,18 @@ export function selectHistory(
             title: catalog.events.find((e) => e.id === entry.textId)?.text ?? entry.textId,
             activeMs: entry.activeMs,
           };
+        case 'release': {
+          const record = run.releases.find((r) => r.window === entry.window);
+          const window = catalog.releases.windows.find((w) => w.window === entry.window);
+          const label = record ? releaseLabel(record, catalog) : entry.outcome;
+          return {
+            kind: 'release',
+            title: catalog.releases.shippedText
+              .replace('{version}', window?.version ?? `#${entry.window}`)
+              .replace('{label}', label),
+            activeMs: entry.activeMs,
+          };
+        }
       }
     }),
   };
@@ -394,6 +488,8 @@ export interface WorldViewModel {
     readonly presentation: CatPresentation;
     readonly round: boolean;
   };
+  /** Shipped releases (each hangs framed on the room wall). */
+  readonly releases: number;
 }
 
 /** Discovered-world projection for the renderer: unlocked IDs and the cat's presentation facts. */
@@ -407,6 +503,7 @@ export function selectWorld(run: ReadonlyRun, catalog: Catalog): WorldViewModel 
       presentation: catPresentation(conditions),
       round: run.cat.alive && conditions.overfed,
     },
+    releases: run.releases.length,
   };
 }
 
@@ -422,5 +519,41 @@ export function selectMusicProjection(run: ReadonlyRun): MusicProjection {
     technologyIds: [...run.unlockedTechnologyIds],
     ended: run.ending !== null,
     runId: run.id,
+  };
+}
+
+/** The wheel for the `index`-th shipped release (null if there is none). */
+export function selectRelease(
+  run: ReadonlyRun,
+  catalog: Catalog,
+  index: number,
+): ReleaseWheelViewModel | null {
+  const record = run.releases[index];
+  const content = catalog.releases;
+  const windowIndex = content.windows.findIndex((w) => w.window === record?.window);
+  const window = content.windows[windowIndex];
+  if (!record || !window) return null;
+  const slices: WheelSliceViewModel[] = [
+    ...content.slices.map((s) => ({
+      id: s.id,
+      label: catAware(s.label, record.catAlive),
+      gold: false,
+    })),
+    { id: 'jackpot', label: content.jackpotLabel, gold: true },
+  ];
+  const slice = content.slices.find((s) => s.id === record.outcome);
+  return {
+    window: record.window,
+    version: window.version,
+    hazard: jackpotHazard(content.windows, windowIndex),
+    slices,
+    target: slices.findIndex((s) => s.id === record.outcome),
+    spinSeed: deriveSeed(run.visualSeed, `release-${record.window}`),
+    result: {
+      jackpot: record.outcome === 'jackpot',
+      label: releaseLabel(record, catalog),
+      text: slice ? catAware(slice.text, record.catAlive) : '',
+      comment: content.comments.find((c) => c.id === record.commentId)?.text ?? null,
+    },
   };
 }

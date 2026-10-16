@@ -48,6 +48,8 @@ export interface WorldAddition {
   readonly description: string;
   /** The last framing: the room and cat are visually gone at this scale. */
   readonly final?: boolean;
+  /** Wall spots for framed releases, filled in ship order (Ship It). */
+  readonly frameSlots?: readonly Point[];
 }
 
 /** Portrait framing centered on (cx, cy) with the given width. */
@@ -367,7 +369,22 @@ export const ROOM_ADDITION: WorldAddition = {
     { x: -12, y: 58 },
   ],
   description: 'A programmer types at a desk in a cozy room',
+  // A column of framed releases on the wall left of the poster.
+  frameSlots: [-56, -45, -34, -23, -12].map((y) => ({ x: -84, y })),
 };
+
+/** An addition with its first `releases` frame slots filled by framed releases. */
+export function withReleaseFrames(addition: WorldAddition, releases: number): WorldAddition {
+  const slots = (addition.frameSlots ?? []).slice(0, Math.max(0, releases));
+  if (slots.length === 0) return addition;
+  return {
+    ...addition,
+    placements: [
+      ...addition.placements,
+      ...slots.map((slot) => ({ sprite: 'release-frame', x: slot.x, y: slot.y })),
+    ],
+  };
+}
 
 export const worldAdditions: readonly WorldAddition[] = [
   {

@@ -1,4 +1,11 @@
-import type { ChoiceId, EndingId, TechnologyId, UpgradeId } from './ids';
+import type {
+  ChoiceId,
+  EndingId,
+  ReleaseOutcomeId,
+  ReleaseWindow,
+  TechnologyId,
+  UpgradeId,
+} from './ids';
 
 export type RunStatus = 'playing' | 'ended';
 
@@ -15,6 +22,8 @@ export interface RngStreams {
   economy: number;
   cat: number;
   narrative: number;
+  /** Consumed only by shipping releases, so outcomes never depend on timing. */
+  release: number;
 }
 
 export interface EconomyState {
@@ -97,7 +106,22 @@ export type HistoryEntry =
   | { kind: 'cat'; id: CatHistoryId; activeMs: number }
   | { kind: 'event'; textId: string; activeMs: number }
   | { kind: 'achievement'; id: string; activeMs: number }
-  | { kind: 'ending'; id: EndingId; activeMs: number };
+  | { kind: 'ending'; id: EndingId; activeMs: number }
+  | { kind: 'release'; window: ReleaseWindow; outcome: ReleaseResult; activeMs: number };
+
+/** What the release wheel landed on: a silly slice or the gold one. */
+export type ReleaseResult = ReleaseOutcomeId | 'jackpot';
+
+/** One shipped release; its texts never recompute the cat's state later. */
+export interface ReleaseRecord {
+  window: ReleaseWindow;
+  outcome: ReleaseResult;
+  /** The top comment shown under the result (null for the jackpot). */
+  commentId: string | null;
+  /** Whether the cat was there when it shipped. */
+  catAlive: boolean;
+  activeMs: number;
+}
 
 /** A committed decision with the facts later conditions need. */
 export interface ChoiceRecord {
@@ -188,6 +212,8 @@ export interface RunState {
   /** Last issued PLAY attempt ID. */
   catPlaySeq: number;
   choices: Partial<Record<ChoiceId, ChoiceRecord>>;
+  /** Shipped releases, in ship order (window open/closed state is derived, not stored). */
+  releases: ReleaseRecord[];
   ending: EndingRecord | null;
 }
 
@@ -197,6 +223,7 @@ export type GameCommand =
   | { type: 'primaryAction' }
   | { type: 'buyUpgrade'; id: UpgradeId }
   | { type: 'acknowledgeUnlock'; id: TechnologyId }
+  | { type: 'shipRelease' }
   | { type: 'feedCat' }
   | { type: 'petCat' }
   | { type: 'startCatPlay' }
@@ -211,6 +238,7 @@ export type GameFact =
   | { type: 'choiceMade'; id: ChoiceId }
   | { type: 'catDied' }
   | { type: 'catLeft' }
+  | { type: 'releaseShipped'; window: ReleaseWindow; outcome: ReleaseResult }
   | { type: 'catCared'; kind: 'feed' | 'pet' | 'play' }
   | { type: 'purchased'; id: UpgradeId }
   | { type: 'technologyDiscovered'; id: TechnologyId };

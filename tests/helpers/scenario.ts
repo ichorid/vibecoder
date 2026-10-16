@@ -161,3 +161,24 @@ export function playEvery(
     return inside ? [{ type: 'catchMouse', attemptId: play.attemptId }] : [];
   };
 }
+
+/** Ship a release whenever the card is on offer and affordable. */
+export const shipWhenAffordable: Policy = ({ run, catalog }) =>
+  selectGame(run, catalog).offers.some((o) => o.kind === 'release' && o.affordable)
+    ? [{ type: 'shipRelease' }]
+    : [];
+
+/**
+ * A player who ships every release: while a launch window is open and unaffordable, they save
+ * for it and buy only token packs (so the agents keep working); otherwise `buyer` decides.
+ */
+export function savingForReleases(buyer: Policy): Policy {
+  return (context) => {
+    const release = selectGame(context.run, context.catalog).offers.find(
+      (o) => o.kind === 'release',
+    );
+    const commands = buyer(context);
+    if (!release || release.affordable) return commands;
+    return commands.filter((c) => c.type !== 'buyUpgrade' || c.id === 'token-supply');
+  };
+}

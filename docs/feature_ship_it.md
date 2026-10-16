@@ -1,6 +1,7 @@
 # Feature: Ship It — launch windows, the wheel, and The Infinite Weekend
 
-Status: **design approved for documentation, not implemented.** Replaces the one-click
+Status: **implemented** (2026-10-16); deviations are listed in docs/agent_journal.md D26
+(schema 4, card order after choices, wheel-driven sounds). Replaces the one-click
 `ship-original` → `three-users` ending. Numbers below are starting values; §12 lists what tuning
 may change and which tests guard it.
 

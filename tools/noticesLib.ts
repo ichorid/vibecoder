@@ -37,7 +37,22 @@ export function renderNotices(packages: ReturnType<typeof productionPackages>): 
     '| --- | --- | --- |',
     ...rows,
     '',
+    ...CONTENT_NOTICES,
   ].join('\n');
 }
+
+/** Third-party content bundled with the game (not packages), each under its own license. */
+const CONTENT_NOTICES = [
+  '## Content',
+  '',
+  '- Release "top comments" (`src/content/releaseComments.ts`): programmer jokes quoted',
+  '  verbatim from the English neutral list of pyjokes (https://github.com/pyjokes/pyjokes,',
+  '  `pyjokes/jokes_en.py`), collected from the Stack Overflow question "What is your best',
+  '  programmer joke?" (http://stackoverflow.com/questions/234075). Authors: Stack Overflow',
+  '  contributors, collected by the pyjokes project. License: CC BY-SA 3.0',
+  '  (https://creativecommons.org/licenses/by-sa/3.0/). That file (only) is distributed under',
+  '  CC BY-SA 3.0.',
+  '',
+];
 
 export const NOTICES_FILE = 'THIRD_PARTY_NOTICES.md';

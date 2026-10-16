@@ -92,21 +92,38 @@ export function validateRelease(input: ReleaseInput): string[] {
     if (!atlas?.animations[addition.lodSprite])
       problems.push(`${addition.id}: unknown LOD tag "${addition.lodSprite}"`);
   }
-  // Endings: enough of them, each reachable by a choice or rule, each with a route scenario.
-  if (catalog.endings.length < input.requiredEndings) {
+  // Endings: enough reachable ones (legacy endings only stay for old profiles), each reached by
+  // a choice, a rule or the release jackpot, each with a route scenario and every cat fate.
+  const reachableEndings = catalog.endings.filter((e) => !e.legacy);
+  if (reachableEndings.length < input.requiredEndings) {
     problems.push(
-      `catalog has ${catalog.endings.length} endings, release needs ${input.requiredEndings}`,
+      `catalog has ${reachableEndings.length} endings, release needs ${input.requiredEndings}`,
     );
   }
   for (const ending of catalog.endings) {
+    if (ending.text.alive.length === 0 || ending.text.dead.length === 0) {
+      problems.push(`ending ${ending.id}: needs text for both fates of the cat`);
+    }
+    if (ending.text.stray.length === 0) problems.push(`ending ${ending.id}: needs stray text`);
+    if (ending.illustrationId) {
+      for (const id of [
+        `ending-${ending.illustrationId}`,
+        `ending-${ending.illustrationId}-nocat`,
+      ]) {
+        const asset = assets.illustrations.find((a) => a.id === id);
+        if (!asset || !files.readBytes(asset.file)) {
+          problems.push(`ending ${ending.id}: missing picture "${id}"`);
+        }
+      }
+    }
+    if (ending.legacy) continue;
     const reachable =
-      ending.automatic !== undefined || catalog.choices.some((c) => c.ends === ending.id);
+      ending.automatic !== undefined ||
+      catalog.choices.some((c) => c.ends === ending.id) ||
+      (ending.jackpot === true && catalog.releases.jackpotEnding === ending.id);
     if (!reachable) problems.push(`ending ${ending.id}: no choice or rule leads to it`);
     if (!input.scenarioText.includes(`'${ending.id}'`)) {
       problems.push(`ending ${ending.id}: no route scenario references it`);
-    }
-    if (ending.text.alive.length === 0 || ending.text.dead.length === 0) {
-      problems.push(`ending ${ending.id}: needs text for both fates of the cat`);
     }
   }
   const last = worldAdditions.find((a) => a.final);

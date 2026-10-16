@@ -9,25 +9,9 @@ import {
   expectEnding,
   has,
   newRun,
-  offered,
   playUntil,
   playUntilOffered,
 } from '../../helpers/endingRoute';
-
-describe('Three Users', () => {
-  it('ships the original project modestly once an agent exists', () => {
-    let run = playUntilOffered(newRun(), baseline, 'ship-original');
-    expect(has(run, 'terminal-agent')).toBe(true);
-    expect(run.stats.lifetimeOutput).toBeGreaterThanOrEqual(1000);
-    run = choose(run, 'ship-original');
-    expectEnding(run, 'three-users');
-  });
-
-  it('is not offered before the project is shippable', () => {
-    const early = playUntil(newRun(), baseline, (r) => has(r, 'ai-native-ide'));
-    expect(offered(early, 'ship-original')).toBe(false);
-  });
-});
 
 describe('The Last Programmer', () => {
   it('keeps manual work after the reviewer, then finishes by hand', () => {

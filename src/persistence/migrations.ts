@@ -10,8 +10,13 @@
  * - 2 → 3: a neglected cat can leave as a stray. Cats get `leftAtActiveMs: null` and
  *   `ignoredMs: 0` (the ignored streak starts counting after loading); a stored ending gets
  *   `catLeft: false`, since no earlier cat could leave.
+ * - 3 → 4: Ship It. Runs get `releases: []` and a release RNG stream derived from the run ID
+ *   (old saves have no seed); the retired `ship-original` choice is dropped from `choices` (a
+ *   run that took it has already ended with the legacy `three-users` ending, which stays).
  */
-export const CURRENT_SCHEMA_VERSION = 3;
+import { deriveSeed } from '../game/random';
+
+export const CURRENT_SCHEMA_VERSION = 4;
 
 /** 6 tokens/s × 300 s: what one old supply level gave over five minutes. */
 export const TOKENS_PER_OLD_SUPPLY_LEVEL = 1800;
@@ -74,9 +79,32 @@ function v2ToV3(envelope: Record<string, unknown>): MigrationResult {
   };
 }
 
+function v3ToV4(envelope: Record<string, unknown>): MigrationResult {
+  const run = envelope.run;
+  if (!isRecord(run) || !isRecord(run.rng) || typeof run.id !== 'string') {
+    return { ok: false, unsupported: false, reason: 'v3 save without a run id/rng' };
+  }
+  const choices = isRecord(run.choices) ? { ...run.choices } : run.choices;
+  if (isRecord(choices)) delete choices['ship-original'];
+  return {
+    ok: true,
+    value: {
+      ...envelope,
+      schemaVersion: 4,
+      run: {
+        ...run,
+        rng: { ...run.rng, release: deriveSeed(deriveSeed(0, run.id), 'release') },
+        choices,
+        releases: [],
+      },
+    },
+  };
+}
+
 const STEPS: Record<number, (envelope: Record<string, unknown>) => MigrationResult> = {
   1: v1ToV2,
   2: v2ToV3,
+  3: v3ToV4,
 };
 
 export function migrate(envelope: Record<string, unknown>): MigrationResult {

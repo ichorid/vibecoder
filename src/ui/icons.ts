@@ -318,3 +318,19 @@ export const decisionIcon: PixelMap = {
   ],
   palette: { k: 'var(--ink)', o: '#e8892f', p: '#8b7dff' },
 };
+
+/** Ship a release: a small rocket. */
+export const releaseIcon: PixelMap = {
+  rows: [
+    '....k....',
+    '...kwk...',
+    '...kwk...',
+    '..kwcwk..',
+    '..kwwwk..',
+    '.kkwwwkk.',
+    '.k.kkk.k.',
+    '...rYr...',
+    '....r....',
+  ],
+  palette: { k: 'var(--ink)', w: 'var(--panel)', c: '#59b7ff', r: '#e8483c', Y: '#f6c945' },
+};

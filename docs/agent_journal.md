@@ -100,6 +100,25 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   Save schema 3 (2→3 adds `leftAtActiveMs: null`, `ignoredMs: 0`, `ending.catLeft: false`);
   v1/v2 fixtures kept, v3 + `v3-stray-cat` added. Feed+pet-only scenarios (early-automation,
   cat-independence, `progressedRun`) now also PLAY, as the plan's baseline care does.
+- D26 (user request) Ship It implemented per docs/feature_ship_it.md, with these deviations:
+  (1) save schema 4 (3 was taken by the stray cat); 3→4 adds `releases: []`, a release RNG
+  stream derived from the run ID, and drops `choices['ship-original']`; v3 fixtures kept, v4
+  (+ `v4-shipped`) added. (2) "No cat" = dead OR stray (`catAlive` false); the jackpot ending's
+  stray text equals its no-cat text. (3) Card order: choices first, release card after them
+  (before optional repeatables), not before choices — with three slots, release-first hid The
+  Perfect SaaS (window 4 overlaps product-management/finance) and Expand (window 5 never
+  closes). Mid-game ≤ 1 choice overlaps a window, so the release still shows; in the end game
+  (no progression card) the release is an extra 4th card so the 12 % window stays reachable.
+  (4) Wheel ticks, result sting and jackpot fanfare are driven by the wheel through
+  `AudioControls.effect` (new SFX ids tick/release/jackpot) so they match the animation, not by
+  facts. (5) The wheel overlays the whole Game view (like the discovery announcement).
+  (6) Window open/closed log lines use `narrative.fired` keys `release-open-k`/`release-closed-k`.
+  (7) Frames hang in a column left of the poster (5 slots); the renderer rebuilds the room
+  cluster when the release count changes (`data-release-frames`). (8) The wheel lands in the
+  middle 40 % of a slice (no near-miss staging). Measured: always-ship (seed 1) reaches the
+  company at 43.3 min vs ~31.5 baseline and ships all five (v3.0 at 47.9); 5000-seed draw
+  check gives 18–22 % jackpots. Jackpot route: seed 1868 wins at v0.1. Comments verified
+  verbatim against pyjokes `jokes_en.py` (downloaded 2026-10-16).
 - D5 (P02) App-level commands (`retrySave`, `setTheme`) go through the same public
   `dispatch` as game commands, so UI still sees only `{subscribe, dispatch}`.
 
@@ -221,3 +240,6 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   then docs/feature_ship_it.md.
 - 2026-10-16: cat jump committed (c204c0e). Quiet weak cat + stray fate (D25) done. Next:
   docs/feature_ship_it.md.
+- 2026-10-16: stray cat committed (e4f6b76). Ship It (D26) done: rules, content, schema 4,
+  wheel, ending picture (2 variants), wall frames, sounds, credits/notices, scenarios, browser
+  specs. All user-queued requests are done.

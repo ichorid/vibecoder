@@ -222,14 +222,22 @@ export function createToneBackend(tone: Tone, options: ToneBackendOptions = {}):
         envelope: { attack: 0.002, decay: 0.08, sustain: 0, release: 0.04 },
       }).connect(sfxBus);
       const now = audioNow();
-      const notes: Record<SfxId, [string, string]> = {
+      // Care chirps are two notes; the wheel tick is one tiny click; the jackpot is a fanfare.
+      const notes: Record<SfxId, readonly string[]> = {
         feed: ['C6', 'E6'],
         pet: ['G5', 'B5'],
         play: ['E6', 'A6'],
+        tick: ['A6'],
+        release: ['G5', 'C6'],
+        jackpot: ['C5', 'E5', 'G5', 'C6', 'G5', 'C6'],
       };
-      const [first, second] = notes[id];
-      sfxSynth.triggerAttackRelease(first, 0.05, now, 0.5);
-      sfxSynth.triggerAttackRelease(second, 0.07, now + 0.07, 0.5);
+      const sequence = notes[id];
+      const gap = id === 'jackpot' ? 0.11 : 0.07;
+      const level = id === 'tick' ? 0.25 : 0.5;
+      sequence.forEach((note, i) => {
+        const length = id === 'tick' ? 0.015 : i === sequence.length - 1 ? 0.07 : 0.05;
+        sfxSynth?.triggerAttackRelease(note, length, now + i * gap, level);
+      });
     },
     dispose() {
       if (disposed) return;

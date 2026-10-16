@@ -6,17 +6,17 @@ test('an ending, frozen Cat/History, restart with retained discoveries, then ano
   page,
 }) => {
   test.setTimeout(120_000);
-  await loadSave(page, saveWithProfile(untilChoice('ship-original'), []));
-  const card = page.locator('[data-choice="ship-original"]');
+  await loadSave(page, saveWithProfile(untilChoice('archive-original'), []));
+  const card = page.locator('[data-choice="archive-original"]');
   await expect(card).toBeVisible();
-  await expect(page.locator('body')).not.toContainText('Three Users');
+  await expect(page.locator('body')).not.toContainText('The Forgotten Project');
   await card.click();
   await expect(page.getByRole('group', { name: /Confirm/ })).toContainText('This ends the run.');
   await page.getByRole('button', { name: 'YES' }).click();
 
   const panel = page.getByTestId('ending-panel');
-  await expect(panel).toContainText('Three Users');
-  await expect(panel).toContainText('You shipped the app.');
+  await expect(panel).toContainText('The Forgotten Project');
+  await expect(panel).toContainText('You archived the original project');
   await expect(page.getByTestId('primary-action')).toHaveCount(0);
 
   // Cat and History stay open; needs are frozen.
@@ -27,7 +27,7 @@ test('an ending, frozen Cat/History, restart with retained discoveries, then ano
   expect(await fullness.textContent()).toBe(before);
   await page.getByRole('button', { name: '← BACK TO CODE' }).click();
   await page.getByRole('button', { name: 'HISTORY' }).click();
-  await expect(page.locator('section.endings')).toContainText('Three Users');
+  await expect(page.locator('section.endings')).toContainText('The Forgotten Project');
   await page.getByRole('button', { name: '← GAME' }).click();
 
   // Restart: cancel first (nothing changes), then confirm.
@@ -41,7 +41,7 @@ test('an ending, frozen Cat/History, restart with retained discoveries, then ano
   await expect(page.getByTestId('cat-button')).not.toHaveAttribute('aria-label', 'Cat. Gone.');
   await page.reload();
   await page.getByRole('button', { name: 'HISTORY' }).click();
-  await expect(page.locator('section.endings')).toContainText('Three Users');
+  await expect(page.locator('section.endings')).toContainText('The Forgotten Project');
 });
 
 test('a second ending is added to the profile without duplicating the first', async ({ page }) => {

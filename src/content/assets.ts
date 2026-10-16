@@ -58,6 +58,17 @@ export const assetManifest = {
         'autonomous-company',
       ] as const
     ).map((name) => ({ id: `tech-${name}`, file: `technologies/${name}.png`, placeholder: false })),
+    // Ending pictures: with the cat and without it (`-nocat`), chosen by the ending's fate.
+    {
+      id: 'ending-infinite-weekend',
+      file: 'endings/infinite-weekend.png',
+      placeholder: false,
+    },
+    {
+      id: 'ending-infinite-weekend-nocat',
+      file: 'endings/infinite-weekend-nocat.png',
+      placeholder: false,
+    },
   ],
   memorial: [
     { id: 'memorial-keyboard', file: 'memorial/keyboard.png' },

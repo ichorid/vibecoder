@@ -30,6 +30,7 @@ export function createRun(seed: number, runId: string): RunState {
       economy: deriveSeed(seed, 'economy'),
       cat: deriveSeed(seed, 'cat'),
       narrative: deriveSeed(seed, 'narrative'),
+      release: deriveSeed(seed, 'release'),
     },
     visualSeed: deriveSeed(seed, 'visual'),
     economy: {
@@ -72,6 +73,7 @@ export function createRun(seed: number, runId: string): RunState {
     attention: { nextAtMs: null, visibleUntilMs: null, level: null, count: 0 },
     catPlaySeq: 0,
     choices: {},
+    releases: [],
     ending: null,
   };
 }

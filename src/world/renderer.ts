@@ -19,7 +19,13 @@ import {
   type Ticker,
 } from 'pixi.js';
 import { toPixiSheet, type AtlasData } from '../content/atlas';
-import { ROOM_ADDITION, sceneEnvelope, worldAdditions, type WorldAddition } from '../content/world';
+import {
+  ROOM_ADDITION,
+  sceneEnvelope,
+  withReleaseFrames,
+  worldAdditions,
+  type WorldAddition,
+} from '../content/world';
 import { CAMERA_TRANSITION_MS, fitEnvelope, interpolateCamera, type Camera } from './camera';
 import type { RendererPort, WorldProjection, WorldTap } from './host';
 import { catLod, clusterLod, projectedSize, type CatLod, type ClusterLod } from './lod';
@@ -429,15 +435,34 @@ export async function createPixiRenderer(
     }
   }
 
+  /** The authored addition, with the room's framed releases for the current projection. */
+  function additionFor(id: string): WorldAddition | undefined {
+    const addition = ADDITIONS.get(id);
+    return addition && id === ROOM_ADDITION.id
+      ? withReleaseFrames(addition, projection?.releases ?? 0)
+      : addition;
+  }
+  let framesBuilt = 0;
+
   function reconcile(): void {
     if (!projection) return;
+    // A newly shipped release: rebuild the room with one more frame on the wall.
+    const room = clusters.get(ROOM_ADDITION.id);
+    if (room && framesBuilt !== projection.releases) {
+      room.detail.parent?.destroy({ children: true });
+      clusters.delete(ROOM_ADDITION.id);
+      const addition = additionFor(ROOM_ADDITION.id);
+      if (addition) buildCluster(addition, false);
+      rebuildLinks();
+    }
+    framesBuilt = projection.releases;
     const plan = planScene(new Set(clusters.keys()), projection, active);
     for (const id of plan.build) {
-      const addition = ADDITIONS.get(id);
+      const addition = additionFor(id);
       if (addition) buildCluster(addition, false);
     }
     if (plan.reveal) {
-      const addition = ADDITIONS.get(plan.reveal);
+      const addition = additionFor(plan.reveal);
       if (addition) buildCluster(addition, !projection.reducedMotion);
     }
     if (plan.build.length > 0 || plan.reveal) rebuildLinks();
@@ -466,6 +491,7 @@ export async function createPixiRenderer(
     let sprites = 0;
     for (const cluster of clusters.values()) sprites += cluster.detail.children.length;
     data.sprites = String(sprites);
+    data.releaseFrames = String(framesBuilt);
     // Screen centres of the tap targets (CSS px on the canvas), empty when not tappable.
     const at = (x: number, y: number) => {
       const p = root.toGlobal(new Point(x, y));
@@ -523,7 +549,7 @@ export async function createPixiRenderer(
     clusterLayer.removeChildren().forEach((child) => child.destroy({ children: true }));
     clusters.clear();
     for (const id of ids) {
-      const addition = ADDITIONS.get(id);
+      const addition = additionFor(id);
       if (addition) buildCluster(addition, false);
     }
     rebuildLinks();

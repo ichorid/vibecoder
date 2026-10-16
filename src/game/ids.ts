@@ -97,12 +97,12 @@ export const ENDING_IDS = [
   'fully-automated-bankruptcy',
   'the-human-approval-api',
   'you-have-been-optimized',
+  'the-infinite-weekend',
 ] as const;
 export type EndingId = (typeof ENDING_IDS)[number];
 
 /** Player decisions offered as cards (some end the run, some commit a path). */
 export const CHOICE_IDS = [
-  'ship-original',
   'keep-manual',
   'finish-by-hand',
   'force-merge',
@@ -116,6 +116,24 @@ export const CHOICE_IDS = [
   'remove-oversight',
 ] as const;
 export type ChoiceId = (typeof CHOICE_IDS)[number];
+
+/** Silly outcomes on the release wheel (the gold slice is `'jackpot'`, not a slice). */
+export const RELEASE_OUTCOME_IDS = [
+  'three-users',
+  'one-star',
+  'hacker-news',
+  'product-hunt',
+  'viral',
+  'acquired',
+  'cloud-bill',
+  'pivot',
+  'cat-review',
+] as const;
+export type ReleaseOutcomeId = (typeof RELEASE_OUTCOME_IDS)[number];
+
+/** Release windows, in run order. */
+export const RELEASE_WINDOWS = [1, 2, 3, 4, 5] as const;
+export type ReleaseWindow = (typeof RELEASE_WINDOWS)[number];
 
 /** Manual responsibilities that technologies progressively automate. */
 export const RESPONSIBILITY_IDS = [

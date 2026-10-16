@@ -137,6 +137,9 @@ export function createMusicBinding(options: MusicBindingOptions): MusicBinding {
     },
     setSound: (on) => controller.setSound(on),
     setVolume: (volume) => controller.setVolume(volume),
+    effect(id) {
+      if (director && controller.state().status === 'playing') director.playSfx(id);
+    },
   };
 
   return {
