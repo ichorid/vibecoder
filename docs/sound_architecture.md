@@ -311,7 +311,7 @@ Lead template: предложить кандидаты мотива и шест�
 
 Dev game может явно подключить demo pack, production player — approved pack без подмены пустого банка демо. Production Music Lab при этом всегда содержит четыре демо для audition. Published approvals проверяются отдельно от флага `demo`: демо не становится финальным score только из-за локального рейтинга. Отсутствующий финальный саундтрек не блокирует игровой build на инфраструктурной стадии; missing-bank diagnostics и silent fallback обязательны. Полные шесть банков примерно по10 patterns — последующая композиционная работа.
 
-Code license — Apache-2.0 по ТЗ; composition license — CC0-1.0 или CC-BY-4.0 с attribution. Dependency notices сохраняются по установленным версиям. Миграция лицензии существующих материалов не подразумевается: origins/author/licensing записываются отдельно, сторонние примеры не выдаются за собственные демо.
+Code license — GPL-3.0-or-later (см. `LICENSING.md`); composition license — CC0-1.0 или CC-BY-4.0 с attribution. Dependency notices сохраняются по установленным версиям. Миграция лицензии существующих материалов не подразумевается: origins/author/licensing записываются отдельно, сторонние примеры не выдаются за собственные демо.
 
 ## 11. Проверки, lints и мобильные бюджеты
 

@@ -619,7 +619,7 @@ The game will be released as open source.
 
 Expected licensing:
 
-- Game code: Apache-2.0.
+- Game code: GPL-3.0-or-later; original non-code works: CC BY 4.0 (`LICENSING.md`).
 - Music and compositions: CC BY 4.0 or CC0.
 - Third-party dependencies: retain their respective licenses.
 

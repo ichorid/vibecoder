@@ -233,7 +233,7 @@ Selected (one per release, no repeats within a run):
 **Licensing:** the jokes live in their own file `src/content/releaseComments.ts` whose header
 states source URLs, authorship ("Stack Overflow contributors, collected by the pyjokes
 project"), and **CC BY-SA 3.0**; that file (only) is distributed under CC BY-SA 3.0, and the
-project remains Apache-2.0. Credits appear in:
+project remains GPL-3.0-or-later (code) / CC BY 4.0 (non-code), see `LICENSING.md`. Credits appear in:
 
 - the file header;
 - `THIRD_PARTY_NOTICES.md` via a new static "Content" section emitted by the generator

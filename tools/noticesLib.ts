@@ -1,7 +1,7 @@
 /**
  * Third-party notices from the lockfile (`npm run notices`; `-- --check` in `npm run check`):
  * every installed non-dev package with its exact version and declared license. Regenerate after
- * a dependency change. The game's own code is Apache-2.0 (LICENSE); music is licensed per file.
+ * a dependency change. The game's own code is GPL-3.0-or-later (LICENSE); music is licensed per file.
  */
 interface LockPackage {
   version?: string;

@@ -1,6 +1,6 @@
 # Music licensing
 
-The game's code is licensed under Apache-2.0 (`../LICENSE`). **That license does not cover
+The game's code is licensed under GPL-3.0-or-later (`../LICENSE`). **That license does not cover
 musical works.** Every composition file declares its own license in its `license` field:
 
 | License     | Meaning                  | Requirement                                                                             |
@@ -21,7 +21,7 @@ Current material:
   "Public Domain" licence, and OpenGameArt CC0); author, title and link for each are in
   `sources/cyber/README.md` and in every file's `attribution`. The modules are kept unmodified
   in `sources/cyber/`.
-- Era, preset, arrangement and schema files are configuration and are covered by Apache-2.0
+- Era, preset, arrangement and schema files are configuration and are covered by GPL-3.0-or-later
   with the code.
 
 Only submit material you created or have the right to license this way; third-party melodies
