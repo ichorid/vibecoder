@@ -295,3 +295,10 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   turns the real effect definitions (a technology card: the technology's effects + new action)
   into a "▸ …" line; choices say "ends the run" etc.; releases show the retire chance.
   "Review capacity" renamed "Hire a code reviewer" (−0.5 debt/s).
+- 2026-10-16: user request: a Setup screen (fourth view, `ViewId 'setup'`; the plan's "exactly
+  three views" no longer holds — deliberate, by request). Opened by tapping the stats panel
+  (transparent overlay button + "›"). Shows the economy per second from `economyFlows` (now
+  factored out of `stepEconomy`, behaviour unchanged): agents/compute → work → tasks → tokens
+  → funded work × coordination × quality × efficiency = code/s, debt in/out, money; what holds
+  production back; stacked upgrades with level and total effect; every technology with its
+  thumbnail and effect line. `src/game/setup.ts` (`selectSetup`), `src/ui/SetupView.svelte`.

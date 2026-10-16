@@ -2,6 +2,7 @@
  * Public contracts between app composition and Svelte views. Views receive read models and a
  * dispatch function; they never see the catalog, simulation, persistence or Pixi.
  */
+import type { SetupViewModel } from '../game/setup';
 import type {
   CatViewModel,
   GameViewModel,
@@ -12,7 +13,7 @@ import type { GameCommand } from '../game/types';
 
 export type Theme = 'light' | 'dark';
 export type SaveStatus = 'ok' | 'failed' | 'disabled';
-export type ViewId = 'game' | 'history' | 'cat';
+export type ViewId = 'game' | 'history' | 'cat' | 'setup';
 
 /** Commands handled by app composition rather than the simulation. */
 export type AppCommand =
@@ -37,6 +38,7 @@ export type Dispatch = (command: UiCommand, input?: InputTiming) => CommandOutco
 export interface UiSnapshot {
   readonly game: GameViewModel;
   readonly history: HistoryViewModel;
+  readonly setup: SetupViewModel;
   readonly cat: CatViewModel;
   readonly world: WorldViewModel;
   readonly profile: { readonly theme: Theme };

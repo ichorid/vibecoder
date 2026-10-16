@@ -4,11 +4,17 @@
   import { formatAmount } from './format';
   import PixelIcon from './PixelIcon.svelte';
 
-  const { stats }: { stats: readonly StatViewModel[] } = $props();
+  interface Props {
+    stats: readonly StatViewModel[];
+    /** When set, the panel is a button that opens the Setup view. */
+    onOpen?: (() => void) | undefined;
+  }
+
+  const { stats, onOpen }: Props = $props();
 </script>
 
 <!-- Kept beside the primary action so the player sees what a press changes without looking up. -->
-{#if stats.length > 0}
+{#snippet panel()}
   <!-- Equal columns sized by the screen, never by the numbers: the panel never re-wraps. -->
   <dl
     class="stats"
@@ -25,9 +31,47 @@
       </div>
     {/each}
   </dl>
+{/snippet}
+
+{#if stats.length > 0}
+  <div class="wrap" class:openable={!!onOpen}>
+    {@render panel()}
+    {#if onOpen}
+      <button
+        type="button"
+        class="open"
+        data-testid="open-setup"
+        aria-label="Setup and economy"
+        onclick={onOpen}><span class="chevron" aria-hidden="true">›</span></button
+      >
+    {/if}
+  </div>
 {/if}
 
 <style>
+  .wrap {
+    position: relative;
+  }
+  .openable .stats {
+    padding-right: 20px;
+  }
+  /* The whole panel is the button (layered over it): tap the numbers to see where they come from. */
+  .open {
+    position: absolute;
+    inset: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+  }
+  .chevron {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 20px;
+    font-weight: 900;
+    color: var(--ink-soft);
+  }
   .stats {
     display: grid;
     gap: 4px;

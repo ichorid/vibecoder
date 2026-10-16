@@ -12,6 +12,7 @@
   import GameView from '../ui/GameView.svelte';
   import Header from '../ui/Header.svelte';
   import HistoryView from '../ui/HistoryView.svelte';
+  import SetupView from '../ui/SetupView.svelte';
   import SettingsMenu from '../ui/SettingsMenu.svelte';
   import type { RendererFactory, WorldStatus, WorldTap } from '../world/host';
   import type { UiSnapshot } from '../ui/contracts';
@@ -114,7 +115,7 @@
   function stateView(state: unknown): ViewId {
     if (typeof state === 'object' && state !== null && VIEW_KEY in state) {
       const value = (state as Record<string, unknown>)[VIEW_KEY];
-      if (value === 'history' || value === 'cat') return value;
+      if (value === 'history' || value === 'cat' || value === 'setup') return value;
     }
     return 'game';
   }
@@ -124,7 +125,7 @@
     if ($api.cat.play) api.dispatch({ type: 'leaveCatPlay' });
   }
 
-  function open(next: 'history' | 'cat') {
+  function open(next: 'history' | 'cat' | 'setup') {
     settingsOpen = false;
     if (view === next) return;
     if (view === 'cat') leavePlay();
@@ -242,6 +243,7 @@
         {sprites}
         {reducedMotion}
         {compactOffers}
+        onSetup={() => open('setup')}
         onSound={(id: WheelSound) => audio.effect?.(id)}
       >
         {#snippet world()}
@@ -258,7 +260,11 @@
         {/snippet}
       </GameView>
     </div>
-    {#if view === 'history'}
+    {#if view === 'setup'}
+      <div class="view">
+        <SetupView setup={$api.setup} onReturn={returnToGame} {illustrationUrl} />
+      </div>
+    {:else if view === 'history'}
       <div class="view">
         <HistoryView history={$api.history} onReturn={returnToGame} {illustrationUrl} />
       </div>

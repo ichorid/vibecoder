@@ -95,6 +95,18 @@ const scenes: Record<string, Scene> = {
       return saveText({ ...run, economy: { ...run.economy, output: run.economy.output + 1e7 } });
     },
   },
+  setup9: {
+    width: 390,
+    height: 1400,
+    save: () => saveText(progressedRun(9)),
+    act: async (page) => page.getByTestId('open-setup').click(),
+  },
+  setup28: {
+    width: 390,
+    height: 2200,
+    save: () => saveText(progressedRun(28)),
+    act: async (page) => page.getByTestId('open-setup').click(),
+  },
   history: {
     width: 390,
     height: 844,

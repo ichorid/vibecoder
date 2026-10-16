@@ -28,6 +28,8 @@
     onSound?: ((id: WheelSound) => void) | undefined;
     /** Small screens: show the cards in a popup instead of under the primary action. */
     compactOffers?: boolean;
+    /** Opens the Setup view (from the stats panel). */
+    onSetup?: () => void;
   }
 
   const {
@@ -41,6 +43,7 @@
     reducedMotion = false,
     onSound,
     compactOffers = false,
+    onSetup,
   }: Props = $props();
   let offersOpen = $state(false);
   let sheet: HTMLElement | undefined = $state();
@@ -277,7 +280,7 @@
         <FloatingGains {gains} onDone={(id) => (gains = gains.filter((g) => g.id !== id))} />
       </div>
     {/if}
-    <Stats stats={game.stats} />
+    <Stats stats={game.stats} onOpen={onSetup} />
     {#if game.offers.length > 0 && !game.ending}
       {#if compactOffers}
         <!-- Small screens: the cards live in a popup so the world keeps its room. -->

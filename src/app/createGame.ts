@@ -1,6 +1,7 @@
 import type { Catalog } from '../game/catalog';
 import { applyCommand, type CommandResult } from '../game/commands';
 import { selectCat, selectGame, selectHistory, selectWorld } from '../game/selectors';
+import { selectSetup } from '../game/setup';
 import { stepRun } from '../game/simulation';
 import type { GameCommand, GameFact, ReadonlyRun, RunState } from '../game/types';
 import {
@@ -101,6 +102,7 @@ export function createGame(options: GameOptions): Game {
     run,
     game: selectGame(run, catalog),
     history: selectHistory(run, catalog, profile.endings),
+    setup: selectSetup(run, catalog),
     cat: selectCat(run, catalog),
     world: selectWorld(run, catalog),
     profile,

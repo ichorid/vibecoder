@@ -254,21 +254,47 @@ export interface EconomyStep {
  * the revenue that can pay for running them. Coordination, quality and efficiency scale the
  * useful part; unchecked work becomes debt; review removes it. Balances stay finite and ≥ 0.
  */
-export function stepEconomy(
+/** The intermediate quantities of one economy step (shared by the step and the Setup view). */
+export interface EconomyFlows {
+  /** Agents that have compute to run on. */
+  readonly runnable: number;
+  /** Runnable agents whose operating costs are paid. */
+  readonly activeAgents: number;
+  readonly costRate: number;
+  readonly supplied: number;
+  /** Work the active agents could do this step. */
+  readonly demand: number;
+  readonly workPerTask: number;
+  readonly queued: number;
+  /** Work the queued tasks allow. */
+  readonly taskLimited: number;
+  /** Work the tokens actually pay for. */
+  readonly funded: number;
+  readonly usedTasks: number;
+  readonly unchecked: number;
+  readonly debtAdded: number;
+  readonly debtReviewed: number;
+  readonly coordination: number;
+  readonly quality: number;
+  readonly useful: number;
+  readonly earned: number;
+  readonly spent: number;
+}
+
+export function economyFlows(
   economy: EconomyState,
   rates: DerivedRates,
-  stepMs: number,
+  dt: number,
   balance: BalanceDefinition,
-): EconomyStep {
-  const dt = stepMs / 1000;
-  const agents = Math.min(rates.agents, rates.compute);
+): EconomyFlows {
+  const runnable = Math.min(rates.agents, rates.compute);
   // Operating costs: unfunded capacity idles instead of driving revenue negative.
-  const costRate = agents * rates.operatingCostPerAgent + rates.fixedOverheadPerSecond;
+  const costRate = runnable * rates.operatingCostPerAgent + rates.fixedOverheadPerSecond;
   const affordable =
     costRate > 0
       ? Math.min(1, (economy.revenue + economy.revenuePerSecond * dt) / (costRate * dt))
       : 1;
-  const activeAgents = agents * Math.max(0, affordable);
+  const activeAgents = runnable * Math.max(0, affordable);
   const supplied = economy.tokens + rates.tokenSupplyPerSecond * dt;
   const demand = activeAgents * rates.workPerAgentPerSecond * dt;
   const workPerTask = rates.workPerAgentPerSecond * rates.taskEfficiency;
@@ -284,17 +310,41 @@ export function stepEconomy(
   const usedTasks = workPerTask > 0 ? funded / workPerTask : 0;
   // Unchecked work is counted from funded work before quality penalties; manual work is free.
   const unchecked = funded * rates.uncheckedFraction;
-  const debt = Math.max(
-    0,
-    economy.debt + unchecked * rates.debtPerUncheckedWork - rates.reviewPerSecond * dt,
-  );
-  const useful =
-    funded *
-    coordinationEfficiency(rates.managed, Math.max(1, activeAgents)) *
-    qualityEfficiency(economy.debt) *
-    rates.efficiency;
-  const earned = useful * rates.monetization;
-  const spent = costRate * Math.max(0, affordable) * dt;
+  const coordination = coordinationEfficiency(rates.managed, Math.max(1, activeAgents));
+  const quality = qualityEfficiency(economy.debt);
+  const useful = funded * coordination * quality * rates.efficiency;
+  return {
+    runnable,
+    activeAgents,
+    costRate,
+    supplied,
+    demand,
+    workPerTask,
+    queued,
+    taskLimited,
+    funded,
+    usedTasks,
+    unchecked,
+    debtAdded: unchecked * rates.debtPerUncheckedWork,
+    debtReviewed: rates.reviewPerSecond * dt,
+    coordination,
+    quality,
+    useful,
+    earned: useful * rates.monetization,
+    spent: costRate * Math.max(0, affordable) * dt,
+  };
+}
+
+export function stepEconomy(
+  economy: EconomyState,
+  rates: DerivedRates,
+  stepMs: number,
+  balance: BalanceDefinition,
+): EconomyStep {
+  const dt = stepMs / 1000;
+  const f = economyFlows(economy, rates, dt, balance);
+  const { supplied, funded, usedTasks, queued, useful, earned, spent, costRate } = f;
+  const debt = Math.max(0, economy.debt + f.debtAdded - f.debtReviewed);
   const reserve =
     balance.agents.tokenReserve +
     rates.tokenSupplyPerSecond * balance.agents.tokenReserveSupplySeconds;
