@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { loadSave } from './helpers';
+import { closeUpgrades, loadSave, openUpgrades } from './helpers';
 import { progressedRun, saveText } from './fixtures';
 import type { RunState } from '../../src/game/types';
 
@@ -10,6 +10,7 @@ function readyToShip(seed: number): RunState {
 }
 
 async function ship(page: Page) {
+  await openUpgrades(page);
   const card = page.locator('[data-release="1"]');
   await expect(card).toBeVisible();
   await expect(card).toContainText('Ship v0.1');
@@ -31,7 +32,9 @@ test('ship a release: wheel, result, back to work, a frame on the wall, the card
   await expect(page.getByTestId('release-wheel')).toContainText('Top comment:');
   await page.getByRole('button', { name: 'BACK TO WORK' }).click();
   await expect(page.getByTestId('release-wheel')).toHaveCount(0);
+  await openUpgrades(page);
   await expect(page.locator('[data-release]')).toHaveCount(0);
+  await closeUpgrades(page);
   await expect(page.getByRole('list', { name: 'Recent events' })).toContainText('Shipped v0.1:');
   await expect(page.getByTestId('world-canvas')).toHaveAttribute('data-release-frames', '1');
 

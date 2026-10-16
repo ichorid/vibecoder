@@ -26,6 +26,8 @@
     world?: Snippet;
     reducedMotion?: boolean;
     onSound?: ((id: WheelSound) => void) | undefined;
+    /** Small screens: show the cards in a popup instead of under the primary action. */
+    compactOffers?: boolean;
   }
 
   const {
@@ -38,7 +40,15 @@
     world,
     reducedMotion = false,
     onSound,
+    compactOffers = false,
   }: Props = $props();
+  let offersOpen = $state(false);
+  let sheet: HTMLElement | undefined = $state();
+  /** Purchases the current balance pays for right now (upgrades and releases). */
+  const affordable = $derived(
+    game.offers.filter((o) => o.kind !== 'choice' && o.affordable).length,
+  );
+  const decisions = $derived(game.offers.filter((o) => o.kind === 'choice').length);
   let controls: HTMLElement | undefined = $state();
 
   let gains = $state<FloatingGain[]>([]);
@@ -63,8 +73,10 @@
     const index = game.offers.findIndex((offer) => offer.id === id);
     dispatch({ type: 'buyUpgrade', id });
     await tick();
+    // A discovery takes over the screen; afterwards the player is back at the code.
+    if (game.announcement) offersOpen = false;
     // Keep focus predictable when the bought card disappears: next card, else primary action.
-    const cards = controls?.querySelectorAll<HTMLButtonElement>('.offer');
+    const cards = (sheet ?? controls)?.querySelectorAll<HTMLButtonElement>('.offer');
     const target = cards?.[Math.min(index, (cards?.length ?? 1) - 1)];
     if (document.activeElement === document.body || !document.activeElement?.isConnected) {
       (target ?? controls?.querySelector<HTMLButtonElement>('.primary'))?.focus();
@@ -96,6 +108,7 @@
 
   async function ship() {
     if (dispatch({ type: 'shipRelease' }) !== 'applied') return;
+    offersOpen = false;
     await tick();
     wheelWindow = game.lastRelease?.window ?? null;
   }
@@ -117,6 +130,103 @@
 </script>
 
 <section class="game-view" aria-label="Game">
+  {#snippet offerList()}
+    <ul class="offers" aria-label="Upgrades">
+      {#each game.offers as offer (offer.id)}
+        <li>
+          {#if offer.kind === 'upgrade'}
+            <button
+              type="button"
+              class="offer"
+              disabled={!offer.affordable}
+              aria-describedby="offer-{offer.id}-desc"
+              onclick={() => buy(offer.id)}
+            >
+              <span class="card-icon" aria-hidden="true">
+                {#if offer.illustrationId && illustrationUrl(offer.illustrationId)}
+                  <img
+                    class="pixelated"
+                    src={illustrationUrl(offer.illustrationId)}
+                    alt=""
+                    width="48"
+                    height="36"
+                  />
+                {:else}
+                  <PixelIcon map={cardIcon(offer.id)} scale={3} />
+                {/if}
+              </span>
+              <span class="offer-text">
+                <span class="offer-title">{offer.title}</span>
+                <span class="offer-desc" id="offer-{offer.id}-desc"
+                  >{#if offer.tokens}<strong>+{formatAmount(offer.tokens)} tokens.</strong>
+                  {/if}{offer.description}</span
+                >
+              </span>
+              <span class="price"
+                >{#if offer.currency === 'revenue'}${:else}<span
+                    class="currency"
+                    aria-hidden="true"
+                    data-testid="price-code-icon"><PixelIcon map={CODE_ICON} scale={2} /></span
+                  >{/if}{formatAmount(offer.price)}</span
+              >
+            </button>
+          {:else if offer.kind === 'release'}
+            <button
+              type="button"
+              class="offer release"
+              data-release={offer.window}
+              disabled={!offer.affordable}
+              aria-describedby="release-{offer.window}-desc"
+              onclick={ship}
+            >
+              <span class="card-icon" aria-hidden="true"
+                ><PixelIcon map={RELEASE_ICON} scale={3} /></span
+              >
+              <span class="offer-text">
+                <span class="offer-title">{offer.title}</span>
+                <span class="offer-desc" id="release-{offer.window}-desc">{offer.description}</span>
+              </span>
+              <span class="price ship"
+                ><span class="amount"
+                  ><span class="currency" aria-hidden="true" data-testid="price-code-icon"
+                    ><PixelIcon map={CODE_ICON} scale={2} /></span
+                  >{formatAmount(offer.price)}</span
+                ><span class="ship-label">SHIP</span></span
+              >
+            </button>
+          {:else if confirming === offer.id}
+            <div class="offer choice confirm" role="group" aria-label="Confirm {offer.title}">
+              <span class="offer-text">
+                <span class="offer-title">{offer.title}</span>
+                <span class="offer-desc">{offer.confirm}</span>
+              </span>
+              <span class="confirm-actions">
+                <button type="button" class="yes" onclick={() => chooseOffer(offer)}>YES</button>
+                <button type="button" class="no" onclick={() => (confirming = null)}>NO</button>
+              </span>
+            </div>
+          {:else}
+            <button
+              type="button"
+              class="offer choice"
+              data-choice={offer.id}
+              aria-describedby="choice-{offer.id}-desc"
+              onclick={() => chooseOffer(offer)}
+            >
+              <span class="card-icon" aria-hidden="true"
+                ><PixelIcon map={DECISION_ICON} scale={3} /></span
+              >
+              <span class="offer-text">
+                <span class="offer-title">{offer.title}</span>
+                <span class="offer-desc" id="choice-{offer.id}-desc">{offer.description}</span>
+              </span>
+              <span class="price choose">DECIDE</span>
+            </button>
+          {/if}
+        </li>
+      {/each}
+    </ul>
+  {/snippet}
   <div class="world" data-testid="world">
     {@render world?.()}
     {#if game.ending && !wheel}
@@ -161,112 +271,73 @@
     {/if}
     <Stats stats={game.stats} />
     {#if game.offers.length > 0 && !game.ending}
-      <ul class="offers" aria-label="Upgrades">
-        {#each game.offers as offer (offer.id)}
-          <li>
-            {#if offer.kind === 'upgrade'}
-              <button
-                type="button"
-                class="offer"
-                disabled={!offer.affordable}
-                aria-describedby="offer-{offer.id}-desc"
-                onclick={() => buy(offer.id)}
-              >
-                <span class="card-icon" aria-hidden="true">
-                  {#if offer.illustrationId && illustrationUrl(offer.illustrationId)}
-                    <img
-                      class="pixelated"
-                      src={illustrationUrl(offer.illustrationId)}
-                      alt=""
-                      width="48"
-                      height="36"
-                    />
-                  {:else}
-                    <PixelIcon map={cardIcon(offer.id)} scale={3} />
-                  {/if}
-                </span>
-                <span class="offer-text">
-                  <span class="offer-title">{offer.title}</span>
-                  <span class="offer-desc" id="offer-{offer.id}-desc"
-                    >{#if offer.tokens}<strong>+{formatAmount(offer.tokens)} tokens.</strong>
-                    {/if}{offer.description}</span
-                  >
-                </span>
-                <span class="price"
-                  >{#if offer.currency === 'revenue'}${:else}<span
-                      class="currency"
-                      aria-hidden="true"
-                      data-testid="price-code-icon"><PixelIcon map={CODE_ICON} scale={2} /></span
-                    >{/if}{formatAmount(offer.price)}</span
-                >
-              </button>
-            {:else if offer.kind === 'release'}
-              <button
-                type="button"
-                class="offer release"
-                data-release={offer.window}
-                disabled={!offer.affordable}
-                aria-describedby="release-{offer.window}-desc"
-                onclick={ship}
-              >
-                <span class="card-icon" aria-hidden="true"
-                  ><PixelIcon map={RELEASE_ICON} scale={3} /></span
-                >
-                <span class="offer-text">
-                  <span class="offer-title">{offer.title}</span>
-                  <span class="offer-desc" id="release-{offer.window}-desc"
-                    >{offer.description}</span
-                  >
-                </span>
-                <span class="price ship"
-                  ><span class="amount"
-                    ><span class="currency" aria-hidden="true" data-testid="price-code-icon"
-                      ><PixelIcon map={CODE_ICON} scale={2} /></span
-                    >{formatAmount(offer.price)}</span
-                  ><span class="ship-label">SHIP</span></span
-                >
-              </button>
-            {:else if confirming === offer.id}
-              <div class="offer choice confirm" role="group" aria-label="Confirm {offer.title}">
-                <span class="offer-text">
-                  <span class="offer-title">{offer.title}</span>
-                  <span class="offer-desc">{offer.confirm}</span>
-                </span>
-                <span class="confirm-actions">
-                  <button type="button" class="yes" onclick={() => chooseOffer(offer)}>YES</button>
-                  <button type="button" class="no" onclick={() => (confirming = null)}>NO</button>
-                </span>
-              </div>
-            {:else}
-              <button
-                type="button"
-                class="offer choice"
-                data-choice={offer.id}
-                aria-describedby="choice-{offer.id}-desc"
-                onclick={() => chooseOffer(offer)}
-              >
-                <span class="card-icon" aria-hidden="true"
-                  ><PixelIcon map={DECISION_ICON} scale={3} /></span
-                >
-                <span class="offer-text">
-                  <span class="offer-title">{offer.title}</span>
-                  <span class="offer-desc" id="choice-{offer.id}-desc">{offer.description}</span>
-                </span>
-                <span class="price choose">DECIDE</span>
-              </button>
-            {/if}
-          </li>
-        {/each}
-      </ul>
+      {#if compactOffers}
+        <!-- Small screens: the cards live in a popup so the world keeps its room. -->
+        <button
+          type="button"
+          class="offers-toggle"
+          class:affordable={affordable > 0}
+          data-testid="offers-toggle"
+          data-affordable={affordable}
+          aria-haspopup="dialog"
+          aria-expanded={offersOpen}
+          onclick={() => (offersOpen = true)}
+        >
+          <span class="toggle-title">UPGRADES</span>
+          <span class="toggle-count">{game.offers.length}</span>
+          {#if affordable > 0}
+            <span class="toggle-ready" data-testid="offers-affordable"
+              ><span class="currency" aria-hidden="true"
+                ><PixelIcon map={CODE_ICON} scale={2} /></span
+              >{affordable} affordable</span
+            >
+          {/if}
+          {#if decisions > 0}<span class="toggle-decision"
+              >{decisions} decision{decisions > 1 ? 's' : ''}</span
+            >{/if}
+          <span class="toggle-open" aria-hidden="true">▲</span>
+        </button>
+      {:else}
+        {@render offerList()}
+      {/if}
     {/if}
     {#if game.log.length > 0}
       <ol class="log" aria-label="Recent events">
         {#each game.log as line, i (i)}
-          <li><span class="time">[{formatActiveTime(line.activeMs)}]</span> {line.text}</li>
+          {#if i === game.log.length - 1}
+            <!-- The newest line flashes in, so a purchase visibly lands in the terminal. -->
+            {#key `${line.activeMs}|${line.text}|${game.log.length}`}
+              <li class="fresh" data-testid="log-fresh">
+                <span class="time">[{formatActiveTime(line.activeMs)}]</span>
+                {line.text}
+              </li>
+            {/key}
+          {:else}
+            <li><span class="time">[{formatActiveTime(line.activeMs)}]</span> {line.text}</li>
+          {/if}
         {/each}
       </ol>
     {/if}
   </div>
+  {#if compactOffers && offersOpen && game.offers.length > 0 && !game.ending}
+    <div
+      class="offers-sheet"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Upgrades"
+      data-testid="offers-sheet"
+      bind:this={sheet}
+    >
+      <div class="sheet-head">
+        <button type="button" class="sheet-close" onclick={() => (offersOpen = false)}
+          >← BACK TO CODE</button
+        >
+        <h2>UPGRADES</h2>
+      </div>
+      <Stats stats={game.stats} />
+      {@render offerList()}
+    </div>
+  {/if}
   {#if wheel}
     <ReleaseWheel {wheel} {reducedMotion} sound={onSound} onDone={closeWheel} />
   {/if}
@@ -323,6 +394,86 @@
   .primary:active {
     transform: translateY(2px);
     box-shadow: 0 2px 0 var(--accent-strong);
+  }
+  .offers-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 48px;
+    padding: 0 12px;
+    border: 3px solid var(--border);
+    background: var(--panel-strong);
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+  }
+  .toggle-count {
+    min-width: 22px;
+    padding: 1px 6px;
+    border: 2px solid var(--border);
+    background: var(--panel);
+  }
+  .offers-toggle.affordable {
+    border-color: var(--accent-strong);
+    background: color-mix(in srgb, var(--accent) 22%, var(--panel-strong));
+    animation: nudge 1.6s ease-in-out infinite;
+  }
+  @keyframes nudge {
+    50% {
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 45%, transparent);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .offers-toggle.affordable {
+      animation: none;
+    }
+  }
+  .toggle-ready {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 1px 6px;
+    background: var(--accent);
+    color: var(--accent-ink);
+    font-size: 12px;
+  }
+  .toggle-decision {
+    padding: 1px 6px;
+    border: 2px dashed var(--border);
+    font-size: 12px;
+  }
+  .toggle-open {
+    margin-left: auto;
+    font-size: 12px;
+  }
+  .offers-sheet {
+    position: absolute;
+    inset: 0;
+    z-index: 35;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 10px max(12px, env(safe-area-inset-bottom));
+    overflow-y: auto;
+    background: var(--panel);
+  }
+  .sheet-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .sheet-head h2 {
+    margin: 0;
+    font-size: 18px;
+    letter-spacing: 0.1em;
+  }
+  .sheet-close {
+    min-height: 44px;
+    padding: 0 12px;
+    border: 3px solid var(--border);
+    background: var(--panel-strong);
+    font-weight: 800;
+    cursor: pointer;
   }
   .offers {
     list-style: none;
@@ -446,6 +597,24 @@
   .yes {
     background: var(--health) !important;
     color: #fff;
+  }
+  .log .fresh {
+    animation: fresh 0.9s ease-out;
+  }
+  @keyframes fresh {
+    0% {
+      background: color-mix(in srgb, var(--accent) 55%, transparent);
+      transform: translateX(-4px);
+    }
+    100% {
+      background: transparent;
+      transform: none;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .log .fresh {
+      animation: none;
+    }
   }
   .log {
     list-style: none;

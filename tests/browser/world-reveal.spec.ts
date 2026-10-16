@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { freshGame, loadSave, pressPrimary } from './helpers';
+import { freshGame, loadSave, openUpgrades, pressPrimary } from './helpers';
 import { neglectedRun, progressedRun, saveText } from './fixtures';
 
 const canvas = (page: Page) => page.getByTestId('world-canvas');
@@ -15,6 +15,7 @@ test('a discovery reveals its subsystem and zooms out while Game shows the annou
   await expect.poll(() => built(page)).toEqual(['room']);
   const zoomBefore = Number(await canvas(page).getAttribute('data-zoom'));
   await pressPrimary(page, 10);
+  await openUpgrades(page);
   await page.getByRole('button', { name: /Autocomplete/ }).click();
   await expect(page.getByTestId('announcement')).toBeVisible();
   await expect.poll(() => built(page)).toContain('world-autocomplete');

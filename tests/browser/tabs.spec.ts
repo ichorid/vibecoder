@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { freshGame, headerStat, pressPrimary } from './helpers';
+import { freshGame, headerStat, openUpgrades, pressPrimary } from './helpers';
 
 test('a second tab waits without running or writing, then continues from the latest save', async ({
   page,
@@ -45,6 +45,7 @@ test('without Web Locks, a tab that sees a newer save from another tab stops wri
 
   // The first tab writes newer progress (a purchase saves immediately).
   await pressPrimary(first, 12);
+  await openUpgrades(first);
   await first.getByRole('button', { name: /Autocomplete/ }).click();
   await expect(second.getByTestId('tab-panel')).toContainText('continued in another tab');
   const saved = await first.evaluate(() => localStorage.getItem('vibe-coder.save'));

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { loadSave } from './helpers';
+import { loadSave, openUpgrades } from './helpers';
 import { saveWithProfile, untilChoice } from './fixtures';
 
 test('an ending, frozen Cat/History, restart with retained discoveries, then another ending', async ({
@@ -7,6 +7,7 @@ test('an ending, frozen Cat/History, restart with retained discoveries, then ano
 }) => {
   test.setTimeout(120_000);
   await loadSave(page, saveWithProfile(untilChoice('archive-original'), []));
+  await openUpgrades(page);
   const card = page.locator('[data-choice="archive-original"]');
   await expect(card).toBeVisible();
   await expect(page.locator('body')).not.toContainText('The Forgotten Project');
@@ -51,6 +52,7 @@ test('a second ending is added to the profile without duplicating the first', as
     page,
     saveWithProfile(run, [{ id: 'three-users', runId: 'earlier', activeMs: 300_000, order: 1 }]),
   );
+  await openUpgrades(page);
   await page.locator('[data-choice="remove-oversight"]').click();
   await page.getByRole('button', { name: 'YES' }).click();
   await expect(page.getByTestId('ending-panel')).toContainText('You Have Been Optimized');

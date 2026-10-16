@@ -247,3 +247,10 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   the small keyboard); code prices show the code icon (revenue keeps `$`); bought compute
   slots stack as rack units on the room floor by the left wall (`withRoomExtras`,
   `WorldViewModel.computeSlots`, canvas `data-compute-slots`), up to the 8-level cap.
+- 2026-10-16: user requests: terminal reacts to buys (🛒 / 🪙 line per purchase; discoveries
+  keep their 🔓 line; newest line flashes); phones (`(max-width: 699px), (max-height: 599px)`,
+  App matchMedia → `compactOffers`) show an UPGRADES button with count, "N affordable" (code
+  icon, pulsing when > 0) and "N decisions" chips, opening a full-view popup with stats + cards
+  (closes on a discovery or a ship). Browser specs use `openUpgrades`/`closeUpgrades`. The
+  camera now hugs the built clusters' bounds + 8 % (`hugBounds`) instead of the authored
+  portrait envelopes, except the final framing.

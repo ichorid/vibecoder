@@ -81,6 +81,12 @@ const scenes: Record<string, Scene> = {
       return saveText({ ...run, upgradeLevels: { ...run.upgradeLevels, 'compute-slot': 8 } });
     },
   },
+  sheet: {
+    width: 390,
+    height: 844,
+    save: () => saveText(progressedRun(9)),
+    act: async (page) => page.getByTestId('offers-toggle').click(),
+  },
   tech28Small: { width: 320, height: 568, save: () => saveText(progressedRun(28)) },
   stray: {
     width: 390,

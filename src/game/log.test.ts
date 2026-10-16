@@ -25,4 +25,34 @@ describe('event log', () => {
     expect(run.log).toHaveLength(catalog.balance.logMemoryLimit);
     expect(run.log.at(-1)?.text).toBe('x79');
   });
+
+  it('the terminal reacts to every purchase with one line (discoveries keep their own)', () => {
+    const base = createRun(1, 'r');
+    const rich: typeof base = {
+      ...base,
+      unlockedTechnologyIds: [
+        'autocomplete',
+        'generated-snippets',
+        'ai-native-ide',
+        'terminal-agent',
+      ],
+      upgradeLevels: {
+        autocomplete: 1,
+        'generated-snippets': 1,
+        'ai-native-ide': 1,
+        'terminal-agent': 1,
+      },
+      economy: { ...base.economy, output: 100_000 },
+    };
+    const slot = act(rich, { type: 'buyUpgrade', id: 'compute-slot' }, catalog);
+    expect(slot.log.at(-1)?.text).toBe('🛒 Bought Compute slot (level 1).');
+    const again = act(slot, { type: 'buyUpgrade', id: 'compute-slot' }, catalog);
+    expect(again.log.at(-1)?.text).toBe('🛒 Bought Compute slot (level 2).');
+    const tokens = act(rich, { type: 'buyUpgrade', id: 'token-supply' }, catalog);
+    expect(tokens.log.at(-1)?.text).toMatch(/^🪙 Bought \d+ tokens for \d+ code\.$/);
+    const tech = act(rich, { type: 'buyUpgrade', id: 'autonomous-edits' }, catalog);
+    expect(tech.log.slice(rich.log.length).map((l) => l.text)).toEqual([
+      '🔓 Autonomous Edits unlocked.',
+    ]);
+  });
 });

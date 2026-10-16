@@ -26,7 +26,13 @@ import {
   worldAdditions,
   type WorldAddition,
 } from '../content/world';
-import { CAMERA_TRANSITION_MS, fitEnvelope, interpolateCamera, type Camera } from './camera';
+import {
+  CAMERA_TRANSITION_MS,
+  fitEnvelope,
+  hugBounds,
+  interpolateCamera,
+  type Camera,
+} from './camera';
 import type { RendererPort, WorldProjection, WorldTap } from './host';
 import { catLod, clusterLod, projectedSize, type CatLod, type ClusterLod } from './lod';
 import { planScene } from './scenePlan';
@@ -394,8 +400,23 @@ export async function createPixiRenderer(
     return { width: app.screen.width, height: app.screen.height };
   }
 
+  /**
+   * Hug what is built (room + framed additions); the final framing keeps its authored envelope,
+   * whose emptiness is the point (the room and cat are gone at that scale).
+   */
   function targetCamera(): Camera {
-    return fitEnvelope(sceneEnvelope(envelopeIds), viewport());
+    const framed = [
+      ROOM_ADDITION,
+      ...worldAdditions.filter(
+        (a) => a.technologyId !== null && envelopeIds.includes(a.technologyId),
+      ),
+    ];
+    if (framed.some((a) => a.final)) return fitEnvelope(sceneEnvelope(envelopeIds), viewport());
+    const rects = framed.flatMap((a) => {
+      const cluster = clusters.get(a.id);
+      return cluster ? [cluster.bounds] : [];
+    });
+    return fitEnvelope(hugBounds(rects) ?? sceneEnvelope(envelopeIds), viewport());
   }
 
   function applyCamera(): void {

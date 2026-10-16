@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ROOM_ADDITION, sceneEnvelope, worldAdditions } from '../content/world';
-import { easeInOut, fitEnvelope, interpolateCamera, worldToScreen } from './camera';
+import { easeInOut, fitEnvelope, hugBounds, interpolateCamera, worldToScreen } from './camera';
 
 const viewport = { width: 390, height: 560 };
 const ids = worldAdditions.flatMap((a) => (a.technologyId ? [a.technologyId] : []));
@@ -88,5 +88,26 @@ describe('camera math', () => {
     const camera = { centerX: 10, centerY: 20, zoom: 2 };
     expect(worldToScreen({ x: 10, y: 20 }, camera, viewport)).toEqual({ x: 195, y: 280 });
     expect(worldToScreen({ x: 15, y: 20 }, camera, viewport)).toEqual({ x: 205, y: 280 });
+  });
+});
+
+describe('hugging the scene', () => {
+  it('frames the union of what is drawn with a small margin', () => {
+    const box = hugBounds([
+      { x: 0, y: 0, w: 100, h: 50 },
+      { x: 80, y: -50, w: 40, h: 20 },
+    ]);
+    const expected = { x: -9.6, y: -58, w: 139.2, h: 116 };
+    for (const key of ['x', 'y', 'w', 'h'] as const)
+      expect(box?.[key]).toBeCloseTo(expected[key], 9);
+    expect(hugBounds([])).toBeNull();
+  });
+
+  it('fills a wide viewport instead of letterboxing a portrait envelope', () => {
+    const viewport = { width: 400, height: 250 };
+    const room = { x: -88, y: -64, w: 176, h: 128 };
+    const hugged = fitEnvelope(hugBounds([room]) ?? room, viewport);
+    const portrait = fitEnvelope({ x: -102, y: -136, w: 204, h: 272 }, viewport);
+    expect(hugged.zoom).toBeGreaterThan(portrait.zoom * 1.5);
   });
 });

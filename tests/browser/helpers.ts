@@ -28,3 +28,17 @@ export async function loadSave(page: Page, text: string): Promise<void> {
   await page.goto('/');
   await expect(page.getByTestId('primary-action')).toBeVisible();
 }
+
+/** Phones show the cards in a popup: open it (a no-op where the cards are inline). */
+export async function openUpgrades(page: Page): Promise<void> {
+  const toggle = page.getByTestId('offers-toggle');
+  await expect(toggle.or(page.locator('ul.offers'))).toBeVisible();
+  if (await toggle.isVisible()) await toggle.click();
+  await expect(page.locator('ul.offers')).toBeVisible();
+}
+
+/** Close the cards popup again (a no-op where the cards are inline). */
+export async function closeUpgrades(page: Page): Promise<void> {
+  const sheet = page.getByTestId('offers-sheet');
+  if (await sheet.isVisible()) await sheet.getByRole('button', { name: '← BACK TO CODE' }).click();
+}

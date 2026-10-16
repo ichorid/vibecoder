@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { freshGame, headerStat, pressPrimary } from './helpers';
+import { freshGame, headerStat, openUpgrades, pressPrimary } from './helpers';
 import { saveWithProfile, untilChoice } from './fixtures';
 
 test('unavailable storage: the game runs for this visit and says so', async ({ page }) => {
@@ -36,6 +36,7 @@ test('a full quota keeps the run in memory and RETRY saves it once space is back
   });
   // Buying a technology forces an immediate save, which now fails.
   await pressPrimary(page, 8);
+  await openUpgrades(page);
   await page.getByRole('button', { name: /Autocomplete/ }).click();
   await expect(page.getByTestId('save-warning')).toContainText('could not be saved');
   const stat = await headerStat(page);

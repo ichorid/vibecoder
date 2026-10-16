@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { freshGame, loadSave, pressPrimary } from './helpers';
+import { freshGame, loadSave, openUpgrades, pressPrimary } from './helpers';
 import { progressedRun, saveText } from './fixtures';
 
 test('the world ticker stops while Game is hidden and resumes on return', async ({ page }) => {
@@ -28,9 +28,11 @@ test('a failed illustration shows a fallback and never blocks the discovery', as
   await page.route('**/assets/technologies/**', (route) => route.abort());
   await freshGame(page);
   await pressPrimary(page, 10);
+  await openUpgrades(page);
   await page.getByRole('button', { name: /Autocomplete/ }).click();
   const announcement = page.getByTestId('announcement');
   await expect(announcement.locator('.fallback')).toBeVisible();
   await page.getByRole('button', { name: 'CONTINUE' }).click();
+  await openUpgrades(page);
   await expect(page.getByRole('button', { name: /Generated snippets/ })).toBeVisible();
 });

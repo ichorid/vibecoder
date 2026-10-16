@@ -45,6 +45,9 @@
 
   let view = $state<ViewId>('game');
   let reducedMotion = $state(false);
+  /** Phone-sized viewports (portrait, or a short landscape screen). */
+  const SMALL_SCREEN = '(max-width: 699px), (max-height: 599px)';
+  let compactOffers = $state(false);
   /** DOM sprites share the world atlas; inline fallbacks show until it loads. */
   let sprites = $state<DomSpriteSheet | null>(null);
 
@@ -167,9 +170,17 @@
     };
     onMotion();
     motion?.addEventListener('change', onMotion);
+    // Phones: the upgrade cards move into a popup so the world is not squeezed.
+    const small = window.matchMedia?.(SMALL_SCREEN);
+    const onSmall = () => {
+      compactOffers = small?.matches ?? false;
+    };
+    onSmall();
+    small?.addEventListener('change', onSmall);
     return () => {
       window.removeEventListener('popstate', onPop);
       motion?.removeEventListener('change', onMotion);
+      small?.removeEventListener('change', onSmall);
     };
   });
 
@@ -227,6 +238,7 @@
         onCatOverlay={() => open('cat')}
         {sprites}
         {reducedMotion}
+        {compactOffers}
         onSound={(id: WheelSound) => audio.effect?.(id)}
       >
         {#snippet world()}

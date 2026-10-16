@@ -18,7 +18,7 @@ for (const viewport of [
   { width: 390, height: 844 },
   { width: 430, height: 932 },
 ]) {
-  test(`${viewport.width}×${viewport.height}: a busy mid-game keeps the primary action and a card on screen`, async ({
+  test(`${viewport.width}×${viewport.height}: a busy mid-game keeps the primary action, the world and the cards in reach`, async ({
     page,
   }) => {
     await page.setViewportSize(viewport);
@@ -27,10 +27,18 @@ for (const viewport of [
     if (!primary) throw new Error('no primary action');
     expect(primary.y + primary.height).toBeLessThanOrEqual(viewport.height);
     expect(primary.height).toBeGreaterThanOrEqual(44);
-    const card = await page.locator('.offer').first().boundingBox();
-    if (!card) throw new Error('no card');
-    expect(card.y).toBeLessThan(viewport.height);
+    // On a phone the cards wait in a popup, so the world keeps a real share of the screen.
+    const toggle = await page.getByTestId('offers-toggle').boundingBox();
+    if (!toggle) throw new Error('no upgrades button');
+    expect(toggle.y + toggle.height).toBeLessThanOrEqual(viewport.height);
+    expect(toggle.height).toBeGreaterThanOrEqual(44);
+    const world = await page.getByTestId('world').boundingBox();
+    expect(world?.height ?? 0).toBeGreaterThanOrEqual(viewport.height * 0.3);
     expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await page.getByTestId('offers-toggle').click();
+    const card = await page.getByTestId('offers-sheet').locator('.offer').first().boundingBox();
+    if (!card) throw new Error('no card');
+    expect(card.y + card.height).toBeLessThanOrEqual(viewport.height);
   });
 }
 
@@ -117,4 +125,25 @@ test('dark theme keeps the health and mood bars distinguishable from their track
   });
   expect(await page.evaluate(() => document.documentElement.dataset.theme)).toBe('dark');
   for (const ratio of ratios) expect(ratio).toBeGreaterThanOrEqual(3);
+});
+
+test('a wide screen keeps the cards inline; a phone opens them in a popup and buys there', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1024, height: 800 });
+  await loadSave(page, saveText(progressedRun(3)));
+  await expect(page.locator('ul.offers')).toBeVisible();
+  await expect(page.getByTestId('offers-toggle')).toHaveCount(0);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.locator('ul.offers')).toHaveCount(0);
+  const toggle = page.getByTestId('offers-toggle');
+  await expect(toggle).toContainText('UPGRADES');
+  await toggle.click();
+  const sheet = page.getByTestId('offers-sheet');
+  await expect(sheet).toBeVisible();
+  await expect(sheet.getByTestId('stats')).toBeVisible();
+  await sheet.getByRole('button', { name: '← BACK TO CODE' }).click();
+  await expect(sheet).toHaveCount(0);
+  await expect(page.getByTestId('primary-action')).toBeVisible();
 });

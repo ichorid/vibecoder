@@ -10,6 +10,7 @@ import {
   resolveDiscoveries,
 } from './progression';
 import { shipRelease } from './releases';
+import { appendLog } from './log';
 import type { Transition } from './simulation';
 import type { GameCommand, RunState } from './types';
 
@@ -147,16 +148,21 @@ function buyUpgrade(run: RunState, id: string, catalog: Catalog): CommandTransit
   if (upgrade.pack === 'tokens') {
     // A consumable: code becomes tokens; there is no level and the card stays on offer.
     const pack = tokenPack(run, catalog);
-    return {
-      run: {
-        ...run,
-        cat: noteMeaningfulAction(run.cat),
-        economy: {
-          ...run.economy,
-          output: roundAmount(run.economy.output - price),
-          tokens: roundAmount(run.economy.tokens + pack.tokens),
-        },
+    const bought: RunState = {
+      ...run,
+      cat: noteMeaningfulAction(run.cat),
+      economy: {
+        ...run.economy,
+        output: roundAmount(run.economy.output - price),
+        tokens: roundAmount(run.economy.tokens + pack.tokens),
       },
+    };
+    return {
+      run: appendLog(
+        bought,
+        `🪙 Bought ${Math.round(pack.tokens)} tokens for ${Math.round(price)} code.`,
+        catalog,
+      ),
       facts: [{ type: 'purchased', id: upgrade.id }],
       result: 'applied',
     };
@@ -167,7 +173,15 @@ function buyUpgrade(run: RunState, id: string, catalog: Catalog): CommandTransit
     economy: { ...run.economy, [upgrade.currency]: roundAmount(balance - price) },
     upgradeLevels: { ...run.upgradeLevels, [upgrade.id]: level + 1 },
   };
-  const discovered = resolveDiscoveries(bought, catalog);
+  // The terminal answers every purchase; a discovery prints its own "unlocked" line instead.
+  const announced = upgrade.discovers
+    ? bought
+    : appendLog(
+        bought,
+        `🛒 Bought ${upgrade.title}${upgrade.maxLevel > 1 ? ` (level ${level + 1})` : ''}.`,
+        catalog,
+      );
+  const discovered = resolveDiscoveries(announced, catalog);
   return {
     run: discovered.run,
     facts: [{ type: 'purchased', id: upgrade.id }, ...discovered.facts],

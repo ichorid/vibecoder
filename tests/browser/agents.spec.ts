@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { freshGame, loadSave } from './helpers';
+import { closeUpgrades, freshGame, loadSave, openUpgrades } from './helpers';
 import { progressedRun, saveText } from './fixtures';
 
 test('from the empty room to a working terminal agent with real presses', async ({ page }) => {
@@ -8,10 +8,15 @@ test('from the empty room to a working terminal agent with real presses', async 
   const primary = page.getByTestId('primary-action');
   for (const name of [/Autocomplete/, /Generated snippets/, /AI-native IDE/, /Terminal agent/]) {
     const card = page.getByRole('button', { name });
-    const ready = async () => (await card.count()) > 0 && (await card.isEnabled());
-    while (!(await ready())) await primary.click();
+    // The cards popup says when something can be bought; then open it and buy.
+    const toggle = page.getByTestId('offers-toggle');
+    const affordable = async () =>
+      (await toggle.count()) > 0 && Number(await toggle.getAttribute('data-affordable')) > 0;
+    while (!(await affordable())) await primary.click();
+    await openUpgrades(page);
     await card.click();
     await page.getByRole('button', { name: 'CONTINUE' }).click();
+    await closeUpgrades(page);
   }
   await expect(primary).toHaveText('PROMPT');
   await expect(page.getByTestId('stats')).toContainText('Tokens');
@@ -33,12 +38,14 @@ test('the reviewer appears with debt in the header and can be bought', async ({ 
   const rich = { ...run, economy: { ...run.economy, output: 50_000 } };
   await loadSave(page, saveText(rich));
   await expect(page.getByTestId('stats')).toContainText('Debt');
+  await openUpgrades(page);
   const reviewer = page.getByRole('button', { name: /Reviewer agent/ });
   await expect(reviewer).toBeEnabled();
   await reviewer.click();
   await expect(page.getByTestId('announcement')).toContainText('Reviewer Agent');
   await page.getByRole('button', { name: 'CONTINUE' }).click();
   // The reviewer opens a new decision (keep writing by hand) on the same card surface.
+  await openUpgrades(page);
   await expect(page.locator('[data-choice="keep-manual"]')).toBeVisible();
   await expect(page.locator('.offers li')).toHaveCount(3);
 });

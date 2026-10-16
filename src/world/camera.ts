@@ -30,6 +30,24 @@ export function fitEnvelope(envelope: Rect, viewport: Viewport): Camera {
   };
 }
 
+/** Share of the content size kept free around it when the camera hugs the scene. */
+export const HUG_MARGIN = 0.08;
+
+/**
+ * The union of what is drawn, with a small margin: the camera frames the actual scene instead
+ * of an authored portrait envelope, so a wide, short world view has no empty side bands.
+ */
+export function hugBounds(rects: readonly Rect[], margin = HUG_MARGIN): Rect | null {
+  if (rects.length === 0) return null;
+  const minX = Math.min(...rects.map((r) => r.x));
+  const minY = Math.min(...rects.map((r) => r.y));
+  const maxX = Math.max(...rects.map((r) => r.x + r.w));
+  const maxY = Math.max(...rects.map((r) => r.y + r.h));
+  const padX = (maxX - minX) * margin;
+  const padY = (maxY - minY) * margin;
+  return { x: minX - padX, y: minY - padY, w: maxX - minX + 2 * padX, h: maxY - minY + 2 * padY };
+}
+
 export function worldToScreen(
   point: { readonly x: number; readonly y: number },
   camera: Camera,
