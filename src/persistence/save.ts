@@ -115,6 +115,10 @@ const ECONOMY_FIELDS = [
   'revenue',
   'revenuePerSecond',
   'costPerSecond',
+  'autoRefills',
+  'tokenReviewBonus',
+  'autoReviewMs',
+  'tokenDemandPerSecond',
 ] as const satisfies readonly (keyof EconomyState)[];
 const STATS_FIELDS = [
   'lifetimeOutput',
@@ -125,6 +129,7 @@ const STATS_FIELDS = [
   'lowDebtMs',
   'positiveMarginMs',
   'negativeMarginMs',
+  'refillDisasters',
 ] as const satisfies readonly (keyof RunStats)[];
 
 // Compile-time proof that the field lists cover the whole state shape.
@@ -406,7 +411,9 @@ export function decodeSave(input: unknown, rawText = ''): LoadResult {
 export function recoverProfile(rawText: string): ProfileState | null {
   try {
     const envelope = record(JSON.parse(rawText) as unknown, 'save');
-    if (envelope.schemaVersion !== CURRENT_SCHEMA_VERSION) return null;
+    // Only the profile is read, so any version this game can migrate is acceptable.
+    const version = envelope.schemaVersion;
+    if (typeof version !== 'number' || version < 1 || version > CURRENT_SCHEMA_VERSION) return null;
     return decodeProfile(envelope.profile);
   } catch {
     return null;

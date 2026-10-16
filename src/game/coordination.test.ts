@@ -93,16 +93,16 @@ describe('repeatable upgrades', () => {
     for (let i = 0; i < 8; i += 1) {
       const bought = applyCommand(
         run,
-        { type: 'buyUpgrade', id: 'token-supply' },
+        { type: 'buyUpgrade', id: 'compute-slot' },
         run.activeMs,
         catalog,
       );
       expect(bought.result).toBe('applied');
       run = bought.run;
     }
-    expect(run.upgradeLevels['token-supply']).toBe(8);
+    expect(run.upgradeLevels['compute-slot']).toBe(8);
     expect(
-      applyCommand(run, { type: 'buyUpgrade', id: 'token-supply' }, run.activeMs, catalog).result,
+      applyCommand(run, { type: 'buyUpgrade', id: 'compute-slot' }, run.activeMs, catalog).result,
     ).toBe('unavailable');
   });
 

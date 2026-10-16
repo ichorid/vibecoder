@@ -82,6 +82,12 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   Baseline care cadence in `tests/helpers/scenario.ts` `CARE` is derived from it (feed 60 s, pet
   20 s, PLAY 90 s). Neglected cat dies at ~4.8 min; a meal is needed about every minute. Rule
   tests now read numbers from the balance. Supersedes the plan's "feed every 3–4 min".
+- D24 (user request) Tokens bought with code: see docs/content_catalog.md "Tokens are bought
+  with code". Save schema 2 + real v1→v2 migration (v1 fixtures kept, v2 added). Baseline buyer
+  in tests/helpers/scenario.ts buys packs/automation like a sensible player. The early-route
+  token acceptance now asserts "tokens short > 20 s and ≥ 3 packs" (agents no longer idle at 0
+  because a pack is bought first). Merge-conflict route excludes review capacity from its first
+  phase (its premise is "no extra review").
 - D5 (P02) App-level commands (`retrySave`, `setTheme`) go through the same public
   `dispatch` as game commands, so UI still sees only `{subscribe, dispatch}`.
 
@@ -191,3 +197,8 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   only (see validation_report.md and sound_validation_report.md matrices).
 - 2026-10-16: user requests after S09: (1) cat ×3 intensity — done; queued: floating "+x" on
   meaningful clicks, stats moved to the lower panel (cat stays in header), coder sprite scale/place.
+- 2026-10-16: user requests done & committed: cat ×3, floating gains, stats under the button,
+  BACK TO CODE, PLAY skip, coder sprite, fat sleeping cat, world taps + cat icon, token economy.
+  Queued: icons on counters/cards/primary button, log emoji, fat attention-cat variants, cat
+  jump on/off table, card description font, screen top/bottom borders + log bottom padding,
+  full-screen tech announcement, Cat-view cat tap = PET + meow.

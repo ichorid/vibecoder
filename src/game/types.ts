@@ -38,6 +38,14 @@ export interface EconomyState {
   /** Revenue earned and operating costs over the last step, per second (for margin). */
   revenuePerSecond: number;
   costPerSecond: number;
+  /** Packs bought by auto-refill v1 (its bug schedule counts these). */
+  autoRefills: number;
+  /** Permanent tokens-per-code bonus earned by the auto-reviewer (fraction, capped). */
+  tokenReviewBonus: number;
+  /** Active time accumulated toward the next auto-review. */
+  autoReviewMs: number;
+  /** Tokens per second the agents would burn at full capacity (set by each economy step). */
+  tokenDemandPerSecond: number;
 }
 
 export interface RunStats {
@@ -52,6 +60,8 @@ export interface RunStats {
   lowDebtMs: number;
   positiveMarginMs: number;
   negativeMarginMs: number;
+  /** Times auto-refill v1 deleted most of the code instead of buying tokens. */
+  refillDisasters: number;
 }
 
 /** Last accepted care, for contextual Cat messages; cosmetic responses are not stored. */

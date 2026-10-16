@@ -98,4 +98,18 @@ export const balance = {
   manualOutputPerAction: 1,
   logMemoryLimit: 50,
   logVisibleLines: 5,
+  tokens: {
+    perCodeBase: 6,
+    packSeconds: 60,
+    packMin: 300,
+    refillBelowSeconds: 20,
+    disasterLoss: 0.9,
+    firstDisasterFrom: 3,
+    firstDisasterTo: 6,
+    laterDisasterChance: 0.15,
+    reviewStep: 0.1,
+    autoReviewEveryMs: 30_000,
+    autoReviewStep: 0.02,
+    autoReviewCap: 0.5,
+  },
 } as const satisfies BalanceDefinition;

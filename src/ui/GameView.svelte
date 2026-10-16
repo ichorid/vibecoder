@@ -153,7 +153,10 @@
               >
                 <span class="offer-text">
                   <span class="offer-title">{offer.title}</span>
-                  <span class="offer-desc" id="offer-{offer.id}-desc">{offer.description}</span>
+                  <span class="offer-desc" id="offer-{offer.id}-desc"
+                    >{#if offer.tokens}<strong>+{formatAmount(offer.tokens)} tokens.</strong>
+                    {/if}{offer.description}</span
+                  >
                 </span>
                 <span class="price"
                   >{offer.currency === 'revenue' ? '$' : ''}{formatAmount(offer.price)}</span

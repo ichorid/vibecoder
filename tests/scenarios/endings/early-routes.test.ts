@@ -53,10 +53,16 @@ describe('The Last Programmer', () => {
 
 describe('The Great Merge Conflict', () => {
   it('accumulates debt with parallel agents and no extra review, then forces the merge', () => {
-    let run = playUntil(newRun(), baseline, (r) => has(r, 'parallel-agents'));
-    // Bad but real choices: more supply, agents and compute; never review capacity or progression.
+    // "No extra review" from the start: the ordinary route minus review-capacity purchases.
+    const noExtraReview: Policy[] = baseline.map(
+      (policy) => (context) =>
+        policy(context).filter((c) => !(c.type === 'buyUpgrade' && c.id === 'review-capacity')),
+    );
+    let run = playUntil(newRun(), noExtraReview, (r) => has(r, 'parallel-agents'));
+    // Bad but real choices: drive the agents hard (PROMPT every second, buy tokens, agents and
+    // compute); never review capacity or progression.
     const reckless: Policy[] = [
-      every(5000, pressPrimary),
+      every(1000, pressPrimary),
       acknowledgeReveals,
       ...baselineCare,
       ({ run: r, catalog: c }) => {

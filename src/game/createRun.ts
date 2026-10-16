@@ -42,6 +42,10 @@ export function createRun(seed: number, runId: string): RunState {
       revenue: 0,
       revenuePerSecond: 0,
       costPerSecond: 0,
+      autoRefills: 0,
+      tokenReviewBonus: 0,
+      autoReviewMs: 0,
+      tokenDemandPerSecond: 0,
     },
     stats: {
       lifetimeOutput: 0,
@@ -52,6 +56,7 @@ export function createRun(seed: number, runId: string): RunState {
       lowDebtMs: 0,
       positiveMarginMs: 0,
       negativeMarginMs: 0,
+      refillDisasters: 0,
     },
     cat: createCat(),
     history: [],

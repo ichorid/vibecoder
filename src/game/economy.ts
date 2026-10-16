@@ -39,6 +39,11 @@ export interface DerivedRates {
   /** Fixed operating cost per second committed by choices (e.g. a loss-making expansion). */
   readonly fixedOverheadPerSecond: number;
   readonly automated: ReadonlySet<ResponsibilityId>;
+  /** Tokens one unit of code buys (base × reviews × auto-reviewer). */
+  readonly tokensPerCode: number;
+  /** Owned auto-refill version (0 = none; the highest wins). */
+  readonly autoRefill: 0 | 1 | 2;
+  readonly autoReview: boolean;
 }
 
 /** Quality efficiency from debt, with a positive floor. */
@@ -86,6 +91,9 @@ export function deriveRates(run: ReadonlyRun, catalog: Catalog): DerivedRates {
   let monetization = 0;
   let monetizationMultiplier = 1;
   let operatingCostPerAgent = 0;
+  let tokenRateBonus = 0;
+  let autoRefill: 0 | 1 | 2 = 0;
+  let autoReview = false;
   const automated = new Set<ResponsibilityId>();
   for (const effect of activeEffects(run, catalog)) {
     switch (effect.kind) {
@@ -151,6 +159,15 @@ export function deriveRates(run: ReadonlyRun, catalog: Catalog): DerivedRates {
         break;
       case 'grantTokens':
         break;
+      case 'tokensPerCodeBonus':
+        tokenRateBonus += effect.amount;
+        break;
+      case 'autoRefill':
+        autoRefill = effect.version > autoRefill ? effect.version : autoRefill;
+        break;
+      case 'autoReview':
+        autoReview = true;
+        break;
       default: {
         const unknown: never = effect;
         void unknown;
@@ -181,7 +198,43 @@ export function deriveRates(run: ReadonlyRun, catalog: Catalog): DerivedRates {
       0,
     ),
     automated,
+    tokensPerCode: balance.tokens.perCodeBase * (1 + tokenRateBonus + run.economy.tokenReviewBonus),
+    autoRefill,
+    autoReview,
   };
+}
+
+/** Tokens per second the current agents would burn at full capacity. */
+export function tokenDemandPerSecond(rates: DerivedRates): number {
+  return (
+    Math.min(rates.agents, rates.compute) * rates.workPerAgentPerSecond * rates.tokenCostPerWork
+  );
+}
+
+/** Two significant digits, so packs read as round numbers (6 480 → 6 500). */
+function roundNice(value: number): number {
+  if (value <= 0) return 0;
+  const magnitude = 10 ** Math.max(0, Math.floor(Math.log10(value)) - 1);
+  return Math.round(value / magnitude) * magnitude;
+}
+
+/**
+ * One token pack: about `packSeconds` of current agent demand (never below `packMin`), priced
+ * at the current tokens-per-code rate. Sizing follows the stage, so a pack is never trivial or
+ * out of reach; better rates make every later pack cheaper.
+ */
+export function tokenPack(run: ReadonlyRun, catalog: Catalog): { tokens: number; price: number } {
+  const rates = deriveRates(run, catalog);
+  const { packMin, packSeconds } = catalog.balance.tokens;
+  const tokens = Math.max(packMin, roundNice(tokenDemandPerSecond(rates) * packSeconds));
+  return { tokens, price: Math.ceil(tokens / rates.tokensPerCode) };
+}
+
+/** The price shown and charged for an offer at its current level. */
+export function offerPrice(run: ReadonlyRun, upgrade: UpgradeDefinition, catalog: Catalog): number {
+  return upgrade.pack === 'tokens'
+    ? tokenPack(run, catalog).price
+    : upgradePrice(upgrade, upgradeLevel(run, upgrade.id));
 }
 
 /** Share of manual responsibilities now handled by the system (0–1). */
@@ -277,6 +330,7 @@ export function stepEconomy(
       revenuePerSecond: roundAmount(earned / dt),
       // Costs owed, even when only part could be paid: the margin shows the real loss.
       costPerSecond: roundAmount(costRate),
+      tokenDemandPerSecond: roundAmount(tokenDemandPerSecond(rates)),
     },
   };
 }

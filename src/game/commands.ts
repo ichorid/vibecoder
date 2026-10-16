@@ -2,7 +2,7 @@ import { feedCat, noteMeaningfulAction, petCat } from './cat';
 import { endRun, isChoiceOffered } from './endings';
 import type { Catalog } from './catalog';
 import { catchMouse, resumeSession, sessionOf, startSession, withSession } from './catPlaySession';
-import { deriveRates, roundAmount, upgradeLevel, upgradePrice } from './economy';
+import { deriveRates, offerPrice, roundAmount, tokenPack, upgradeLevel } from './economy';
 import {
   currentPrimaryAction,
   findUpgrade,
@@ -135,9 +135,26 @@ function buyUpgrade(run: RunState, id: string, catalog: Catalog): CommandTransit
   const upgrade = findUpgrade(catalog, id);
   if (!upgrade || !isUpgradeOffered(run, upgrade)) return reject(run, 'unavailable');
   const level = upgradeLevel(run, upgrade.id);
-  const price = upgradePrice(upgrade, level);
+  const price = offerPrice(run, upgrade, catalog);
   const balance = upgrade.currency === 'revenue' ? run.economy.revenue : run.economy.output;
   if (balance < price) return reject(run, 'unaffordable');
+  if (upgrade.pack === 'tokens') {
+    // A consumable: code becomes tokens; there is no level and the card stays on offer.
+    const pack = tokenPack(run, catalog);
+    return {
+      run: {
+        ...run,
+        cat: noteMeaningfulAction(run.cat),
+        economy: {
+          ...run.economy,
+          output: roundAmount(run.economy.output - price),
+          tokens: roundAmount(run.economy.tokens + pack.tokens),
+        },
+      },
+      facts: [{ type: 'purchased', id: upgrade.id }],
+      result: 'applied',
+    };
+  }
   const bought: RunState = {
     ...run,
     cat: noteMeaningfulAction(run.cat),

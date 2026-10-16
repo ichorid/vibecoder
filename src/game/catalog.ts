@@ -116,6 +116,31 @@ export interface BalanceDefinition {
   readonly logMemoryLimit: number;
   /** Recent log lines shown in Game. */
   readonly logVisibleLines: number;
+  readonly tokens: TokenBalance;
+}
+
+/** Buying tokens with code, auto-refill and token-spending reviews. */
+export interface TokenBalance {
+  /** Tokens one unit of code buys before reviews. */
+  readonly perCodeBase: number;
+  /** A pack covers this many seconds of current agent demand… */
+  readonly packSeconds: number;
+  /** …but never fewer tokens than this. */
+  readonly packMin: number;
+  /** Auto-refill buys when tokens last less than this many seconds of demand. */
+  readonly refillBelowSeconds: number;
+  /** Share of current code auto-refill v1's bug deletes. */
+  readonly disasterLoss: number;
+  /** v1's first disaster lands on one of these refills (uniformly). */
+  readonly firstDisasterFrom: number;
+  readonly firstDisasterTo: number;
+  /** After the first disaster, every v1 refill fails with this chance. */
+  readonly laterDisasterChance: number;
+  /** Rate bonus per "Review your token spending" level. */
+  readonly reviewStep: number;
+  readonly autoReviewEveryMs: number;
+  readonly autoReviewStep: number;
+  readonly autoReviewCap: number;
 }
 
 /** Small effect union; derived rates are recomputed from ownership, never stacked in state. */
@@ -148,7 +173,13 @@ export type Effect =
   /** Revenue spent per second per active agent once operating costs exist. */
   | { readonly kind: 'operatingCostPerAgent'; readonly amount: number }
   /** One-time stock granted in the discovery transaction (not a rate). */
-  | { readonly kind: 'grantTokens'; readonly amount: number };
+  | { readonly kind: 'grantTokens'; readonly amount: number }
+  /** More tokens per code spent on token packs (fraction per level, additive). */
+  | { readonly kind: 'tokensPerCodeBonus'; readonly amount: number }
+  /** Buys token packs automatically when tokens run low; version 1 has a bug. */
+  | { readonly kind: 'autoRefill'; readonly version: 1 | 2 }
+  /** Periodically improves the tokens-per-code rate (balance.tokens.autoReview*). */
+  | { readonly kind: 'autoReview' };
 
 /** Runtime list of effect kinds for content validation; must match `Effect['kind']`. */
 export const EFFECT_KINDS = [
@@ -173,6 +204,9 @@ export const EFFECT_KINDS = [
   'monetizationMultiplier',
   'operatingCostPerAgent',
   'grantTokens',
+  'tokensPerCodeBonus',
+  'autoRefill',
+  'autoReview',
 ] as const;
 type EffectKindsMatch = [Effect['kind']] extends [(typeof EFFECT_KINDS)[number]]
   ? [(typeof EFFECT_KINDS)[number]] extends [Effect['kind']]
@@ -218,6 +252,11 @@ export interface UpgradeDefinition {
   readonly extraCondition?: (run: ReadonlyRun) => boolean;
   /** When this holds, the card is a recovery choice and outranks optional repeatables. */
   readonly recovery?: RecoveryRule;
+  /**
+   * A consumable purchase instead of a level: `tokens` buys a token pack whose size and price
+   * follow current demand and the tokens-per-code rate (basePrice/priceGrowth are unused).
+   */
+  readonly pack?: 'tokens';
 }
 
 export interface TechnologyDefinition {

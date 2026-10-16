@@ -85,13 +85,32 @@ management token cost ×0.7 (+30 supply), model routing ×0.5. Responsibilities 
 writing (04), prompting (08), delegating (12), supervising (20), optimizing (22), deciding (27).
 Baseline route (seeds 101/202): autonomous company at 31.7 active min with 7 PLAY sessions.
 
+## Tokens are bought with code (user request, after S09)
+
+Replaces the old "Token supply: +6 tokens/s" repeatable. Technology subscriptions (+4/s at the
+terminal agent … +400/s late) stay; everything above them is bought.
+
+| Card | Appears | Effect | Price |
+| --- | --- | --- | --- |
+| Buy tokens (`token-supply`, consumable) | terminal-agent, only while tokens last < 30 s of demand (recovery card below 10) | one pack = 60 s of current full agent demand, min 300 tokens | ⌈pack / rate⌉, rate = 6 tokens per code × (1 + reviews + auto-review) |
+| Token auto-refill v1 | persistent-instructions, until v2 is owned | buys a pack when tokens last < 20 s and code suffices; **bug**: the first disaster lands uniformly on refill 3–6, later ones 15 % per refill; a disaster deletes 90 % of current code and buys nothing | 1 200 |
+| Token auto-refill v2 | after the first disaster | the same without the bug | 2 500 |
+| Review your token spending | reviewer, 5 levels | +10 % rate per level | 800 × 2.2^level |
+| Auto-reviewer | evaluations | +2 % rate every 30 s active, up to +50 % | 40 000 |
+
+Why these numbers: mid-game an agent turns a token into ≈ 0.7 code, so at 6 tokens/code a pack
+returns ≈ 4× its price and costs ≈ 20 s of income — clearly worth buying, still a decision.
+Rate 3 starved the mid-game (route ≈ 40 min); 8 gained nothing over 6. The pack and the review
+card must never sit permanently in one of the three card slots, or compute/review/agent
+repeatables vanish and debt runs away (found while tuning). Baseline route: 31.0–31.5 min on
+four seeds. Saves: schema 2; v1 "token-supply" levels become 1 800 tokens each.
+
 ## Repeatable upgrades (P07.3)
 
 All priced in output, base × growth^level (2 unless noted), max 8 levels.
 
 | Upgrade | Appears | Per level | Base |
 | --- | --- | --- | --- |
-| token-supply | terminal-agent | +6 tokens/s (×1.6 price per level) | 80 |
 | compute-slot | terminal-agent | +1 compute | 150 |
 | additional-agent | parallel-agents | +1 agent | 120 |
 | review-capacity | reviewer | +0.5 debt/s review | 200 |

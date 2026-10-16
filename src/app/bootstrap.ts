@@ -3,6 +3,7 @@ import { createRun } from '../game/createRun';
 import {
   createProfile,
   createSaveAdapter,
+  CURRENT_SCHEMA_VERSION,
   recoverProfile,
   type LoadResult,
   type SaveAdapter,
@@ -69,7 +70,7 @@ export function bootGame(): Boot {
       keepsEndings: (recovered?.endings.length ?? 0) > 0,
       startNew: () => {
         adapter?.write({
-          schemaVersion: 1,
+          schemaVersion: CURRENT_SCHEMA_VERSION,
           contentVersion: 1,
           revision: 0,
           profile: recovered ?? createProfile(),

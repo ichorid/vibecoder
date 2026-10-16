@@ -5,6 +5,7 @@
 import { applyCommand, type CommandResult } from '../../src/game/commands';
 import type { Catalog } from '../../src/game/catalog';
 import { playPhase, playPosition } from '../../src/game/catPlaySession';
+import { deriveRates, tokenDemandPerSecond } from '../../src/game/economy';
 import { selectCat, selectGame } from '../../src/game/selectors';
 import { stepRun } from '../../src/game/simulation';
 import type { GameCommand, GameFact, RunState } from '../../src/game/types';
@@ -95,17 +96,35 @@ export const baselineCare: Policy[] = [
 ];
 
 /**
- * Baseline purchasing: buy the current progression card when affordable; otherwise buy the
- * cheapest affordable optional card if it costs under a quarter of the visible progression
- * price (so repeatables never delay the next discovery much). Uses current offers only.
+ * Baseline purchasing, as a sensible player: buy the current progression card when affordable;
+ * buy a token pack when tokens would last less than the refill window; buy token automation
+ * (auto-refill, auto-reviewer) when it costs at most half the visible progression price;
+ * otherwise the cheapest affordable optional card under a quarter of that price. Current offers
+ * only.
  */
+const AUTOMATION_CARDS = new Set(['auto-refill-v1', 'auto-refill-v2', 'auto-reviewer']);
 export const baselineBuyer: Policy = ({ run, catalog }) => {
   const offers = selectGame(run, catalog).offers.flatMap((o) => (o.kind === 'upgrade' ? [o] : []));
   const progression = offers.find((o) => catalog.upgrades.find((u) => u.id === o.id)?.discovers);
   if (progression?.affordable) return [{ type: 'buyUpgrade', id: progression.id }];
+  const pack = offers.find((o) => o.id === 'token-supply');
+  const rates = deriveRates(run, catalog);
+  const demand = tokenDemandPerSecond(rates);
+  if (
+    pack?.affordable &&
+    demand > 0 &&
+    run.economy.tokens < demand * catalog.balance.tokens.refillBelowSeconds
+  ) {
+    return [{ type: 'buyUpgrade', id: pack.id }];
+  }
+  const half = progression ? progression.price / 2 : Infinity;
+  const automation = offers.find(
+    (o) => AUTOMATION_CARDS.has(o.id) && o.affordable && o.price <= half,
+  );
+  if (automation) return [{ type: 'buyUpgrade', id: automation.id }];
   const limit = progression ? progression.price / 4 : Infinity;
   const optional = offers
-    .filter((o) => o !== progression && o.affordable && o.price <= limit)
+    .filter((o) => o !== progression && o !== pack && o.affordable && o.price <= limit)
     .sort((a, b) => a.price - b.price)[0];
   return optional ? [{ type: 'buyUpgrade', id: optional.id }] : [];
 };

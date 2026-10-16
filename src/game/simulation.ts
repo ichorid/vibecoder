@@ -1,7 +1,8 @@
 import { updateAttention, updateCat } from './cat';
 import { advanceSession, sessionOf, withSession } from './catPlaySession';
 import type { Catalog } from './catalog';
-import { deriveRates, roundAmount, stepEconomy } from './economy';
+import { deriveRates, roundAmount, stepEconomy, tokenDemandPerSecond, tokenPack } from './economy';
+import { nextFloat } from './random';
 import { appendLog } from './log';
 import { resolveAutomaticEnding } from './endings';
 import { evaluateAchievements, evaluateNarrative } from './narrative';
@@ -42,6 +43,9 @@ export function stepRun(run: RunState, stepMs: number, catalog: Catalog): Transi
     },
   };
 
+  // 2b. Token automation: auto-refill (v1 has a bug) and the auto-reviewer.
+  next = tokenAutomation(next, stepMs, catalog);
+
   // 3. Cat needs, health and terminal death.
   const cat = updateCat(next.cat, stepMs, catalog.balance.cat);
   next = { ...next, cat: cat.cat };
@@ -72,4 +76,80 @@ function recordDeath(run: RunState, catalog: Catalog, facts: GameFact[]): RunSta
     history: [...run.history, { kind: 'cat', id: 'cat-died', activeMs: run.activeMs }],
   };
   return appendLog(dead, catalog.catText.conditions.dead, catalog);
+}
+
+/**
+ * Auto-refill buys one pack when tokens would last less than `refillBelowSeconds` of demand and
+ * the code is there. Version 1's bug: its first disaster lands uniformly on refill 3–6 (a seeded
+ * "pity timer", so it reliably happens soon), later ones with a fixed chance; a disaster deletes
+ * `disasterLoss` of the current code and buys nothing. The auto-reviewer adds a small permanent
+ * rate bonus every interval up to its cap.
+ */
+function tokenAutomation(run: RunState, stepMs: number, catalog: Catalog): RunState {
+  const rates = deriveRates(run, catalog);
+  const t = catalog.balance.tokens;
+  let next = run;
+  if (rates.autoReview && next.economy.tokenReviewBonus < t.autoReviewCap) {
+    let elapsed = next.economy.autoReviewMs + stepMs;
+    let bonus = next.economy.tokenReviewBonus;
+    while (elapsed >= t.autoReviewEveryMs && bonus < t.autoReviewCap) {
+      elapsed -= t.autoReviewEveryMs;
+      bonus = Math.min(t.autoReviewCap, roundAmount(bonus + t.autoReviewStep));
+    }
+    next = {
+      ...next,
+      economy: { ...next.economy, tokenReviewBonus: bonus, autoReviewMs: elapsed },
+    };
+  }
+  if (rates.autoRefill === 0) return next;
+  const demand = tokenDemandPerSecond(rates);
+  if (demand <= 0 || next.economy.tokens >= demand * t.refillBelowSeconds) return next;
+  const pack = tokenPack(next, catalog);
+  if (next.economy.output < pack.price) return next;
+  if (rates.autoRefill === 2) {
+    return {
+      ...next,
+      economy: {
+        ...next.economy,
+        output: roundAmount(next.economy.output - pack.price),
+        tokens: roundAmount(next.economy.tokens + pack.tokens),
+      },
+    };
+  }
+  const refills = next.economy.autoRefills + 1;
+  const draw = nextFloat(next.rng.economy);
+  const chance =
+    next.stats.refillDisasters > 0
+      ? t.laterDisasterChance
+      : refills < t.firstDisasterFrom
+        ? 0
+        : 1 / (t.firstDisasterTo - refills + 1);
+  const rng = { ...next.rng, economy: draw.state };
+  if (draw.value < chance) {
+    const crashed: RunState = {
+      ...next,
+      rng,
+      economy: {
+        ...next.economy,
+        autoRefills: refills,
+        output: roundAmount(next.economy.output * (1 - t.disasterLoss)),
+      },
+      stats: { ...next.stats, refillDisasters: next.stats.refillDisasters + 1 },
+    };
+    return appendLog(
+      crashed,
+      'Auto-refill v1 hit a race condition: it deleted 90% of the codebase and bought no tokens.',
+      catalog,
+    );
+  }
+  return {
+    ...next,
+    rng,
+    economy: {
+      ...next.economy,
+      autoRefills: refills,
+      output: roundAmount(next.economy.output - pack.price),
+      tokens: roundAmount(next.economy.tokens + pack.tokens),
+    },
+  };
 }

@@ -1,5 +1,14 @@
 import type { UpgradeDefinition } from '../game/catalog';
+import type { ReadonlyRun } from '../game/types';
 import type { TechnologyId, UpgradeId } from '../game/ids';
+
+/**
+ * Tokens would last less than 30 s of full agent demand. Content cannot import the economy, so
+ * the condition reads the stock and the demand recorded by the last economy step.
+ */
+function tokensRunningLow(run: ReadonlyRun): boolean {
+  return run.economy.tokens < 10 || run.economy.tokens < run.economy.tokenDemandPerSecond * 30;
+}
 
 /** One-time progression card that lets a technology be discovered (effects live on it). */
 function progression(
@@ -80,16 +89,71 @@ export const upgrades = [
   },
   {
     id: 'token-supply',
-    title: 'Token supply',
-    description: '+6 tokens per second. Your card has been charged.',
+    title: 'Buy tokens',
+    description: 'About a minute of agent work. The reseller rounds up.',
     currency: 'output',
-    basePrice: 80,
-    priceGrowth: 1.6,
-    maxLevel: 8,
+    basePrice: 0,
+    priceGrowth: 1,
+    maxLevel: 1,
     requires: { technologies: ['terminal-agent'] },
     priority: 50,
     recovery: { tokensBelow: 10 },
-    effectsPerLevel: [{ kind: 'tokenSupplyPerSecond', amount: 6 }],
+    pack: 'tokens',
+    // Only on offer while tokens would last under half a minute: a pack never blocks a card slot
+    // that compute, review capacity or agents need the rest of the time.
+    extraCondition: (run) => tokensRunningLow(run),
+    effectsPerLevel: [],
+  },
+  {
+    id: 'auto-refill-v1',
+    title: 'Implement token auto-refill v1',
+    description: 'Buys tokens before they run out. Written on a Friday afternoon.',
+    currency: 'output',
+    basePrice: 1200,
+    priceGrowth: 1,
+    maxLevel: 1,
+    requires: { technologies: ['persistent-instructions'] },
+    priority: 40,
+    extraCondition: (run) => !(run.upgradeLevels['auto-refill-v2'] ?? 0),
+    effectsPerLevel: [{ kind: 'autoRefill', version: 1 }],
+  },
+  {
+    id: 'auto-refill-v2',
+    title: 'Token auto-refill v2',
+    description: 'The same, with a test for the bug that deleted the codebase.',
+    currency: 'output',
+    basePrice: 2500,
+    priceGrowth: 1,
+    maxLevel: 1,
+    requires: { technologies: ['persistent-instructions'] },
+    priority: 30,
+    extraCondition: (run) => run.stats.refillDisasters > 0,
+    effectsPerLevel: [{ kind: 'autoRefill', version: 2 }],
+  },
+  {
+    id: 'token-review',
+    title: 'Review your token spending',
+    description: '+10% tokens per code. Someone finally reads the invoice.',
+    currency: 'output',
+    basePrice: 800,
+    priceGrowth: 2.2,
+    maxLevel: 5,
+    requires: { technologies: ['reviewer'] },
+    // After compute, review capacity and agents: an unbought rate review never blocks them.
+    priority: 70,
+    effectsPerLevel: [{ kind: 'tokensPerCodeBonus', amount: 0.1 }],
+  },
+  {
+    id: 'auto-reviewer',
+    title: 'Auto-reviewer for token spending',
+    description: 'An agent audits the other agents\u2019 token bills. Rates creep up on their own.',
+    currency: 'output',
+    basePrice: 40_000,
+    priceGrowth: 1,
+    maxLevel: 1,
+    requires: { technologies: ['evaluations'] },
+    priority: 45,
+    effectsPerLevel: [{ kind: 'autoReview' }],
   },
   {
     id: 'compute-slot',

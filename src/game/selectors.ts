@@ -1,7 +1,7 @@
 import { catConditions, visibleAttention, type CatConditions } from './cat';
 import type { ReadonlyPlay } from './catPlaySession';
 import type { CatPresentation, Catalog, StatId, UpgradeDefinition } from './catalog';
-import { automationFraction, deriveRates, upgradeLevel, upgradePrice } from './economy';
+import { automationFraction, deriveRates, offerPrice, tokenPack } from './economy';
 import type { ChoiceId, EndingId, PrimaryActionId, TechnologyId, UpgradeId } from './ids';
 import { isChoiceOffered } from './endings';
 import { currentPrimaryAction, findTechnology, isUpgradeOffered } from './progression';
@@ -24,6 +24,8 @@ export interface UpgradeOfferViewModel {
   readonly price: number;
   readonly currency: 'output' | 'revenue';
   readonly affordable: boolean;
+  /** Token packs: how many tokens this purchase adds. */
+  readonly tokens?: number;
 }
 
 /** A decision card on the same surface as upgrades; no price, maybe a confirmation. */
@@ -180,7 +182,7 @@ export function selectGame(run: ReadonlyRun, catalog: Catalog): GameViewModel {
   const upgradeCards = catalog.upgrades
     .filter((upgrade) => isUpgradeOffered(run, upgrade))
     .map((upgrade, order) => {
-      const price = upgradePrice(upgrade, upgradeLevel(run, upgrade.id));
+      const price = offerPrice(run, upgrade, catalog);
       const card: UpgradeOfferViewModel = {
         kind: 'upgrade',
         id: upgrade.id,
@@ -190,6 +192,7 @@ export function selectGame(run: ReadonlyRun, catalog: Catalog): GameViewModel {
         currency: upgrade.currency,
         affordable:
           (upgrade.currency === 'revenue' ? run.economy.revenue : run.economy.output) >= price,
+        ...(upgrade.pack === 'tokens' ? { tokens: tokenPack(run, catalog).tokens } : {}),
       };
       return { card, order, priority: offerPriority(run, upgrade) };
     });
