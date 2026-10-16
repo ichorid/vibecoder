@@ -100,14 +100,18 @@ export const upgrades = [
     recovery: { tokensBelow: 10 },
     pack: 'tokens',
     // Only on offer while tokens would last under half a minute: a pack never blocks a card slot
-    // that compute, review capacity or agents need the rest of the time.
-    extraCondition: (run) => tokensRunningLow(run),
+    // that compute, review capacity or agents need the rest of the time. Once auto-refill v1 is
+    // bought the player trusts it — until its bug first strikes; then buying by hand (before
+    // the tokens run out, so v1 never fires) is the way to dodge the bug.
+    extraCondition: (run) =>
+      tokensRunningLow(run) &&
+      (!(run.upgradeLevels['auto-refill-v1'] ?? 0) || run.stats.refillDisasters > 0),
     effectsPerLevel: [],
   },
   {
     id: 'auto-refill-v1',
     title: 'Implement token auto-refill v1',
-    description: 'Buys tokens before they run out. Written on a Friday afternoon.',
+    description: 'Buys tokens when they run out. Written on a Friday afternoon.',
     currency: 'output',
     basePrice: 1200,
     priceGrowth: 1,
@@ -120,7 +124,7 @@ export const upgrades = [
   {
     id: 'auto-refill-v2',
     title: 'Token auto-refill v2',
-    description: 'The same, with a test for the bug that deleted the codebase.',
+    description: 'The same, with a test for the bug that paid the wrong account.',
     currency: 'output',
     basePrice: 2500,
     priceGrowth: 1,

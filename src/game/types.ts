@@ -69,7 +69,7 @@ export interface RunStats {
   lowDebtMs: number;
   positiveMarginMs: number;
   negativeMarginMs: number;
-  /** Times auto-refill v1 deleted most of the code instead of buying tokens. */
+  /** Times auto-refill v1 spent code on tokens that never arrived. */
   refillDisasters: number;
 }
 

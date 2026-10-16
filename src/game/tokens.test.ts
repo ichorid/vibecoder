@@ -92,7 +92,28 @@ describe('auto-refill', () => {
     expect(next.economy.output).toBeLessThan(run.economy.output);
   });
 
-  it('v1 has a bug: one of its refills 3–6 deletes 90% of the code and buys nothing', () => {
+  it('waits until the tokens are really gone: no refill while any are left', () => {
+    for (const version of [1, 2] as const) {
+      const run = hungry(version);
+      // Enough for a few seconds of this hungry run — far below the old "20 s left" trigger.
+      const demand = tokenDemandPerSecond(deriveRates(run, catalog));
+      const low = { ...run, economy: { ...run.economy, tokens: Math.max(10, demand * 3) } };
+      expect(steps(low, 1, catalog).economy.autoRefills).toBe(0);
+      const empty = { ...run, economy: { ...run.economy, tokens: 0 } };
+      expect(steps(empty, 1, catalog).economy.tokens).toBeGreaterThan(1);
+    }
+  });
+
+  it('with auto-refill v1 the manual pack is hidden, and comes back after its first bug', () => {
+    const low = (run: RunState) => ({ ...run, economy: { ...run.economy, tokens: 0 } });
+    expect(offered(low(at('ralph-loop')), 'token-supply')).toBe(true);
+    const trusting = hungry(1);
+    expect(offered(low(trusting), 'token-supply')).toBe(false);
+    const burned = { ...trusting, stats: { ...trusting.stats, refillDisasters: 1 } };
+    expect(offered(low(burned), 'token-supply')).toBe(true);
+  });
+
+  it('v1 has a bug: one of its refills 3–6 spends half the code and delivers no tokens', () => {
     for (const seed of [1, 2, 3, 4, 5, 6, 7, 8]) {
       let run = hungry(1, seed);
       let disasterAt = 0;
@@ -102,11 +123,11 @@ describe('auto-refill', () => {
         const next = steps(run, 1, catalog);
         if (next.stats.refillDisasters === 1) {
           disasterAt = next.economy.autoRefills;
-          // 90% of the code is gone (this step's own small production lands before the loss).
+          // Half the code is spent (this step's own small production lands before the loss).
           expect(next.economy.output).toBeLessThan(before * (1 - tokens.disasterLoss) + 1);
           expect(next.economy.output).toBeGreaterThan(before * (1 - tokens.disasterLoss) - 1);
           expect(next.economy.tokens).toBeLessThan(1);
-          expect(next.log.some((line) => /90%/.test(line.text))).toBe(true);
+          expect(next.log.some((line) => /wrong account|charity/.test(line.text))).toBe(true);
         }
         run = next;
       }

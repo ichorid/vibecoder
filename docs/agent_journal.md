@@ -270,3 +270,12 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   cap, best of 3) and the desk gets its second leg; the keyboard photo's odd hand replaced by a
   steaming mug (removal / hand-on-cat / mug drafted); Cat title reads "CAT (Dead)" — and
   "CAT (Missing)" for a stray.
+- 2026-10-16: user requests: settings cog with teeth; console chatter (src/content/chatter.ts:
+  12 lines × 28 technologies; src/game/chatter.ts: a 💬 line every 30–60 s of active time on an
+  otherwise quiet step, newest 3 technologies ×3 weight, least-recently-said line first, RNG
+  `rng.narrative`, timestamps in `narrative.lastAt` — no save change; validated 10–15 lines,
+  ≤ 140 chars, unique). Auto-refill fires only when tokens < 1 (`refillBelowTokens`); its bug
+  now pays 50 % of the code to the wrong account / charity for zero tokens; the manual Buy
+  tokens card is hidden while v1 is owned until its first bug (then buying by hand dodges it).
+  History entries get icons (tech thumbnail, event emoji, skull/sunset, trophy, flag, rocket,
+  palm for the jackpot) chosen by the selector (`HistoryEntryViewModel.icon`).

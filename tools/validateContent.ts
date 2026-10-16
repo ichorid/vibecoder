@@ -124,6 +124,7 @@ export function validateContent({
   if (cycle) issues.push({ message: `prerequisite cycle: ${cycle.join(' → ')}` });
 
   checkReleases(catalog, issues);
+  checkChatter(catalog, issues);
   return issues;
 }
 
@@ -181,4 +182,25 @@ function checkReleases(catalog: Catalog, issues: ContentIssue[]): void {
       message: `releases: jackpot ending "${catalog.releases.jackpotEnding}" is missing`,
     });
   }
+}
+
+/** Console chatter: every technology talks, 10–15 short lines each, no line used twice. */
+function checkChatter(catalog: Catalog, issues: ContentIssue[]): void {
+  const all: string[] = [];
+  for (const technology of catalog.technologies) {
+    const pool = catalog.chatter[technology.id] ?? [];
+    if (pool.length < 10 || pool.length > 15) {
+      issues.push({ message: `chatter "${technology.id}": ${pool.length} lines, needs 10–15` });
+    }
+    for (const line of pool) {
+      if (line.length === 0 || line.length > 140) {
+        issues.push({
+          message: `chatter "${technology.id}": a line is empty or over 140 characters`,
+        });
+      }
+    }
+    all.push(...pool);
+  }
+  for (const line of duplicates(all))
+    issues.push({ message: `chatter line used twice: "${line}"` });
 }

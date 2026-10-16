@@ -1,3 +1,4 @@
+import { evaluateChatter } from './chatter';
 import { releaseNotices } from './releases';
 import { updateAttention, updateCat } from './cat';
 import { advanceSession, sessionOf, withSession } from './catPlaySession';
@@ -6,7 +7,7 @@ import { deriveRates, roundAmount, stepEconomy, tokenDemandPerSecond, tokenPack 
 import { nextFloat } from './random';
 import { appendLog } from './log';
 import { resolveAutomaticEnding } from './endings';
-import { evaluateAchievements, evaluateNarrative } from './narrative';
+import { evaluateAchievements, evaluateNarrative, isQuietStep } from './narrative';
 import type { GameFact, RunState } from './types';
 
 /** Debt at or below this counts as a clean pipeline. */
@@ -62,7 +63,10 @@ export function stepRun(run: RunState, stepMs: number, catalog: Catalog): Transi
   // Launch windows that opened or closed get their one log line each.
   next = releaseNotices(next, catalog);
   // Narrative events (quiet when something important happened this step).
+  const linesBefore = next.log.length;
   next = evaluateNarrative(next, catalog, facts);
+  // Console chatter only on an otherwise quiet step (one ambient line at most).
+  if (next.log.length === linesBefore && !isQuietStep(facts)) next = evaluateChatter(next, catalog);
   next = evaluateAchievements(next, catalog);
   const attention = updateAttention(next.attention, next.cat, activeMs, catalog.balance.attention);
   if (attention !== next.attention) next = { ...next, attention };
@@ -94,10 +98,10 @@ function recordStray(run: RunState, facts: GameFact[]): RunState {
 }
 
 /**
- * Auto-refill buys one pack when tokens would last less than `refillBelowSeconds` of demand and
+ * Auto-refill buys one pack only when the tokens have run out (below `refillBelowTokens`) and
  * the code is there. Version 1's bug: its first disaster lands uniformly on refill 3–6 (a seeded
  * "pity timer", so it reliably happens soon), later ones with a fixed chance; a disaster deletes
- * `disasterLoss` of the current code and buys nothing. The auto-reviewer adds a small permanent
+ * `disasterLoss` of the current code (paid to the wrong account) and buys nothing. The auto-reviewer adds a small permanent
  * rate bonus every interval up to its cap.
  */
 function tokenAutomation(run: RunState, stepMs: number, catalog: Catalog): RunState {
@@ -118,7 +122,7 @@ function tokenAutomation(run: RunState, stepMs: number, catalog: Catalog): RunSt
   }
   if (rates.autoRefill === 0) return next;
   const demand = tokenDemandPerSecond(rates);
-  if (demand <= 0 || next.economy.tokens >= demand * t.refillBelowSeconds) return next;
+  if (demand <= 0 || next.economy.tokens >= t.refillBelowTokens) return next;
   const pack = tokenPack(next, catalog);
   if (next.economy.output < pack.price) return next;
   if (rates.autoRefill === 2) {
@@ -151,11 +155,11 @@ function tokenAutomation(run: RunState, stepMs: number, catalog: Catalog): RunSt
       },
       stats: { ...next.stats, refillDisasters: next.stats.refillDisasters + 1 },
     };
-    return appendLog(
-      crashed,
-      '💥 Auto-refill v1 hit a race condition: it deleted 90% of the codebase and bought no tokens.',
-      catalog,
-    );
+    const story =
+      next.stats.refillDisasters % 2 === 0
+        ? '💸 Auto-refill v1 paid for tokens into the wrong account: half your code is gone, no tokens arrived.'
+        : '💸 Auto-refill v1 donated your tokens to charity. It spent half your code doing it.';
+    return appendLog(crashed, story, catalog);
   }
   return {
     ...next,

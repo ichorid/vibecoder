@@ -6,6 +6,7 @@ import type { Catalog } from '../../src/game/catalog';
 /** Minimal catalog with one manual action, for core ordering tests. */
 export function createTestCatalog(): Catalog {
   return {
+    chatter: {},
     choices: [],
     endings: [],
     events: [],
@@ -34,6 +35,7 @@ export function createTestCatalog(): Catalog {
       manualOutputPerAction: 1,
       logMemoryLimit: 50,
       logVisibleLines: 5,
+      chatter: balance.chatter,
     },
     primaryActionLabels: {
       writeCode: 'WRITE CODE',

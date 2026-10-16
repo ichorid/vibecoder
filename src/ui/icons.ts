@@ -335,3 +335,51 @@ export const releaseIcon: PixelMap = {
   ],
   palette: { k: 'var(--ink)', w: 'var(--panel)', c: '#59b7ff', r: '#e8483c', Y: '#f6c945' },
 };
+
+/** History: an achievement. */
+export const trophyIcon: PixelMap = {
+  rows: [
+    'kkkkkkkkk',
+    'kYYYYYYYk',
+    'YkYYYYYkY',
+    'YkYYwYYkY',
+    '.kYYYYYk.',
+    '..kYYYk..',
+    '...kYk...',
+    '..kkkkk..',
+    '.kYYYYYk.',
+  ],
+  palette: { k: 'var(--ink)', Y: '#f6c945', w: '#fff4c2' },
+};
+
+/** History: an ending (the finish flag). */
+export const flagIcon: PixelMap = {
+  rows: [
+    'kkkkkkkk.',
+    'kwkwkwkk.',
+    'kkwkwkwk.',
+    'kwkwkwkk.',
+    'kkkkkkkk.',
+    'k........',
+    'k........',
+    'k........',
+    'kk.......',
+  ],
+  palette: { k: 'var(--ink)', w: 'var(--panel)' },
+};
+
+/** History: the release jackpot (a palm tree on the beach). */
+export const palmIcon: PixelMap = {
+  rows: [
+    '.gg...gg.',
+    'g..ggg..g',
+    '...gbg...',
+    '..g.b.g..',
+    '....b....',
+    '....b....',
+    '...b.....',
+    '...b.....',
+    'yyyyyyyyy',
+  ],
+  palette: { g: '#4f9b55', b: '#8a5a33', y: '#e7b42f' },
+};

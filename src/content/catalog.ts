@@ -2,6 +2,7 @@ import type { Catalog } from '../game/catalog';
 import { achievements } from './achievements';
 import { balance } from './balance';
 import { catText } from './catText';
+import { chatter } from './chatter';
 import { choices, endings } from './endings';
 import { events } from './events';
 import { releases } from './releases';
@@ -12,6 +13,7 @@ import { upgrades } from './upgrades';
 export const catalog: Catalog = {
   balance,
   catText,
+  chatter,
   choices,
   endings,
   releases,

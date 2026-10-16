@@ -126,6 +126,15 @@ export interface BalanceDefinition {
   /** Recent log lines shown in Game. */
   readonly logVisibleLines: number;
   readonly tokens: TokenBalance;
+  readonly chatter: ChatterBalance;
+}
+
+/** Console chatter pace: a line every min–max active ms; the newest few techs talk more. */
+export interface ChatterBalance {
+  readonly minGapMs: number;
+  readonly maxGapMs: number;
+  readonly newestCount: number;
+  readonly newestWeight: number;
 }
 
 /** Buying tokens with code, auto-refill and token-spending reviews. */
@@ -136,8 +145,8 @@ export interface TokenBalance {
   readonly packSeconds: number;
   /** …but never fewer tokens than this. */
   readonly packMin: number;
-  /** Auto-refill buys when tokens last less than this many seconds of demand. */
-  readonly refillBelowSeconds: number;
+  /** Auto-refill buys a pack only once tokens fall below this (i.e. they ran out). */
+  readonly refillBelowTokens: number;
   /** Share of current code auto-refill v1's bug deletes. */
   readonly disasterLoss: number;
   /** v1's first disaster lands on one of these refills (uniformly). */
@@ -397,6 +406,8 @@ export interface ReleaseContent {
 }
 
 export interface Catalog {
+  /** Random console lines per technology (said once it is unlocked). */
+  readonly chatter: Readonly<Partial<Record<TechnologyId, readonly string[]>>>;
   readonly choices: readonly ChoiceDefinition[];
   readonly releases: ReleaseContent;
   readonly endings: readonly EndingDefinition[];

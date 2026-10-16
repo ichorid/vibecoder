@@ -93,7 +93,7 @@ terminal agent … +400/s late) stay; everything above them is bought.
 | Card | Appears | Effect | Price |
 | --- | --- | --- | --- |
 | Buy tokens (`token-supply`, consumable) | terminal-agent, only while tokens last < 30 s of demand (recovery card below 10) | one pack = 60 s of current full agent demand, min 300 tokens | ⌈pack / rate⌉, rate = 6 tokens per code × (1 + reviews + auto-review) |
-| Token auto-refill v1 | persistent-instructions, until v2 is owned | buys a pack when tokens last < 20 s and code suffices; **bug**: the first disaster lands uniformly on refill 3–6, later ones 15 % per refill; a disaster deletes 90 % of current code and buys nothing | 1 200 |
+| Token auto-refill v1 | persistent-instructions, until v2 is owned | buys a pack when the tokens have run out (< 1) and code suffices; **bug**: the first disaster lands uniformly on refill 3–6, later ones 15 % per refill; a disaster pays 50 % of current code to the wrong account (or charity) and delivers no tokens; refilling only at zero lets the player avoid it by buying packs by hand | 1 200 |
 | Token auto-refill v2 | after the first disaster | the same without the bug | 2 500 |
 | Review your token spending | reviewer, 5 levels | +10 % rate per level | 800 × 2.2^level |
 | Auto-reviewer | evaluations | +2 % rate every 30 s active, up to +50 % | 40 000 |

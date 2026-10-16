@@ -102,6 +102,8 @@ export const baselineCare: Policy[] = [
  * otherwise the cheapest affordable optional card under a quarter of that price. Current offers
  * only.
  */
+/** A sensible player buys a pack by hand when tokens would last under this many seconds. */
+const MANUAL_PACK_BELOW_SECONDS = 20;
 const AUTOMATION_CARDS = new Set(['auto-refill-v1', 'auto-refill-v2', 'auto-reviewer']);
 export const baselineBuyer: Policy = ({ run, catalog }) => {
   const offers = selectGame(run, catalog).offers.flatMap((o) => (o.kind === 'upgrade' ? [o] : []));
@@ -110,11 +112,7 @@ export const baselineBuyer: Policy = ({ run, catalog }) => {
   const pack = offers.find((o) => o.id === 'token-supply');
   const rates = deriveRates(run, catalog);
   const demand = tokenDemandPerSecond(rates);
-  if (
-    pack?.affordable &&
-    demand > 0 &&
-    run.economy.tokens < demand * catalog.balance.tokens.refillBelowSeconds
-  ) {
+  if (pack?.affordable && demand > 0 && run.economy.tokens < demand * MANUAL_PACK_BELOW_SECONDS) {
     return [{ type: 'buyUpgrade', id: pack.id }];
   }
   const half = progression ? progression.price / 2 : Infinity;

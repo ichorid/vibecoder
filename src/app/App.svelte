@@ -259,7 +259,9 @@
       </GameView>
     </div>
     {#if view === 'history'}
-      <div class="view"><HistoryView history={$api.history} onReturn={returnToGame} /></div>
+      <div class="view">
+        <HistoryView history={$api.history} onReturn={returnToGame} {illustrationUrl} />
+      </div>
     {:else if view === 'cat'}
       <div class="view">
         <CatView

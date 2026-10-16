@@ -135,10 +135,20 @@ export interface GameViewModel {
   readonly lastRelease: ReleaseWheelViewModel | null;
 }
 
+/** What a History line shows in front of its title. */
+export type HistoryIconViewModel =
+  | { readonly kind: 'illustration'; readonly id: string }
+  | { readonly kind: 'emoji'; readonly text: string }
+  | {
+      readonly kind: 'symbol';
+      readonly id: 'cat-died' | 'cat-left' | 'achievement' | 'ending' | 'release' | 'jackpot';
+    };
+
 export interface HistoryEntryViewModel {
   readonly kind: 'technology' | 'cat' | 'event' | 'achievement' | 'ending' | 'release';
   readonly title: string;
   readonly activeMs: number;
+  readonly icon: HistoryIconViewModel;
 }
 
 export interface DiscoveredEndingViewModel {
@@ -369,31 +379,41 @@ export function selectHistory(
             kind: 'technology',
             title: findTechnology(catalog, entry.id)?.title ?? entry.id,
             activeMs: entry.activeMs,
+            icon: {
+              kind: 'illustration',
+              id: findTechnology(catalog, entry.id)?.illustrationId ?? entry.id,
+            },
           };
         case 'cat':
           return {
             kind: 'cat',
             title: catalog.catText.history[entry.id],
             activeMs: entry.activeMs,
+            icon: { kind: 'symbol', id: entry.id },
           };
         case 'ending':
           return {
             kind: 'ending',
             title: catalog.endings.find((e) => e.id === entry.id)?.title ?? entry.id,
             activeMs: entry.activeMs,
+            icon: { kind: 'symbol', id: 'ending' },
           };
         case 'achievement':
           return {
             kind: 'achievement',
             title: catalog.achievements.find((a) => a.id === entry.id)?.title ?? entry.id,
             activeMs: entry.activeMs,
+            icon: { kind: 'symbol', id: 'achievement' },
           };
-        case 'event':
+        case 'event': {
+          const event = catalog.events.find((e) => e.id === entry.textId);
           return {
             kind: 'event',
-            title: catalog.events.find((e) => e.id === entry.textId)?.text ?? entry.textId,
+            title: event?.text ?? entry.textId,
             activeMs: entry.activeMs,
+            icon: { kind: 'emoji', text: event?.emoji ?? '•' },
           };
+        }
         case 'release': {
           const record = run.releases.find((r) => r.window === entry.window);
           const window = catalog.releases.windows.find((w) => w.window === entry.window);
@@ -404,6 +424,7 @@ export function selectHistory(
               .replace('{version}', window?.version ?? `#${entry.window}`)
               .replace('{label}', label),
             activeMs: entry.activeMs,
+            icon: { kind: 'symbol', id: entry.outcome === 'jackpot' ? 'jackpot' : 'release' },
           };
         }
       }

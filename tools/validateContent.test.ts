@@ -108,4 +108,17 @@ describe('validateContent', () => {
       expect(source).toContain(needle);
     }
   });
+
+  it('rejects a technology with too little console chatter or a repeated line', () => {
+    const chatter = { ...catalog.chatter, autocomplete: ['only one line'] };
+    expect(messages(bundle({ chatter }))).toMatch(/chatter "autocomplete": 1 lines/);
+    const twice = {
+      ...catalog.chatter,
+      reviewer: [
+        ...(catalog.chatter.reviewer ?? []).slice(1),
+        catalog.chatter.worktrees?.[0] ?? '',
+      ],
+    };
+    expect(messages(bundle({ chatter: twice }))).toMatch(/used twice/);
+  });
 });

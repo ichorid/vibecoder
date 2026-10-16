@@ -87,6 +87,18 @@ const scenes: Record<string, Scene> = {
     save: () => saveText(progressedRun(9)),
     act: async (page) => page.getByTestId('offers-toggle').click(),
   },
+  history: {
+    width: 390,
+    height: 844,
+    save: () => saveText(progressedRun(12)),
+    act: async (page) => page.getByRole('button', { name: 'HISTORY' }).click(),
+  },
+  historyDead: {
+    width: 390,
+    height: 844,
+    save: () => saveText(neglectedRun()),
+    act: async (page) => page.getByRole('button', { name: 'HISTORY' }).click(),
+  },
   tech28Small: { width: 320, height: 568, save: () => saveText(progressedRun(28)) },
   stray: {
     width: 390,

@@ -9,6 +9,11 @@ import type { GameFact, RunState } from './types';
 
 const PRIORITY_FACTS = new Set<GameFact['type']>(['technologyDiscovered', 'catDied', 'catLeft']);
 
+/** A step that recorded something important (discovery, the cat's fate) stays quiet. */
+export function isQuietStep(facts: readonly GameFact[]): boolean {
+  return facts.some((fact) => PRIORITY_FACTS.has(fact.type));
+}
+
 export function evaluateNarrative(
   run: RunState,
   catalog: Catalog,

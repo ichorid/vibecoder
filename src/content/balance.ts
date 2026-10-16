@@ -104,12 +104,15 @@ export const balance = {
   manualOutputPerAction: 1,
   logMemoryLimit: 50,
   logVisibleLines: 5,
+  chatter: { minGapMs: 30_000, maxGapMs: 60_000, newestCount: 3, newestWeight: 3 },
   tokens: {
     perCodeBase: 6,
     packSeconds: 60,
     packMin: 300,
-    refillBelowSeconds: 20,
-    disasterLoss: 0.9,
+    // Auto-refill waits until the tokens are gone (the agents do stall for a moment).
+    refillBelowTokens: 1,
+    // The bug pays for a pack that never arrives: half the current code, zero tokens.
+    disasterLoss: 0.5,
     firstDisasterFrom: 3,
     firstDisasterTo: 6,
     laterDisasterChance: 0.15,
