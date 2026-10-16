@@ -51,7 +51,8 @@ export interface GameOptions {
   scheduler: IntervalScheduler;
   run: RunState;
   /** Factory for a deliberate restart (new ID and seed come from the app boundary). */
-  newRun?: () => RunState;
+  /** A fresh run carrying the profile's experience (code yield from earlier endings). */
+  newRun?: (experience: number) => RunState;
   persistence?: PersistenceOptions;
   freezeSnapshots?: boolean;
   /** App-level listener for committed facts (e.g. care sound effects); never alters the run. */
@@ -92,7 +93,7 @@ function needsImmediateSave(facts: readonly GameFact[]): boolean {
 export function createGame(options: GameOptions): Game {
   const { catalog, persistence } = options;
   let run = options.run;
-  let profile: ProfileState = persistence?.profile ?? { theme: 'light', endings: [] };
+  let profile: ProfileState = persistence?.profile ?? { theme: 'auto', endings: [], experience: 0 };
   let revision = persistence?.revision ?? 0;
   let saveStatus: SaveStatus = persistence ? 'ok' : 'disabled';
   let lastSavedRun: RunState | null = run;
@@ -134,6 +135,14 @@ export function createGame(options: GameOptions): Game {
   function recordDiscoveries(facts: readonly GameFact[]): void {
     for (const fact of facts) {
       if (fact.type !== 'endingReached') continue;
+      // A lesson learned: experience stacks every time such an ending is reached.
+      const gained = catalog.endings.find((e) => e.id === fact.id)?.experience ?? 0;
+      if (gained > 0) {
+        profile = {
+          ...profile,
+          experience: Math.round((profile.experience + gained) * 1000) / 1000,
+        };
+      }
       if (profile.endings.some((e) => e.id === fact.id)) continue;
       profile = {
         ...profile,
@@ -189,7 +198,7 @@ export function createGame(options: GameOptions): Game {
       case 'restart': {
         if (!options.newRun) return 'unavailable';
         runtime.settle();
-        run = options.newRun();
+        run = options.newRun(profile.experience);
         lastSavedRun = null;
         lastSaveActiveMs = run.activeMs;
         write();

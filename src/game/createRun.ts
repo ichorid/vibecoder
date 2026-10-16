@@ -21,7 +21,7 @@ export function createCat(): CatState {
 }
 
 /** Seed and run ID come from app composition; game code never reads clocks or crypto. */
-export function createRun(seed: number, runId: string): RunState {
+export function createRun(seed: number, runId: string, experience = 0): RunState {
   return {
     id: runId,
     status: 'playing',
@@ -75,6 +75,7 @@ export function createRun(seed: number, runId: string): RunState {
     choices: {},
     releases: [],
     plant: { water: 60, alive: true, diedAtActiveMs: null, cause: null, warned: false },
+    experience,
     ending: null,
   };
 }

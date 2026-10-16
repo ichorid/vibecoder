@@ -226,6 +226,8 @@ export interface RunState {
   releases: ReleaseRecord[];
   /** The corner plant: watered too often it drowns, too rarely it dries out. */
   plant: PlantState;
+  /** Experience carried in from earlier runs' endings: +this much code yield (0.1 = +10 %). */
+  experience: number;
   ending: EndingRecord | null;
 }
 

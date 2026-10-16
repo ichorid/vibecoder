@@ -340,3 +340,9 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   8/min, +35 per watering, drowns above 120, dries at 0, thirsty warning once below 25; sprite
   `room-plant-{ok,thirsty,soggy,dead}` split out of room-back. Save schema 5 (4→5 adds a living
   plant); v4 fixtures kept, v5 added.
+- 2026-10-16: experience (user): five "lesson learned" endings (last programmer, merge
+  conflict, greenest pipeline, forgotten project, bankruptcy) add +10 % code yield to every later
+  run, stacking each time (`EndingDefinition.experience`, `profile.experience`, `run.experience`
+  fixed at run start; multiplies presses, passive code and agents' useful code). The ending panel
+  says so; Setup shows "× Experience". Save schema 6 (5→6 adds experience 0 to profile and run);
+  a recovered old profile without the field reads as 0.

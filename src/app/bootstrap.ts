@@ -74,7 +74,7 @@ export function bootGame(): Boot {
           contentVersion: 1,
           revision: 0,
           profile: recovered ?? createProfile(),
-          run: createRun(newSeed(), newRunId()),
+          run: createRun(newSeed(), newRunId(), recovered?.experience ?? 0),
         });
       },
     };
@@ -94,7 +94,8 @@ export function bootGame(): Boot {
     clock: browserClock,
     scheduler: browserScheduler,
     run: save?.run ?? createRun(newSeed(), newRunId()),
-    newRun: () => createRun(newSeed(), newRunId()),
+    // A new run starts with the experience earned so far.
+    newRun: (experience: number) => createRun(newSeed(), newRunId(), experience),
     ...(adapter
       ? {
           persistence: {

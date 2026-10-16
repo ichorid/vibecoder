@@ -4,23 +4,28 @@ import { withTechnologies } from '../../tests/helpers/unlock';
 import { createFakeClock, createFakeScheduler } from '../../tests/helpers/fakeClock';
 import { createMemoryStorage } from '../../tests/helpers/memoryStorage';
 import { createRun } from '../game/createRun';
+import type { RunState } from '../game/types';
 import { TECHNOLOGY_IDS } from '../game/ids';
 import { createProfile, createSaveAdapter, SAVE_KEY, type SaveData } from '../persistence/save';
 import { createGame, type GameSnapshot } from './createGame';
 
-function setup(storage = createMemoryStorage(), runId = 'run-1') {
+function setup(
+  storage = createMemoryStorage(),
+  runId = 'run-1',
+  adjust: (run: RunState) => RunState = (run) => run,
+) {
   const clock = createFakeClock();
   const scheduler = createFakeScheduler();
   const loaded = createSaveAdapter(storage).load();
   const profile = loaded.status === 'loaded' ? loaded.save.profile : createProfile();
-  const run = withTechnologies(createRun(5, runId), [...TECHNOLOGY_IDS], catalog);
+  const run = adjust(withTechnologies(createRun(5, runId), [...TECHNOLOGY_IDS], catalog));
   let seed = 100;
   const game = createGame({
     catalog,
     clock,
     scheduler,
     run,
-    newRun: () => createRun((seed += 1), `run-${seed}`),
+    newRun: (experience) => createRun((seed += 1), `run-${seed}`, experience),
     persistence: { adapter: createSaveAdapter(storage), profile, revision: 0 },
   });
   let latest!: GameSnapshot;
@@ -96,5 +101,19 @@ describe('ending persistence', () => {
     const second = setup(storage, 'run-2');
     second.game.api.dispatch({ type: 'choose', id: 'remove-oversight' });
     expect(stored(storage).profile.endings).toHaveLength(1);
+  });
+
+  it('a lesson-learned ending raises experience, kept in the profile and given to the next run', () => {
+    // The expansion has been losing money for a while: closing the company is on offer.
+    const t = setup(createMemoryStorage(), 'run-1', (run) => ({
+      ...run,
+      choices: { 'expand-anyway': { atActiveMs: 0, manualActions: 0, overhead: 20 } },
+      stats: { ...run.stats, negativeMarginMs: 200_000 },
+    }));
+    expect(t.game.api.dispatch({ type: 'choose', id: 'close-company' })).toBe('applied');
+    expect(t.latest().game.ending?.experience).toEqual({ gained: 0.1, next: 0.1 });
+    expect(stored(t.storage).profile.experience).toBe(0.1);
+    t.game.api.dispatch({ type: 'restart' });
+    expect(t.latest().run.experience).toBe(0.1);
   });
 });

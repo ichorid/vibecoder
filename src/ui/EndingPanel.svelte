@@ -29,6 +29,13 @@
   {#each ending.paragraphs as paragraph, i (i)}
     <p class="line">{paragraph}</p>
   {/each}
+  {#if ending.experience}
+    <p class="lesson" data-testid="ending-experience">
+      📈 You are now more experienced with vibe coding: +{Math.round(
+        ending.experience.gained * 100,
+      )}% code yield in your next runs (next run: +{Math.round(ending.experience.next * 100)}%).
+    </p>
+  {/if}
 </section>
 
 <style>
@@ -61,6 +68,14 @@
   h2 {
     margin: 0 0 8px;
     font-size: 20px;
+  }
+  .lesson {
+    margin: 8px 0 0;
+    padding: 6px 8px;
+    border: 2px solid var(--border);
+    background: color-mix(in srgb, var(--accent) 16%, var(--panel));
+    font-weight: 800;
+    font-size: 14px;
   }
   .line {
     margin: 0;

@@ -41,14 +41,14 @@ function shippedRun() {
   return applyCommand(run, { type: 'shipRelease' }, run.activeMs, catalog).run;
 }
 
-/** Current-format fixtures (schema 5), produced by the same real game paths. */
+/** Current-format fixtures (schema 6), produced by the same real game paths. */
 const BUILDERS: Record<string, () => string> = {
-  'v5-fresh': () => saveWithProfile(createRun(1, 'fixture-fresh'), []),
-  'v5-midgame': () => saveWithProfile(progressedRun(6, true), []),
-  'v5-dead-cat': () => saveWithProfile(neglectedRun(), []),
-  'v5-stray-cat': () => saveWithProfile(strayRun(), []),
-  'v5-shipped': () => saveWithProfile(shippedRun(), []),
-  'v5-ended': () => {
+  'v6-fresh': () => saveWithProfile(createRun(1, 'fixture-fresh'), []),
+  'v6-midgame': () => saveWithProfile(progressedRun(6, true), []),
+  'v6-dead-cat': () => saveWithProfile(neglectedRun(), []),
+  'v6-stray-cat': () => saveWithProfile(strayRun(), []),
+  'v6-shipped': () => saveWithProfile(shippedRun(), []),
+  'v6-ended': () => {
     const run = endedRun();
     return saveWithProfile(run, [
       { id: 'the-forgotten-project', runId: run.id, activeMs: run.activeMs, order: 1 },
@@ -79,6 +79,14 @@ const V4 = [
   'v4-stray-cat',
   'v4-shipped',
   'v4-ended',
+] as const;
+const V5 = [
+  'v5-fresh',
+  'v5-midgame',
+  'v5-dead-cat',
+  'v5-stray-cat',
+  'v5-shipped',
+  'v5-ended',
 ] as const;
 const file = (name: string) => readFileSync(`${DIR}/${name}.json`, 'utf8');
 
@@ -129,6 +137,14 @@ describe('released save fixtures', () => {
     });
   }
 
+  for (const name of [...V1, ...V2, ...V3, ...V4, ...V5]) {
+    it(`${name} starts without experience (5 → 6)`, () => {
+      const save = loaded(file(name));
+      expect(save.run.experience).toBe(0);
+      expect(save.profile.experience).toBe(0);
+    });
+  }
+
   it('a run that ended with the retired one-click ship keeps its legacy ending', () => {
     const save = loaded(file('v3-ended'));
     expect(save.run.status).toBe('ended');
@@ -137,14 +153,14 @@ describe('released save fixtures', () => {
   });
 
   it('a shipped release round-trips with its outcome, comment and cat', () => {
-    const save = loaded(fixture('v5-shipped'));
+    const save = loaded(fixture('v6-shipped'));
     expect(save.run.releases).toHaveLength(1);
     expect(save.run.releases[0]).toMatchObject({ window: 1, catAlive: true });
     expect(save.run.history.some((h) => h.kind === 'release')).toBe(true);
   });
 
   it('a stray cat stays gone and is not mistaken for a dead one', () => {
-    const stray = loaded(fixture('v5-stray-cat'));
+    const stray = loaded(fixture('v6-stray-cat'));
     expect(stray.run.cat.alive).toBe(false);
     expect(stray.run.cat.leftAtActiveMs).not.toBeNull();
     expect(stray.run.cat.diedAtActiveMs).toBeNull();
@@ -169,25 +185,25 @@ describe('released save fixtures', () => {
   });
 
   it('mid-game keeps RNG streams, the pending reveal and care cooldowns', () => {
-    const save = loaded(fixture('v5-midgame'));
-    const original = JSON.parse(fixture('v5-midgame')) as { run: { rng: unknown } };
+    const save = loaded(fixture('v6-midgame'));
+    const original = JSON.parse(fixture('v6-midgame')) as { run: { rng: unknown } };
     expect(save.run.rng).toEqual(original.run.rng);
     expect(save.run.pendingUnlockIds.length).toBeGreaterThan(0);
     expect(save.run.cat.lastFedAtActiveMs).not.toBeNull();
   });
 
   it('a dead cat stays dead and an ended run stays ended', () => {
-    const dead = loaded(fixture('v5-dead-cat'));
+    const dead = loaded(fixture('v6-dead-cat'));
     expect(dead.run.cat.alive).toBe(false);
     expect(dead.run.history.some((h) => h.kind === 'cat' && h.id === 'cat-died')).toBe(true);
-    const ended = loaded(fixture('v5-ended'));
+    const ended = loaded(fixture('v6-ended'));
     expect(ended.run.status).toBe('ended');
     expect(ended.run.ending?.id).toBe('the-forgotten-project');
     expect(ended.profile.endings.map((e) => e.id)).toEqual(['the-forgotten-project']);
   });
 
   it('a future schema, unknown IDs or out-of-range values are refused and never overwritten', () => {
-    const base = JSON.parse(fixture('v5-midgame')) as Record<string, unknown> & {
+    const base = JSON.parse(fixture('v6-midgame')) as Record<string, unknown> & {
       run: Record<string, unknown> & { cat: Record<string, unknown> };
     };
     const cases: [string, unknown, string][] = [

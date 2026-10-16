@@ -58,6 +58,8 @@ export interface SetupViewModel {
     readonly coordination: number;
     readonly quality: number;
     readonly efficiency: number;
+    /** Code yield from experience earned in earlier runs (0.2 = +20 %). */
+    readonly experience: number;
     readonly usefulCodePerSecond: number;
     readonly passiveCodePerSecond: number;
     readonly totalCodePerSecond: number;
@@ -221,6 +223,7 @@ export function selectSetup(run: ReadonlyRun, catalog: Catalog): SetupViewModel 
       coordination: f.coordination,
       quality: f.quality,
       efficiency: rates.efficiency,
+      experience: rates.experience,
       usefulCodePerSecond: perSecond(f.useful),
       passiveCodePerSecond: rates.passiveOutputPerSecond,
       totalCodePerSecond: perSecond(f.useful) + rates.passiveOutputPerSecond,

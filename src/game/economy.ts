@@ -34,6 +34,8 @@ export interface DerivedRates {
   readonly managed: number;
   /** Useful-output multiplier: 1 + permanent efficiency + temporary OPTIMIZE boost. */
   readonly efficiency: number;
+  /** Experience from earlier runs: every source of code yields this much more (0.1 = +10 %). */
+  readonly experience: number;
   readonly monetization: number;
   readonly operatingCostPerAgent: number;
   /** Fixed operating cost per second committed by choices (e.g. a loss-making expansion). */
@@ -191,8 +193,10 @@ export function deriveRates(run: ReadonlyRun, catalog: Catalog): DerivedRates {
     }
   }
   return {
-    manualOutput,
-    passiveOutputPerSecond,
+    // Experience from earlier runs multiplies every source of code.
+    manualOutput: manualOutput * (1 + run.experience),
+    passiveOutputPerSecond: passiveOutputPerSecond * (1 + run.experience),
+    experience: run.experience,
     agents,
     compute,
     workPerAgentPerSecond,
@@ -331,7 +335,7 @@ export function economyFlows(
   const unchecked = funded * rates.uncheckedFraction;
   const coordination = coordinationEfficiency(rates.managed, Math.max(1, activeAgents));
   const quality = qualityEfficiency(economy.debt);
-  const useful = funded * coordination * quality * rates.efficiency;
+  const useful = funded * coordination * quality * rates.efficiency * (1 + rates.experience);
   return {
     runnable,
     activeAgents,

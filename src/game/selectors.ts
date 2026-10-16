@@ -106,6 +106,8 @@ export interface EndingViewModel {
   readonly paragraphs: readonly string[];
   /** Picture asset ID, chosen by the cat's presence when the run ended (null: no picture). */
   readonly illustrationId: string | null;
+  /** Experience gained (code yield for later runs) and what the next run will have. */
+  readonly experience: { readonly gained: number; readonly next: number } | null;
 }
 
 export interface StatViewModel {
@@ -376,12 +378,23 @@ function selectEnding(run: ReadonlyRun, catalog: Catalog): EndingViewModel | nul
   const record = run.ending;
   if (!record) return null;
   const definition = catalog.endings.find((e) => e.id === record.id);
-  if (!definition) return { id: record.id, title: record.id, paragraphs: [], illustrationId: null };
+  if (!definition) {
+    return {
+      id: record.id,
+      title: record.id,
+      paragraphs: [],
+      illustrationId: null,
+      experience: null,
+    };
+  }
   const picture = definition.illustrationId;
   return {
     id: record.id,
     title: definition.title,
     illustrationId: picture ? `ending-${picture}${record.catAlive ? '' : '-nocat'}` : null,
+    experience: definition.experience
+      ? { gained: definition.experience, next: run.experience + definition.experience }
+      : null,
     paragraphs: record.catAlive
       ? definition.text.alive
       : record.catLeft

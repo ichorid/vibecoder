@@ -84,6 +84,7 @@ describe('ending picture', () => {
     title: 'The Infinite Weekend',
     paragraphs: ['One release, out of nowhere, took off.'],
     illustrationId,
+    experience: null,
   });
 
   it('shows the variant the selector chose, and nothing for endings without a picture', () => {

@@ -107,6 +107,13 @@
         <span class="what">{@render ico(icons.optimizeIcon)}× Efficiency</span>
         <span class="value">{pct(e.efficiency)}</span>
       </li>
+      {#if e.experience > 0}
+        <li class="factor">
+          <span class="what">{@render ico(icons.trophyIcon)}× Experience</span>
+          <span class="value">{pct(1 + e.experience)}</span>
+          <span class="note">from lessons learned in earlier runs; your presses get it too</span>
+        </li>
+      {/if}
       <li>
         <span class="what">{@render ico(STAT_ICONS.output)}= Useful code from agents</span>
         <span class="value">{n(e.usefulCodePerSecond)} code/s</span>

@@ -95,6 +95,8 @@ export type Theme = (typeof THEMES)[number];
 export interface ProfileState {
   theme: Theme;
   endings: DiscoveredEnding[];
+  /** Code yield earned by "lesson learned" endings; every new run starts with it. */
+  experience: number;
 }
 
 /** One envelope holds profile and run so a restart or ending never saves half a change. */
@@ -120,7 +122,7 @@ export interface StorageLike {
 export type WriteResult = { ok: true } | { ok: false; error: string };
 
 export function createProfile(): ProfileState {
-  return { theme: 'auto', endings: [] };
+  return { theme: 'auto', endings: [], experience: 0 };
 }
 
 export function encodeSave(save: SaveData): string {
@@ -404,6 +406,7 @@ export function decodeRun(value: unknown, path = 'run'): RunState {
     choices: decodeChoices(raw.choices, `${path}.choices`),
     releases: list(raw.releases, `${path}.releases`, decodeRelease, MAX_RELEASES),
     plant: decodePlant(raw.plant, `${path}.plant`),
+    experience: num(raw.experience, `${path}.experience`, { min: 0, max: 100 }),
     ending: raw.ending === null ? null : decodeEnding(raw.ending, `${path}.ending`),
   };
   if ((run.status === 'ended') !== (run.ending !== null))
@@ -439,7 +442,15 @@ function decodeProfile(value: unknown, path = 'profile'): ProfileState {
   );
   if (new Set(endings.map((e) => e.id)).size !== endings.length)
     fail(`${path}.endings`, 'duplicate ending');
-  return { theme: oneOf(raw.theme, `${path}.theme`, THEMES), endings };
+  return {
+    theme: oneOf(raw.theme, `${path}.theme`, THEMES),
+    endings,
+    // Tolerant: a profile recovered from an older, unreadable save has none yet.
+    experience:
+      raw.experience === undefined
+        ? 0
+        : num(raw.experience, `${path}.experience`, { min: 0, max: 100 }),
+  };
 }
 
 /** Validate untrusted saved data. Never repairs, never falls back to an older or new run. */

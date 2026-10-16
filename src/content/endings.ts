@@ -169,6 +169,8 @@ export const endings: readonly EndingDefinition[] = [
   {
     id: 'the-last-programmer',
     title: 'The Last Programmer',
+    // A lesson learned: +10 % code yield in every later run.
+    experience: 0.1,
     text: {
       alive: [
         'You wrote the last part by hand.',
@@ -190,6 +192,8 @@ export const endings: readonly EndingDefinition[] = [
   {
     id: 'the-great-merge-conflict',
     title: 'The Great Merge Conflict',
+    // A lesson learned: +10 % code yield in every later run.
+    experience: 0.1,
     text: {
       alive: [
         'Every branch merged into every other branch.',
@@ -211,6 +215,8 @@ export const endings: readonly EndingDefinition[] = [
   {
     id: 'the-greenest-pipeline',
     title: 'The Greenest Pipeline',
+    // A lesson learned: +10 % code yield in every later run.
+    experience: 0.1,
     text: {
       alive: [
         'Every test passes. Every check is green.',
@@ -232,6 +238,8 @@ export const endings: readonly EndingDefinition[] = [
   {
     id: 'the-forgotten-project',
     title: 'The Forgotten Project',
+    // A lesson learned: +10 % code yield in every later run.
+    experience: 0.1,
     text: {
       alive: [
         'You archived the original project to focus on the harness.',
@@ -295,6 +303,8 @@ export const endings: readonly EndingDefinition[] = [
   {
     id: 'fully-automated-bankruptcy',
     title: 'Fully Automated Bankruptcy',
+    // A lesson learned: +10 % code yield in every later run.
+    experience: 0.1,
     // The credit line is used up: the creditors close the company, chosen or not.
     automatic: {
       priority: 50,

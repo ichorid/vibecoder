@@ -377,6 +377,8 @@ export interface EndingDefinition {
   readonly automatic?: { readonly priority: number; readonly when: (run: ReadonlyRun) => boolean };
   /** Reached by a release jackpot rather than a choice or a rule. */
   readonly jackpot?: boolean;
+  /** A lesson learned: reaching it adds this much code yield to every later run (stacks). */
+  readonly experience?: number;
   /** No longer reachable; kept so old profiles and saves still show it. */
   readonly legacy?: boolean;
   /** Ending picture, exported with the cat (`<id>`) and without it (`<id>-nocat`). */
