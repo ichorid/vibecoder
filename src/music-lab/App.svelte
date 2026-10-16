@@ -2,7 +2,9 @@
   import { untrack } from 'svelte';
   import type { LabController, LabMode, LabState } from './labController';
   import EntryList from './components/EntryList.svelte';
+  import ExchangePanel from './components/ExchangePanel.svelte';
   import NowPlaying from './components/NowPlaying.svelte';
+  import ReviewPanel from './components/ReviewPanel.svelte';
 
   interface Props {
     lab: LabController;
@@ -21,10 +23,28 @@
   ];
 
   let eraFilter = $state('all');
+  /** A view filter only: it never changes a review. */
+  let statusFilter = $state('all');
   const playable = $derived(view.entries.filter((e) => e.playable));
+  const matchesStatus = (e: (typeof view.entries)[number]) =>
+    statusFilter === 'all' ||
+    (statusFilter === 'stale' && (e.review?.stale ?? false)) ||
+    (statusFilter === 'local' && e.local) ||
+    e.review?.status === statusFilter;
   const visible = $derived(
-    view.entries.filter((e) => eraFilter === 'all' || e.eraId === eraFilter),
+    view.entries.filter((e) => (eraFilter === 'all' || e.eraId === eraFilter) && matchesStatus(e)),
   );
+  const selectedEntry = $derived(view.entries.find((e) => e.key === view.single.selected) ?? null);
+
+  /** Hand a text file to the reviewer (no server involved). */
+  function download(name: string, text: string) {
+    const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = name;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
   const eraTitle = (id: string | null) =>
     id === null ? 'silence' : (view.eras.find((e) => e.id === id)?.title ?? id);
   const playing = $derived(view.status === 'playing' || view.status === 'paused');
@@ -115,6 +135,18 @@
             onchange={onTempo}
           />
         </label>
+        <label>
+          Status
+          <select bind:value={statusFilter}>
+            <option value="all">All</option>
+            <option value="unreviewed">Unreviewed</option>
+            <option value="approved">Approved</option>
+            <option value="revise">Revise</option>
+            <option value="rejected">Rejected</option>
+            <option value="stale">Stale</option>
+            <option value="local">Local candidates</option>
+          </select>
+        </label>
         {#if view.single.tempoOverride !== null}
           <span class="badge warn">audition only — the file keeps its own tempo</span>
         {/if}
@@ -125,6 +157,20 @@
         playingKey={view.now?.key ?? null}
         onSelect={(key: string) => lab.select(key)}
       />
+      {#if selectedEntry}
+        {@const entry = selectedEntry}
+        <ReviewPanel
+          {entry}
+          ready={view.reviews.ready}
+          onRate={(rating: number | null) => lab.rate(entry.key, rating)}
+          onDraft={(text: string) => lab.setDraft(entry.key, text)}
+          onDecide={(status: 'unreviewed' | 'approved' | 'revise' | 'rejected') =>
+            lab.decide(entry.key, status)}
+          onExport={() =>
+            download(`${entry.id}.v${entry.revision}.json`, lab.exportPattern(entry.key) ?? '')}
+          onRemove={entry.local ? () => lab.removeCandidate(entry.key) : null}
+        />
+      {/if}
     </section>
   {:else if view.mode === 'random'}
     <section class="panel" aria-label="Random sequence">
@@ -211,6 +257,17 @@
       </ol>
     </section>
   {/if}
+
+  <ExchangePanel
+    conflicts={view.reviews.conflicts}
+    reviewError={view.reviews.error}
+    onExportReviews={() => download('music-reviews.json', lab.exportReviews())}
+    onImportReviews={(text: string) => lab.importReviews(text)}
+    onImportPatterns={(text: string, name: string) => void lab.importCandidates(text, name)}
+    onResolve={(key: string, choice: 'keep-local' | 'use-import') =>
+      lab.resolveConflict(key, choice)}
+    onResetReviews={() => lab.resetReviews()}
+  />
 
   {#if view.catalogErrors.length > 0}
     <details class="panel">

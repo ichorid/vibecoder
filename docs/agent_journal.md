@@ -61,6 +61,11 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   only `music/patterns/**/*-demo-*.json` (file-name convention) until S06 publishes an approved
   pack; dev serves everything. `reportSize.ts` walks `dist/.vite/manifest.json` and fails if the
   game page reaches Lab modules. One director per Lab document (`setLibrary` per mode).
+- D19 (S05) Review hash payload = pattern minus `metadata` + era + motif + era *default*
+  arrangement + presets of the roles with events (see `src/music/core/canonical.ts`). Other
+  arrangements of the era are not in the hash (they are mixes, chosen by the game). Local
+  candidates with semantic errors are accepted (shown "cannot play", can't be approved);
+  structural/catalog errors are rejected at import.
 - D5 (P02) App-level commands (`retrySave`, `setTheme`) go through the same public
   `dispatch` as game commands, so UI still sees only `{subscribe, dispatch}`.
 
@@ -139,3 +144,5 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   timeline; real-Tone renders). test:music 84, test:music-browser 12. Next S04 (Music Lab).
 - 2026-10-16: S04 done (Lab entry, 4 modes over one director, size/dependency guard, 390 px).
   test:music 95, test:music-browser 13, test:browser 36. Next S05 (reviews).
+- 2026-10-16: S05 done (SHA-256 review identity, review store/import/export/conflicts, approved
+  Random bank, local candidates). test:music 124, music-browser 14, browser 38. Next S06.

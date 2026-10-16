@@ -2,7 +2,9 @@ import { mount } from 'svelte';
 import '../ui/styles.css';
 import { createAudioPreferences } from '../music/preferences';
 import App from './App.svelte';
+import { createCandidateStore } from './candidates';
 import { createLabController, type LabState } from './labController';
+import { createReviewStore } from './reviewStore';
 import { loadLabSources } from './sources';
 
 function storage(): Storage | null {
@@ -20,6 +22,8 @@ async function boot(target: HTMLElement): Promise<void> {
     sources,
     seed: (Date.now() >>> 0) % 2_147_483_647,
     preferences: createAudioPreferences(storage()),
+    reviews: createReviewStore(storage()),
+    candidates: createCandidateStore(storage()),
     // Tone (and its AudioContext) load only on the first PLAY gesture.
     load: async () => (await import('../music/backend/loader')).loadToneBackend(),
     onState: (state) => publish(state),

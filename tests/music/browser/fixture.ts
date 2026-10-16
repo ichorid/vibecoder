@@ -11,6 +11,8 @@ import { createDirector } from '../../../src/music/director';
 import { createLibrary } from '../../../src/music/library';
 import { arrangement, era, pattern, sources } from '../fixtures';
 import { EVOLUTION_TIMELINE, createTimelineDriver } from '../../../src/music/previewTimeline';
+import { canonicalPayload } from '../../../src/music/core/canonical';
+import { contentHash } from '../../../src/music/hash';
 
 export interface RenderSpec {
   seconds: number;
@@ -206,9 +208,24 @@ async function evolution() {
   };
 }
 
+/** Browser Web Crypto hash of a repository demo pattern, with the exact canonical bytes. */
+async function hashParity() {
+  const { catalog } = buildCatalog({
+    eras: repository('eras'),
+    presets: repository('presets'),
+    arrangements: repository('arrangements'),
+    motifs: repository('motif'),
+    patterns: repository('patterns'),
+  });
+  const target = catalog.patterns.find((p) => p.id === 'singularity-demo-b');
+  if (!target) throw new Error('demo pattern missing');
+  return { canonical: canonicalPayload(target, catalog), hash: await contentHash(target, catalog) };
+}
+
 (window as unknown as { musicFixture: unknown }).musicFixture = {
   render,
   lifecycleCycles,
   transition,
   evolution,
+  hashParity,
 };

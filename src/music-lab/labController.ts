@@ -2,20 +2,43 @@
  * Music Lab controller: four audition modes over ONE director and one backend per document.
  * Tone is loaded only on the first PLAY (a user gesture). Every mode is data fed to the same
  * director; mode drivers advance on its audio-clock commits, never on browser timers.
+ *
+ * Reviews bind to exact versions (id@revision#sha256 of the canonical payload). Random's
+ * approved bank is rebuilt from current, non-stale approvals and swapped in at the next safe
+ * boundary. Local candidates (imported JSON) join the catalog through the same validators.
  */
 import type { MusicBackendPort } from '../music/backend/port';
 import { buildCatalog, type MusicCatalog, type MusicSources } from '../music/core/catalog';
 import { DEFAULT_BOUNDARY_RULES, pairAllowed } from '../music/core/compatibility';
 import { analyzePattern, type NormalizedPattern } from '../music/core/validation';
+import type { PatternDocument } from '../music/data/patterns.generated';
 import {
   createDirector,
   type MusicDirector,
   type MusicRequest,
   type PhraseInfo,
 } from '../music/director';
+import { contentHash } from '../music/hash';
 import { createLibrary, patternKey, type MusicLibrary } from '../music/library';
 import type { AudioPreferenceStore } from '../music/preferences';
 import { EVOLUTION_TIMELINE, createTimelineDriver, planTimeline } from '../music/previewTimeline';
+import { importCandidateText, type CandidateReport, type CandidateStore } from './candidates';
+import type { ReviewStore } from './reviewStore';
+import {
+  approvedKeys,
+  decide as decideReview,
+  decodeReviewEnvelope,
+  emptyBook,
+  encodeReviewEnvelope,
+  exactKey,
+  mergeImport,
+  resolveConflict as resolveReviewConflict,
+  reviewFor,
+  type ReviewBook,
+  type ReviewConflict,
+  type ReviewStatus,
+  type ReviewView,
+} from './reviews';
 
 export type LabMode = 'single' | 'random' | 'transition' | 'evolution';
 export type LabStatus = 'idle' | 'loading' | 'needsGesture' | 'playing' | 'paused' | 'error';
@@ -26,10 +49,17 @@ export interface LabEntry {
   readonly revision: number;
   readonly eraId: string;
   readonly demo: boolean;
+  /** Imported in this browser (not part of the installed catalog). */
+  readonly local: boolean;
   readonly playable: boolean;
   readonly bpm: number | null;
   readonly errors: readonly string[];
   readonly warnings: readonly string[];
+  /** SHA-256 of the canonical payload; null until computed (or unavailable). */
+  readonly hash: string | null;
+  readonly review: ReviewView | null;
+  /** Unsaved feedback text (or the saved feedback when there is no draft). */
+  readonly draft: string;
 }
 
 export interface LabState {
@@ -61,6 +91,12 @@ export interface LabState {
     /** Index of the committed phrase (−1 before start). */
     readonly position: number;
   };
+  readonly reviews: {
+    /** Hashes computed: reviews can be recorded. */
+    readonly ready: boolean;
+    readonly error: string | null;
+    readonly conflicts: readonly ReviewConflict[];
+  };
   readonly volume: number;
   readonly muted: boolean;
 }
@@ -77,12 +113,16 @@ export interface LabControllerOptions {
   readonly preferences: AudioPreferenceStore;
   readonly load: () => Promise<LoadedBackend>;
   readonly onState: (state: LabState) => void;
-  /** Exact approved keys (S05 reviews); empty until a human approves something. */
-  readonly approved?: ReadonlySet<string>;
+  readonly reviews?: ReviewStore;
+  readonly candidates?: CandidateStore;
+  readonly hash?: (pattern: PatternDocument, catalog: MusicCatalog) => Promise<string>;
+  readonly now?: () => string;
 }
 
 export interface LabController {
   state(): LabState;
+  /** Resolves once content hashes for the current catalog are known. */
+  ready(): Promise<void>;
   setMode(mode: LabMode): void;
   select(key: string): void;
   setTempoOverride(bpm: number | null): void;
@@ -93,6 +133,19 @@ export interface LabController {
   stop(): void;
   setVolume(volume: number): void;
   setMuted(muted: boolean): void;
+  rate(key: string, rating: number | null): void;
+  setDraft(key: string, text: string): void;
+  /** APPROVE / REVISE / REJECT (or back to unreviewed); saves the current feedback draft. */
+  decide(key: string, status: ReviewStatus): void;
+  exportReviews(): string;
+  importReviews(text: string): void;
+  resolveConflict(key: string, choice: 'keep-local' | 'use-import'): void;
+  /** Discard unreadable stored reviews (explicit reviewer action). */
+  resetReviews(): void;
+  importCandidates(text: string, fileName: string): CandidateReport;
+  /** Editable JSON of any installed or local version. */
+  exportPattern(key: string): string | null;
+  removeCandidate(key: string): void;
   /** Document hidden/visible: silence immediately, resume without catch-up. */
   suspend(): void;
   wake(): void;
@@ -101,16 +154,20 @@ export interface LabController {
 
 const PPQ = 192;
 
-function describeEntries(catalog: MusicCatalog): LabEntry[] {
+type BaseEntry = Omit<LabEntry, 'hash' | 'review' | 'draft'>;
+
+function describeEntries(catalog: MusicCatalog, localKeys: ReadonlySet<string>): BaseEntry[] {
   return catalog.patterns
     .map((document) => {
       const { normalized, diagnostics } = analyzePattern(document, catalog);
+      const key = patternKey(document);
       return {
-        key: patternKey(document),
+        key,
         id: document.id,
         revision: document.revision,
         eraId: document.eraId,
         demo: document.demo,
+        local: localKeys.has(key),
         playable: normalized !== null,
         bpm: normalized?.bpm ?? null,
         errors: diagnostics.filter((d) => d.level === 'error').map((d) => d.message),
@@ -124,30 +181,66 @@ function clockOf(p: NormalizedPattern): string {
   return `${p.bpm} BPM ${p.timeSignature.numerator}/${p.timeSignature.denominator} ${p.bars}×${p.stepsPerBar}`;
 }
 
+const keyOfRaw = (value: unknown) => {
+  const v = value as { id?: unknown; revision?: unknown };
+  return `${String(v.id)}@${String(v.revision)}`;
+};
+
 export function createLabController(options: LabControllerOptions): LabController {
-  const { catalog, diagnostics } = buildCatalog(options.sources);
-  const entries = describeEntries(catalog);
-  const catalogErrors = diagnostics
-    .filter((d) => d.level === 'error' && !entries.some((e) => d.source.includes(e.key)))
-    .map((d) => d.message);
-  const approved = options.approved ?? new Set<string>();
-  const libraries = {
-    all: createLibrary(catalog, { candidates: 'all' }),
-    approved: createLibrary(catalog, { candidates: 'approved', approved }),
-    demo: createLibrary(catalog, { candidates: 'demo' }),
-    evolution: createLibrary(catalog, { candidates: 'demo', demoFallback: true }),
-  };
-  // Progression order (the timeline), then any extra eras alphabetically.
+  const hashOf = options.hash ?? contentHash;
+  const nowIso = options.now ?? (() => new Date().toISOString());
+  const prefs = options.preferences.load();
+  const storedReviews = options.reviews?.load() ?? { book: emptyBook(), error: null };
+  const storedCandidates = options.candidates?.load() ?? { patterns: [], error: null };
+
+  let localPatterns: unknown[] = storedCandidates.patterns;
+  let book: ReviewBook = storedReviews.book;
+  let reviewError: string | null = storedReviews.error ?? storedCandidates.error;
+  let hashes = new Map<string, string>();
+  let hashesReady = false;
+  let conflicts: ReviewConflict[] = [];
+
+  // Catalog-derived state, rebuilt when local candidates change.
+  let catalog: MusicCatalog;
+  let entries: BaseEntry[] = [];
+  let catalogErrors: string[] = [];
+  let libraries: Record<'all' | 'approved' | 'demo' | 'evolution', MusicLibrary>;
+  let orderedEras: { id: string; title: string }[] = [];
+  let evolutionPlan: ReturnType<typeof planTimeline>;
+  let readyPromise: Promise<void> = Promise.resolve();
+
   const progression = EVOLUTION_TIMELINE.map((stage) => stage.era);
   const rank = (id: string) => {
     const index = progression.indexOf(id);
     return index < 0 ? progression.length : index;
   };
-  const orderedEras = [...catalog.eras.values()].sort(
-    (a, b) => rank(a.id) - rank(b.id) || a.id.localeCompare(b.id),
-  );
-  const firstEra = orderedEras[0]?.id ?? 'discovery';
-  const prefs = options.preferences.load();
+
+  function rebuild(): void {
+    const built = buildCatalog({
+      ...options.sources,
+      patterns: [...options.sources.patterns, ...localPatterns],
+    });
+    catalog = built.catalog;
+    entries = describeEntries(catalog, new Set(localPatterns.map(keyOfRaw)));
+    catalogErrors = built.diagnostics
+      .filter((d) => d.level === 'error' && !entries.some((e) => d.source.includes(e.key)))
+      .map((d) => d.message);
+    libraries = {
+      all: createLibrary(catalog, { candidates: 'all' }),
+      approved: createLibrary(catalog, {
+        candidates: 'approved',
+        approved: approvedKeys(book, hashes),
+      }),
+      demo: createLibrary(catalog, { candidates: 'demo' }),
+      evolution: createLibrary(catalog, { candidates: 'demo', demoFallback: true }),
+    };
+    orderedEras = [...catalog.eras.values()]
+      .sort((a, b) => rank(a.id) - rank(b.id) || a.id.localeCompare(b.id))
+      .map((e) => ({ id: e.id, title: e.title }));
+    evolutionPlan = planTimeline(EVOLUTION_TIMELINE, libraries.evolution, PPQ);
+  }
+  rebuild();
+  const firstEra = () => orderedEras[0]?.id ?? 'discovery';
 
   let mode: LabMode = 'single';
   let status: LabStatus = 'idle';
@@ -155,7 +248,7 @@ export function createLabController(options: LabControllerOptions): LabControlle
   let now: PhraseInfo | null = null;
   let selected: string | null = entries.find((e) => e.playable)?.key ?? null;
   let tempoOverride: number | null = null;
-  let randomEra = firstEra;
+  let randomEra = firstEra();
   let includeDemo = false;
   let transitionA: string | null = null;
   let transitionB: string | null = null;
@@ -173,7 +266,12 @@ export function createLabController(options: LabControllerOptions): LabControlle
   let timeline = createTimelineDriver(EVOLUTION_TIMELINE);
 
   const randomLibrary = () => (includeDemo ? libraries.demo : libraries.approved);
-  const evolutionPlan = planTimeline(EVOLUTION_TIMELINE, libraries.evolution, PPQ);
+  const modeLibrary = () =>
+    mode === 'random'
+      ? randomLibrary()
+      : mode === 'evolution'
+        ? libraries.evolution
+        : libraries.all;
 
   function transitionWarning(): string | null {
     const a = transitionA ? libraries.all.pattern(transitionA) : undefined;
@@ -189,40 +287,101 @@ export function createLabController(options: LabControllerOptions): LabControlle
     return problems.length > 0 ? `Lab audition only: ${problems.join('; ')}.` : null;
   }
 
-  const snapshot = (): LabState => ({
-    mode,
-    status,
-    message,
-    eras: orderedEras.map((e) => ({ id: e.id, title: e.title })),
-    entries,
-    catalogErrors,
-    now,
-    demoPlayback:
-      mode === 'evolution' ||
-      (mode === 'random' && includeDemo) ||
-      (mode === 'single' && (entries.find((e) => e.key === selected)?.demo ?? false)) ||
-      (mode === 'transition' &&
-        [transitionA, transitionB].some((k) => entries.find((e) => e.key === k)?.demo)),
-    single: { selected, tempoOverride },
-    random: { era: randomEra, includeDemo, candidates: randomLibrary().bank(randomEra).length },
-    transition: { a: transitionA, b: transitionB, warning: transitionWarning() },
-    evolution: {
-      durationSeconds: evolutionPlan.durationSeconds,
-      stages: evolutionPlan.entries
-        .filter((_, i) => i % 2 === 0)
-        .map((e) => ({ era: e.era, sourceEra: e.sourceEra, demoFallback: e.demoFallback })),
-      position: mode === 'evolution' ? timeline.position() : -1,
-    },
-    volume,
-    muted,
-  });
+  function versionOf(entry: BaseEntry) {
+    const contentHash = hashes.get(entry.key);
+    return contentHash ? { patternId: entry.id, revision: entry.revision, contentHash } : null;
+  }
+
+  function project(entry: BaseEntry): LabEntry {
+    const version = versionOf(entry);
+    const review = version ? reviewFor(book, version) : null;
+    const draft = version ? book.drafts.get(exactKey(version)) : undefined;
+    return {
+      ...entry,
+      hash: version?.contentHash ?? null,
+      review,
+      draft: draft ?? review?.feedback ?? '',
+    };
+  }
+
+  const snapshot = (): LabState => {
+    const projected = entries.map(project);
+    const isDemo = (key: string | null) => projected.find((e) => e.key === key)?.demo ?? false;
+    return {
+      mode,
+      status,
+      message,
+      eras: orderedEras,
+      entries: projected,
+      catalogErrors,
+      now,
+      demoPlayback:
+        mode === 'evolution' ||
+        (mode === 'random' && includeDemo) ||
+        (mode === 'single' && isDemo(selected)) ||
+        (mode === 'transition' && (isDemo(transitionA) || isDemo(transitionB))),
+      single: { selected, tempoOverride },
+      random: { era: randomEra, includeDemo, candidates: randomLibrary().bank(randomEra).length },
+      transition: { a: transitionA, b: transitionB, warning: transitionWarning() },
+      evolution: {
+        durationSeconds: evolutionPlan.durationSeconds,
+        stages: evolutionPlan.entries
+          .filter((_, i) => i % 2 === 0)
+          .map((e) => ({ era: e.era, sourceEra: e.sourceEra, demoFallback: e.demoFallback })),
+        position: mode === 'evolution' ? timeline.position() : -1,
+      },
+      reviews: { ready: hashesReady, error: reviewError, conflicts },
+      volume,
+      muted,
+    };
+  };
   const publish = () => options.onState(snapshot());
+
+  function rehash(): void {
+    const target = catalog;
+    hashesReady = false;
+    readyPromise = Promise.all(
+      target.patterns.map(async (p) => [patternKey(p), await hashOf(p, target)] as const),
+    ).then(
+      (pairs) => {
+        if (target !== catalog || disposed) return;
+        hashes = new Map(pairs);
+        hashesReady = true;
+        refreshApproved();
+        publish();
+      },
+      (error: unknown) => {
+        reviewError = error instanceof Error ? error.message : String(error);
+        publish();
+      },
+    );
+  }
+
+  /** Rebuild the approved bank; a playing Random sequence picks it up at the next boundary. */
+  function refreshApproved(): void {
+    libraries = {
+      ...libraries,
+      approved: createLibrary(catalog, {
+        candidates: 'approved',
+        approved: approvedKeys(book, hashes),
+      }),
+    };
+    if (playing && director && mode === 'random' && !includeDemo) {
+      director.setLibrary(libraries.approved);
+    }
+  }
+
+  function persistReviews(): void {
+    if (!options.reviews) return;
+    const saved = options.reviews.save(book);
+    reviewError = saved.ok ? null : saved.error;
+  }
 
   function pinRequest(key: string): MusicRequest {
     const entry = libraries.all.pattern(key);
     const era = entry ? catalog.eras.get(entry.eraId) : undefined;
     return {
-      era: entry?.eraId ?? firstEra,
+      era: entry?.eraId ?? firstEra(),
       arrangement: era?.defaultArrangement ?? '',
       pin: key,
       ...(tempoOverride !== null ? { tempoOverride } : {}),
@@ -348,10 +507,36 @@ export function createLabController(options: LabControllerOptions): LabControlle
     director.start();
   }
 
+  /** Local candidates changed: rebuild the catalog; playback continues on the new library. */
+  function candidatesChanged(): void {
+    rebuild();
+    rehash();
+    if (playing && director) {
+      if (blocker()) stopPlayback();
+      else director.setLibrary(modeLibrary());
+    }
+  }
+
+  function withEntry(
+    key: string,
+    action: (entry: BaseEntry, version: NonNullable<ReturnType<typeof versionOf>>) => void,
+  ) {
+    const entry = entries.find((e) => e.key === key);
+    const version = entry ? versionOf(entry) : null;
+    if (!entry || !version) {
+      message = hashesReady ? `Unknown version ${key}.` : 'Reviews are not ready yet.';
+      publish();
+      return;
+    }
+    action(entry, version);
+  }
+
+  rehash();
   publish();
 
   return {
     state: snapshot,
+    ready: () => readyPromise,
     setMode(next) {
       if (next === mode) return;
       stopPlayback();
@@ -448,6 +633,121 @@ export function createLabController(options: LabControllerOptions): LabControlle
     setMuted(next) {
       muted = next;
       loaded?.backend.setMuted(muted);
+      publish();
+    },
+    rate(key, rating) {
+      withEntry(key, (entry, version) => {
+        const result = decideReview(book, version, { rating }, nowIso(), entry.playable);
+        if (!result.ok) message = result.error;
+        else {
+          book = result.value;
+          persistReviews();
+        }
+        publish();
+      });
+    },
+    setDraft(key, text) {
+      withEntry(key, (_entry, version) => {
+        book = { records: book.records, drafts: new Map(book.drafts).set(exactKey(version), text) };
+        persistReviews();
+        publish();
+      });
+    },
+    decide(key, decision) {
+      withEntry(key, (entry, version) => {
+        const draft = book.drafts.get(exactKey(version));
+        const result = decideReview(
+          book,
+          version,
+          { status: decision, ...(draft !== undefined ? { feedback: draft } : {}) },
+          nowIso(),
+          entry.playable,
+        );
+        if (!result.ok) message = result.error;
+        else {
+          book = result.value;
+          message = null;
+          persistReviews();
+          refreshApproved();
+        }
+        publish();
+      });
+    },
+    exportReviews: () => encodeReviewEnvelope(book),
+    importReviews(text) {
+      const decoded = decodeReviewEnvelope(text);
+      if (!decoded.ok) {
+        message = `Reviews not imported: ${decoded.error}`;
+        publish();
+        return;
+      }
+      const merged = mergeImport(book, decoded.value);
+      book = merged.book;
+      conflicts = [
+        ...conflicts.filter((c) => !merged.conflicts.some((m) => m.key === c.key)),
+        ...merged.conflicts,
+      ];
+      persistReviews();
+      refreshApproved();
+      message = `Reviews imported: ${merged.added} added, ${merged.identical} already present, ${merged.conflicts.length} conflict(s) to resolve.`;
+      publish();
+    },
+    resolveConflict(key, choice) {
+      const conflict = conflicts.find((c) => c.key === key);
+      if (!conflict) return;
+      book = resolveReviewConflict(book, conflict, choice);
+      conflicts = conflicts.filter((c) => c !== conflict);
+      persistReviews();
+      refreshApproved();
+      publish();
+    },
+    resetReviews() {
+      options.reviews?.reset();
+      book = emptyBook();
+      conflicts = [];
+      reviewError = null;
+      refreshApproved();
+      publish();
+    },
+    importCandidates(text, fileName) {
+      const result = importCandidateText(text, fileName, options.sources, localPatterns);
+      if (result.report.added.length > 0) {
+        const saved = options.candidates?.save(result.candidates) ?? { ok: true as const };
+        if (!saved.ok) {
+          message = `Candidates not imported: ${saved.error}`;
+          publish();
+          return { ...result.report, added: [] };
+        }
+        localPatterns = result.candidates;
+        candidatesChanged();
+      }
+      const r = result.report;
+      const parts = [
+        r.added.length > 0 ? `added ${r.added.join(', ')}` : '',
+        r.identical.length > 0 ? `already present ${r.identical.join(', ')}` : '',
+        ...r.conflicts.map((c) => `conflict ${c.key}: ${c.reason}`),
+        ...r.rejected.map((x) => `rejected ${x.key ?? x.file}: ${x.problems.join('; ')}`),
+      ].filter(Boolean);
+      message = `Import ${fileName}: ${parts.join(' · ') || 'nothing to import'}`;
+      publish();
+      return r;
+    },
+    exportPattern(key) {
+      const raw = [...localPatterns, ...options.sources.patterns].find((p) => keyOfRaw(p) === key);
+      return raw === undefined ? null : `${JSON.stringify(raw, null, 2)}\n`;
+    },
+    removeCandidate(key) {
+      const next = localPatterns.filter((p) => keyOfRaw(p) !== key);
+      if (next.length === localPatterns.length) return;
+      const saved = options.candidates?.save(next) ?? { ok: true as const };
+      if (!saved.ok) {
+        message = saved.error;
+        publish();
+        return;
+      }
+      localPatterns = next;
+      if (selected === key) selected = null;
+      candidatesChanged();
       publish();
     },
     suspend() {

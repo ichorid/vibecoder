@@ -28,6 +28,10 @@
           <span class="meta">
             {entry.eraId}{entry.bpm ? ` · ${entry.bpm} BPM` : ''}
             {#if entry.demo}<span class="badge warn">demo</span>{/if}
+            {#if entry.local}<span class="badge">local</span>{/if}
+            {#if entry.review}<span class="badge" data-status={entry.review.status}
+                >{entry.review.stale ? 'stale' : entry.review.status}</span
+              >{/if}
             {#if playingKey === entry.key}<span class="badge">sounding</span>{/if}
             {#if !entry.playable}<span class="badge">cannot play</span>{/if}
             {#if entry.warnings.length > 0}<span class="badge"
