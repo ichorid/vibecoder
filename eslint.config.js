@@ -24,6 +24,7 @@ const typedLintFiles = [
   'tests/**/*.ts',
   'tools/*.ts',
   'tools/art/**/*.ts',
+  'tools/music/**/*.ts',
   'art/**/*.ts',
   'playwright.config.ts',
   'vite.config.ts',

@@ -38,7 +38,8 @@
     "tools/*.ts",
     "tools/art/**/*.ts",
     "tools/music/**/*.ts",
-    "vitest.music.config.ts"
+    "vitest.music.config.ts",
+    "playwright.music.config.ts"
   ],
   "exclude": [
     "tools/acceptance/fixtures/types/invalid-command-union.ts",

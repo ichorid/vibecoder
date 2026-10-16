@@ -82,6 +82,11 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   matched by `pkill -f`. Use scratchpad scripts `preview-start.sh` / `preview-stop.sh` and run
   them by path only (recreate them if the scratchpad is gone).
 
+- F8 Tone 15.1.22 creates its global AudioContext at *import time* (Chrome logs "AudioContext
+  was not allowed to start"). Never import `tone` from the game entry before a user gesture;
+  the backend module is loaded lazily. Verified in the S02 spike: `transport.schedule(cb, '192i')`
+  (ticks), audio-time callback args, `transport.clear(id)` and `Tone.Offline` work.
+
 ## Progress log
 
 - 2026-10-16: P00 verified + committed. Next: P01.

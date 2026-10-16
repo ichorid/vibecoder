@@ -43,3 +43,16 @@ Status: **done**
 
 Exit: `test:music` 49/49; `npm run check` OK. Not yet: anything audible (S02).
 Next: S02.1.
+
+## S02 — Tone backend and lifecycle
+
+Status: **done** (headless Chromium only; no listening, no mobile yet)
+
+- S02.1 spike: Tone 15.1.22 — ticks notation `'<n>i'`, audio-time callback argument, `transport.clear`, `Tone.Offline` confirmed. **Finding:** importing Tone creates the global AudioContext immediately, so Tone is only ever loaded with `import()` after the player turns sound on (`src/music/backend/loader.ts`). `npm run test:music-browser` runs real-Tone specs against a dev-server fixture (`tests/music/browser/`, not in the production build).
+- S02.2 `src/music/backend/instruments.ts`: pulse/triangle (Synth or bounded FMSynth), arp (PolySynth with preset polyphony), noise kit (Membrane/Noise synths), optional filter/distortion/detune from bounded presets; music and SFX buses → master gain → limiter. RED: every render failed at first with "cannot connect to an AudioNode belonging to a different audio context" — lazily created voices used Tone's global (online) context during offline rendering; fixed by constructing every node with the backend's captured context. Then: mute-before-start leaked a 20 ms ramp and velocity 0 sounded → instant level when stopped, zero-velocity events skipped. A 7-voice full-velocity mix peaked at 2.0 → fixed headroom on the music bus (0.28); the limiter is insurance only.
+- S02.3 scheduling: absolute ticks, per-phrase IDs, commit flag set by the phrase-start callback, Draw notification at the audible start; sustained-support fixture shows no dip across the phrase seam.
+- S02.4 pause/resume/stop/dispose: pause ramps to 0, pauses the transport and disposes the voice bank (queued notes cannot sound); resume re-attacks notes still in progress for their remaining ticks; stop clears and rewinds; 100 schedule/start/pause/resume/stop cycles leave 0 events/voices/instruments/phrases; dispose idempotent. Verified by offline renders (silent windows during pause, sound after resume, nothing after stop).
+- S02.5 `src/music/{public,preferences}.ts`, `tests/music/audioController.test.ts` (RED 6/7 vs stubs), browser gesture test. States off/loading/needsGesture/playing/unavailable/error; rejected unlock → needsGesture (no unhandled rejection); a slow import that outlived user activation asks for another tap; volume and sound choice persisted under `vibecoder.audio.v1` (unlock not persisted); corrupt prefs → defaults, game save untouched; mute pauses scheduling. Browser: no AudioContext and no Tone request before the gesture; `running` after the click.
+
+Exit: `test:music` 56/56, `test:music-browser` 10/10, `npm run check` OK, game build unchanged (Tone not in any game chunk yet).
+Not verified: listening quality, mobile unlock. Next: S03.1.

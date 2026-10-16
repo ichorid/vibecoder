@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build && vite-node tools/reportSize.ts",
     "check:types": "svelte-check --tsconfig tsconfig.json && tsc -p tsconfig.game.json && tsc -p tools/type-fixtures/tsconfig.positive.json",
-    "lint": "eslint src tests tools/*.ts tools/art art vite.config.ts vitest.config.ts playwright.config.ts",
+    "lint": "eslint src tests tools/*.ts tools/art tools/music art vite.config.ts vitest.config.ts playwright.config.ts",
     "format:check": "prettier --check .",
     "format": "prettier --write .",
     "check": "npm run check:types && npm run lint && npm run format:check && npm run test:rules && npm run check:content && npm run check:release-content && npm run music:check-types && npm run music:validate",
@@ -21,7 +21,8 @@
     "test:music": "vitest run --config vitest.music.config.ts",
     "music:types": "vite-node tools/music/generateTypes.ts",
     "music:check-types": "vite-node tools/music/generateTypes.ts -- --check && tsc -p tsconfig.music.json",
-    "music:validate": "vite-node tools/music/validate.ts"
+    "music:validate": "vite-node tools/music/validate.ts",
+    "test:music-browser": "playwright test --config playwright.music.config.ts"
   },
   "dependencies": {
     "ajv": "^8.17.1",

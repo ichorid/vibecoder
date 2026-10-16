@@ -3,6 +3,8 @@ import { defineConfig, devices } from '@playwright/test';
 /** Browser acceptance runs against the production build served by `vite preview`. */
 export default defineConfig({
   testDir: 'tests/browser',
+  // Real-Tone fixture specs run against the dev server (playwright.music.config.ts).
+  testIgnore: /music-.*\.spec\.ts/,
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: 0,

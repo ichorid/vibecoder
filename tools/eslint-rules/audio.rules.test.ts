@@ -12,6 +12,7 @@ test('audio boundaries', () => {
   tester.run('vibe/audio-boundaries', audioBoundaries, {
     valid: [
       { code: "import * as Tone from 'tone';", filename: '/repo/src/music/backend/toneBackend.ts' },
+      { code: "import * as Tone from 'tone';", filename: '/repo/tests/music/browser/fixture.ts' },
       {
         code: "import { createDirector } from '../music/public';",
         filename: '/repo/src/app/musicBinding.ts',

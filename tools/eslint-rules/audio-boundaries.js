@@ -4,11 +4,13 @@
  * (ui/app) never imports the Music Lab or its review store.
  */
 
-/** @typedef {'backend'|'core'|'music'|'lab'|'game'|'ui'|'app'|'other'} AudioLayer */
+/** @typedef {'backend'|'core'|'music'|'lab'|'game'|'ui'|'app'|'test'|'other'} AudioLayer */
 
 /** @param {string} filename @returns {AudioLayer} */
 function layerOf(filename) {
   const path = filename.replace(/\\/g, '/');
+  // Real-audio test fixtures render through Tone directly.
+  if (/(^|\/)tests\/music\/browser\//.test(path)) return 'test';
   if (/(^|\/)src\/music\/backend\//.test(path)) return 'backend';
   if (/(^|\/)src\/music\/(core|data)\//.test(path)) return 'core';
   if (/(^|\/)src\/music\//.test(path)) return 'music';
@@ -31,7 +33,7 @@ const BROWSER_GLOBALS = new Set([
 
 /** @param {string} spec @param {AudioLayer} layer @returns {string | null} */
 function importProblem(spec, layer) {
-  if ((spec === 'tone' || spec.startsWith('tone/')) && layer !== 'backend') {
+  if ((spec === 'tone' || spec.startsWith('tone/')) && layer !== 'backend' && layer !== 'test') {
     return 'Tone may only be imported in src/music/backend/; use the public music API';
   }
   if (layer === 'game' && /(^|\/)music(-lab)?(\/|$)/.test(spec)) {
