@@ -10,7 +10,14 @@ import {
   type ProfileState,
   type SaveAdapter,
 } from '../persistence/save';
-import type { AppCommand, InputTiming, SaveStatus, UiGameApi, UiSnapshot } from '../ui/contracts';
+import type {
+  AppCommand,
+  CheckpointInfo,
+  InputTiming,
+  SaveStatus,
+  UiGameApi,
+  UiSnapshot,
+} from '../ui/contracts';
 import { createSnapshotStore, type Readable } from './gameStore';
 import {
   createRuntime,
@@ -43,6 +50,8 @@ export interface PersistenceOptions {
   adapter: SaveAdapter;
   profile: ProfileState;
   revision: number;
+  /** A second slot for a player-made checkpoint (save here / load it back). */
+  checkpoint?: SaveAdapter;
 }
 
 export interface GameOptions {
@@ -99,6 +108,21 @@ export function createGame(options: GameOptions): Game {
   let lastSavedRun: RunState | null = run;
   let lastSaveActiveMs = run.activeMs;
 
+  /** What the checkpoint slot holds (read once, then kept in step with saves). */
+  const checkpointInfo = (saved: RunState | null): CheckpointInfo | null =>
+    saved
+      ? {
+          activeMs: saved.activeMs,
+          technologies: saved.unlockedTechnologyIds.length,
+          ended: saved.status === 'ended',
+        }
+      : null;
+  const readCheckpoint = (): RunState | null => {
+    const loaded = persistence?.checkpoint?.load();
+    return loaded?.status === 'loaded' ? loaded.save.run : null;
+  };
+  let checkpoint = checkpointInfo(readCheckpoint());
+
   const snapshot = (): GameSnapshot => ({
     run,
     game: selectGame(run, catalog),
@@ -108,6 +132,7 @@ export function createGame(options: GameOptions): Game {
     world: selectWorld(run, catalog),
     profile,
     save: { status: saveStatus },
+    checkpoint,
   });
   const store = createSnapshotStore<GameSnapshot>(snapshot(), options.freezeSnapshots ?? true);
   const publish = () => store.publish(snapshot());
@@ -195,6 +220,32 @@ export function createGame(options: GameOptions): Game {
       case 'graphicsResume':
         runtime.resume('graphics');
         break;
+      case 'saveCheckpoint': {
+        const slot = persistence?.checkpoint;
+        if (!slot) return 'unavailable';
+        runtime.settle();
+        const result = slot.write({
+          schemaVersion: CURRENT_SCHEMA_VERSION,
+          contentVersion: CONTENT_VERSION,
+          revision: 0,
+          profile,
+          run,
+        });
+        if (!result.ok) return 'unavailable';
+        checkpoint = checkpointInfo(run);
+        break;
+      }
+      case 'loadCheckpoint': {
+        const saved = readCheckpoint();
+        if (!saved) return 'unavailable';
+        runtime.settle();
+        // The run comes back; the profile (discovered endings, experience, theme) stays as is.
+        run = saved;
+        lastSavedRun = null;
+        lastSaveActiveMs = run.activeMs;
+        write();
+        break;
+      }
       case 'restart': {
         if (!options.newRun) return 'unavailable';
         runtime.settle();
@@ -219,6 +270,8 @@ export function createGame(options: GameOptions): Game {
       command.type === 'retrySave' ||
       command.type === 'setTheme' ||
       command.type === 'restart' ||
+      command.type === 'saveCheckpoint' ||
+      command.type === 'loadCheckpoint' ||
       command.type === 'graphicsPause' ||
       command.type === 'graphicsResume'
     ) {

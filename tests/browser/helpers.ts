@@ -32,8 +32,10 @@ export async function loadSave(page: Page, text: string): Promise<void> {
 /** Phones show the cards in a popup: open it (a no-op where the cards are inline). */
 export async function openUpgrades(page: Page): Promise<void> {
   const toggle = page.getByTestId('offers-toggle');
-  await expect(toggle.or(page.locator('ul.offers'))).toBeVisible();
-  if (await toggle.isVisible()) await toggle.click();
+  await expect(toggle.or(page.locator('ul.offers')).first()).toBeVisible();
+  if ((await toggle.isVisible()) && !(await page.getByTestId('offers-sheet').isVisible())) {
+    await toggle.click();
+  }
   await expect(page.locator('ul.offers')).toBeVisible();
 }
 

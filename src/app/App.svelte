@@ -253,6 +253,12 @@
         {audio}
         musicLabHref={`${import.meta.env.BASE_URL}music-lab/`}
         credits={[RELEASE_COMMENTS_ATTRIBUTION]}
+        checkpoint={$api.checkpoint}
+        onSaveCheckpoint={() => api.dispatch({ type: 'saveCheckpoint' })}
+        onLoadCheckpoint={() => {
+          api.dispatch({ type: 'loadCheckpoint' });
+          returnToGame();
+        }}
         onTheme={setTheme}
         onClose={closeSettings}
       />

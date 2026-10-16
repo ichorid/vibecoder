@@ -1,6 +1,7 @@
 <script lang="ts">
   import AudioControlsPanel from './AudioControls.svelte';
-  import type { AudioControls, ThemePreference } from './contracts';
+  import type { AudioControls, CheckpointInfo, ThemePreference } from './contracts';
+  import { formatActiveTime } from './format';
 
   interface Props {
     theme: ThemePreference;
@@ -8,11 +9,27 @@
     musicLabHref: string;
     /** Attribution lines for third-party content (shown under Credits). */
     credits?: readonly string[];
+    /** The checkpoint slot: save the run here, load it back later (e.g. to try every ending). */
+    checkpoint?: CheckpointInfo | null;
+    onSaveCheckpoint?: () => void;
+    onLoadCheckpoint?: () => void;
     onTheme: (theme: ThemePreference) => void;
     onClose: () => void;
   }
 
-  const { theme, audio, musicLabHref, credits = [], onTheme, onClose }: Props = $props();
+  const {
+    theme,
+    audio,
+    musicLabHref,
+    credits = [],
+    checkpoint = null,
+    onSaveCheckpoint,
+    onLoadCheckpoint,
+    onTheme,
+    onClose,
+  }: Props = $props();
+  let confirmLoad = $state(false);
+  let savedNote = $state(false);
   let panel: HTMLElement | undefined = $state();
   let page = $state<'main' | 'music'>('main');
 
@@ -96,6 +113,49 @@
       {/if}
     </p>
     <button type="button" class="item" onclick={() => (page = 'music')}>Music ›</button>
+    {#if onSaveCheckpoint}
+      <div class="checkpoint" data-testid="checkpoint">
+        <span class="credits-title">Checkpoint</span>
+        <button
+          type="button"
+          class="item"
+          onclick={() => {
+            onSaveCheckpoint?.();
+            savedNote = true;
+            confirmLoad = false;
+          }}>SAVE CHECKPOINT</button
+        >
+        {#if checkpoint}
+          {#if confirmLoad}
+            <p class="note">Replace the current run with the checkpoint? Endings you found stay.</p>
+            <div class="confirm-row">
+              <button
+                type="button"
+                class="item"
+                onclick={() => {
+                  confirmLoad = false;
+                  onLoadCheckpoint?.();
+                  onClose();
+                }}>LOAD IT</button
+              >
+              <button type="button" class="item" onclick={() => (confirmLoad = false)}
+                >CANCEL</button
+              >
+            </div>
+          {:else}
+            <button type="button" class="item" onclick={() => (confirmLoad = true)}
+              >LOAD CHECKPOINT</button
+            >
+          {/if}
+          <p class="note" data-testid="checkpoint-info">
+            {savedNote ? 'Saved. ' : ''}Run at {formatActiveTime(checkpoint.activeMs)}, {checkpoint.technologies}
+            technologies{checkpoint.ended ? ', ended' : ''}.
+          </p>
+        {:else}
+          <p class="note">Save here before a big decision, then load it to try another.</p>
+        {/if}
+      </div>
+    {/if}
     {#if credits.length > 0}
       <div class="credits" data-testid="credits">
         <span class="credits-title">Credits</span>
@@ -147,6 +207,18 @@
     background: var(--panel);
     border: 3px solid var(--border);
     box-shadow: 0 4px 0 var(--shadow);
+  }
+  .checkpoint {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 8px;
+    padding-top: 6px;
+    border-top: 2px solid var(--border);
+  }
+  .confirm-row {
+    display: flex;
+    gap: 6px;
   }
   .credits {
     margin-top: 8px;

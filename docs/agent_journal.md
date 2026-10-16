@@ -346,3 +346,9 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   fixed at run start; multiplies presses, passive code and agents' useful code). The ending panel
   says so; Setup shows "× Experience". Save schema 6 (5→6 adds experience 0 to profile and run);
   a recovered old profile without the field reads as 0.
+- 2026-10-16: checkpoint (user): Settings → SAVE CHECKPOINT / LOAD CHECKPOINT (confirm) — a
+  second localStorage slot `vibe-coder.checkpoint` holding a full envelope; loading brings the
+  run back and keeps the current profile (discovered endings, experience, theme), so one run can
+  try every ending. AppCommands `saveCheckpoint`/`loadCheckpoint`; snapshot `checkpoint`. The
+  cards popup closes when a run ends. NOTE: another Claude session was working in this repo at
+  the same time (running tools/tune.ts, creating tools/_econ_tmp.ts); I left its files alone.

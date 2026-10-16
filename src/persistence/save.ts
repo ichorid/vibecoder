@@ -75,6 +75,8 @@ import { CURRENT_SCHEMA_VERSION, migrate } from './migrations';
 
 export { CURRENT_SCHEMA_VERSION };
 export const SAVE_KEY = 'vibe-coder.save';
+/** The player's checkpoint slot (Settings → Save checkpoint / Load checkpoint). */
+export const CHECKPOINT_KEY = 'vibe-coder.checkpoint';
 export const CONTENT_VERSION = 1;
 const CARE_NOTES = [
   'nom',

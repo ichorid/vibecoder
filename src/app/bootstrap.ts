@@ -2,6 +2,7 @@ import { catalog } from '../content/catalog';
 import { createRun } from '../game/createRun';
 import {
   createProfile,
+  CHECKPOINT_KEY,
   createSaveAdapter,
   CURRENT_SCHEMA_VERSION,
   recoverProfile,
@@ -102,6 +103,7 @@ export function bootGame(): Boot {
             adapter,
             profile: save?.profile ?? createProfile(),
             revision: save?.revision ?? 0,
+            ...(storage ? { checkpoint: createSaveAdapter(storage, CHECKPOINT_KEY) } : {}),
           },
         }
       : {}),

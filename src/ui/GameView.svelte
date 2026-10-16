@@ -46,6 +46,10 @@
     onSetup,
   }: Props = $props();
   let offersOpen = $state(false);
+  // An ending closes the cards popup; it does not come back open on the next run or a load.
+  $effect(() => {
+    if (game.ending) offersOpen = false;
+  });
   let sheet: HTMLElement | undefined = $state();
   /** Purchases the current balance pays for right now (upgrades and releases). */
   const affordable = $derived(

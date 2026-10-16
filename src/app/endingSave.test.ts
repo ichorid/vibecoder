@@ -6,7 +6,13 @@ import { createMemoryStorage } from '../../tests/helpers/memoryStorage';
 import { createRun } from '../game/createRun';
 import type { RunState } from '../game/types';
 import { TECHNOLOGY_IDS } from '../game/ids';
-import { createProfile, createSaveAdapter, SAVE_KEY, type SaveData } from '../persistence/save';
+import {
+  CHECKPOINT_KEY,
+  createProfile,
+  createSaveAdapter,
+  SAVE_KEY,
+  type SaveData,
+} from '../persistence/save';
 import { createGame, type GameSnapshot } from './createGame';
 
 function setup(
@@ -26,7 +32,12 @@ function setup(
     scheduler,
     run,
     newRun: (experience) => createRun((seed += 1), `run-${seed}`, experience),
-    persistence: { adapter: createSaveAdapter(storage), profile, revision: 0 },
+    persistence: {
+      adapter: createSaveAdapter(storage),
+      profile,
+      revision: 0,
+      checkpoint: createSaveAdapter(storage, CHECKPOINT_KEY),
+    },
   });
   let latest!: GameSnapshot;
   game.api.subscribe((s) => {
@@ -115,5 +126,21 @@ describe('ending persistence', () => {
     expect(stored(t.storage).profile.experience).toBe(0.1);
     t.game.api.dispatch({ type: 'restart' });
     expect(t.latest().run.experience).toBe(0.1);
+  });
+
+  it('a checkpoint lets the player take an ending, then go back and try another', () => {
+    const t = setup();
+    expect(t.latest().checkpoint).toBeNull();
+    expect(t.game.api.dispatch({ type: 'saveCheckpoint' })).toBe('applied');
+    expect(t.latest().checkpoint).toMatchObject({ ended: false, technologies: 28 });
+    t.game.api.dispatch({ type: 'choose', id: 'remove-oversight' });
+    expect(t.latest().run.status).toBe('ended');
+    expect(t.game.api.dispatch({ type: 'loadCheckpoint' })).toBe('applied');
+    expect(t.latest().run.status).toBe('playing');
+    // The discovered ending stays in the profile; the run is the saved one.
+    expect(t.latest().history.endings.map((e) => e.title)).toEqual(['You Have Been Optimized']);
+    t.game.api.dispatch({ type: 'choose', id: 'keep-approval' });
+    expect(t.latest().history.endings).toHaveLength(2);
+    expect(stored(t.storage).run.ending?.id).toBe('the-human-approval-api');
   });
 });

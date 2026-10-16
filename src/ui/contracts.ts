@@ -23,6 +23,9 @@ export type AppCommand =
   | { type: 'retrySave' }
   | { type: 'setTheme'; theme: ThemePreference }
   | { type: 'restart' }
+  /** A separate save slot to try something and come back (e.g. every ending in one run). */
+  | { type: 'saveCheckpoint' }
+  | { type: 'loadCheckpoint' }
   /** The world's graphics context was lost / is back: pause and resume the simulation. */
   | { type: 'graphicsPause' }
   | { type: 'graphicsResume' };
@@ -46,6 +49,15 @@ export interface UiSnapshot {
   readonly world: WorldViewModel;
   readonly profile: { readonly theme: ThemePreference };
   readonly save: { readonly status: SaveStatus };
+  /** The checkpoint slot (null: empty or not available). */
+  readonly checkpoint: CheckpointInfo | null;
+}
+
+export interface CheckpointInfo {
+  /** Active time of the saved run. */
+  readonly activeMs: number;
+  readonly technologies: number;
+  readonly ended: boolean;
 }
 
 export interface Readable<T> {
