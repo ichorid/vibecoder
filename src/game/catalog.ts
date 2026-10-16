@@ -52,6 +52,8 @@ export interface CatPlayBalance {
   readonly readyMs: number;
   readonly movementMs: number;
   readonly resultMs: number;
+  /** A catch during the result pause is ignored this soon after the catch (double taps). */
+  readonly skipLockMs: number;
   readonly resumeCueMs: number;
   readonly targetWidthMin: number;
   readonly targetWidthMax: number;

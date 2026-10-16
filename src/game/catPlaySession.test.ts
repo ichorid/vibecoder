@@ -145,29 +145,77 @@ describe('PLAY session', () => {
   it('gives 24–36 for three hits without cap, and caps mood at 100', () => {
     let run = started(30);
     const before = run.cat.mood;
+    const startMs = run.activeMs;
     for (let attempt = 0; attempt < 3; attempt += 1) {
       run = catchNow(toHitMoment(run)).run;
-      const next = run;
-      run = steps(next, 50, catalog);
       while (run.catPlay && play(run).attemptNumber === attempt + 1) run = steps(run, 1, catalog);
     }
     const gained = run.cat.mood - before;
-    // Base mood decay during ~14 s is under 2 points.
-    expect(gained).toBeGreaterThanOrEqual(24 - 2);
+    // Ordinary mood decay keeps running during the session (at most one extra needs tick).
+    const cat = catalog.balance.cat;
+    const ticks = Math.ceil((run.activeMs - startMs) / cat.needsTickMs) + 1;
+    expect(gained).toBeGreaterThanOrEqual(24 - ticks * cat.moodDecayPerTick * 1.1);
     expect(gained).toBeLessThanOrEqual(36);
     const capped = catchNow(toHitMoment(started(97))).run;
     expect(capped.cat.mood).toBe(100);
   });
 
-  it('keeps the next attempt waiting until the movement slot ends after an early hit', () => {
+  it('after a catch only a short result pause follows, not the rest of the movement', () => {
     const run = toHitMoment(started());
     const hit = catchNow(run).run;
-    const p = play(hit);
-    const justBefore = steps(hit, Math.floor((p.attemptEndMs - hit.activeMs) / 100) - 1, catalog);
-    expect(play(justBefore).attemptNumber).toBe(1);
-    expect(playPhase(play(justBefore), justBefore.activeMs)).toBe('result');
-    const total = 3 * (balance.readyMs + balance.movementMs + balance.resultMs);
-    expect(total).toBe(13_800);
+    expect(play(hit).attemptEndMs).toBe(hit.activeMs + balance.resultMs);
+    const after = steps(hit, balance.resultMs / 100, catalog);
+    expect(play(after).attemptNumber).toBe(2);
+  });
+
+  it('CATCH during the result pause starts the next attempt at once, for no mood', () => {
+    const run = toHitMoment(started());
+    const hit = catchNow(run).run;
+    const tooSoon = applyCommand(
+      hit,
+      { type: 'catchMouse', attemptId: play(hit).attemptId },
+      hit.activeMs + balance.skipLockMs - 1,
+      catalog,
+    );
+    expect(tooSoon.result).toBe('unavailable');
+    const at = hit.activeMs + balance.skipLockMs;
+    const skipped = applyCommand(
+      hit,
+      { type: 'catchMouse', attemptId: play(hit).attemptId },
+      at,
+      catalog,
+    );
+    expect(skipped.result).toBe('applied');
+    expect(skipped.facts).toEqual([]);
+    expect(skipped.run.cat.mood).toBe(hit.cat.mood);
+    expect(play(skipped.run)).toMatchObject({ attemptNumber: 2, attemptStartMs: at });
+    expect(play(skipped.run).previous).toEqual(['hit']);
+  });
+
+  it('CATCH during the last result pause ends the round and starts a fresh one', () => {
+    let run = started();
+    for (let attempt = 1; attempt <= balance.attempts; attempt += 1) {
+      run = catchNow(toHitMoment(run)).run;
+      if (attempt < balance.attempts) {
+        run = applyCommand(
+          run,
+          { type: 'catchMouse', attemptId: play(run).attemptId },
+          run.activeMs + balance.skipLockMs,
+          catalog,
+        ).run;
+        run = { ...run, activeMs: run.activeMs + balance.skipLockMs };
+      }
+    }
+    const at = run.activeMs + balance.skipLockMs;
+    const again = applyCommand(
+      run,
+      { type: 'catchMouse', attemptId: play(run).attemptId },
+      at,
+      catalog,
+    );
+    expect(again.result).toBe('applied');
+    expect(play(again.run)).toMatchObject({ attemptNumber: 1, attemptStartMs: at, previous: [] });
+    expect(again.run.cat.lastCare?.note).toBe('playWin');
   });
 
   it('cancels remaining attempts on leave without a bonus', () => {

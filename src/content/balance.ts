@@ -53,7 +53,9 @@ export const catPlayBalance = {
   attempts: 3,
   readyMs: 300,
   movementMs: 4000,
-  resultMs: 300,
+  // The pause after a catch or a timeout; CATCH during it skips straight to the next attempt.
+  resultMs: 500,
+  skipLockMs: 150,
   resumeCueMs: 500,
   targetWidthMin: 0.15,
   targetWidthMax: 0.3,

@@ -72,7 +72,30 @@ export function startSession(
 }
 
 export type CatchResult =
-  { readonly accepted: true; readonly state: SessionState } | { readonly accepted: false };
+  | { readonly accepted: true; readonly kind: 'caught' | 'skipped'; readonly state: SessionState }
+  | { readonly accepted: false };
+
+/** Next attempt now, or — after the last one — end the round and start a fresh one now. */
+function skipResult(
+  state: SessionState,
+  play: CatPlayState,
+  at: number,
+  balance: CatPlayBalance,
+): SessionState {
+  const outcomes = [...play.previous, play.outcome?.kind ?? 'miss'];
+  if (play.attemptNumber < balance.attempts) {
+    const id = state.seq + 1;
+    const attempt = newAttempt(play.attemptNumber + 1, id, at, outcomes, state.rng, balance);
+    return { ...state, play: attempt.play, rng: attempt.rng, seq: id };
+  }
+  const hits = outcomes.filter((o) => o === 'hit').length;
+  const ended: SessionState = {
+    ...state,
+    play: null,
+    cat: { ...state.cat, lastCare: { note: hits >= 2 ? 'playWin' : 'playLose', atActiveMs: at } },
+  };
+  return startSession(ended, at, balance);
+}
 
 export function catchMouse(
   state: SessionState,
@@ -80,14 +103,18 @@ export function catchMouse(
   at: number,
   balance: CatPlayBalance,
 ): CatchResult {
-  const play = state.play;
-  if (!play || !state.cat.alive || play.attemptId !== attemptId || play.outcome !== null) {
-    return { accepted: false };
+  const resolved = advanceSession(state, at, balance);
+  const play = resolved.play;
+  if (!play || !state.cat.alive || play.attemptId !== attemptId) return { accepted: false };
+  if (play.outcome !== null) {
+    // The result pause: a second CATCH (not an accidental double tap) skips it.
+    if (at - play.outcome.atMs < balance.skipLockMs) return { accepted: false };
+    return { accepted: true, kind: 'skipped', state: skipResult(resolved, play, at, balance) };
   }
   if (playPhase(play, at) !== 'moving') return { accepted: false };
   const position = playPosition(play, at);
   const kind = scoreAttempt(position, play.target, balance.nearMissDistance);
-  let rng = state.rng;
+  let rng = resolved.rng;
   let moodGain = 0;
   if (kind === 'hit') {
     const draw = nextInt(rng, balance.hitMoodMin, balance.hitMoodMax);
@@ -99,11 +126,17 @@ export function catchMouse(
   return {
     accepted: true,
     state: {
-      ...state,
+      ...resolved,
       rng,
-      cat: { ...state.cat, mood: Math.min(100, state.cat.mood + moodGain) },
-      play: { ...play, outcome: { kind, moodGain, atMs: at, position } },
+      cat: { ...resolved.cat, mood: Math.min(100, resolved.cat.mood + moodGain) },
+      // Only a short result pause follows a catch, not the rest of the movement slot.
+      play: {
+        ...play,
+        outcome: { kind, moodGain, atMs: at, position },
+        attemptEndMs: at + balance.resultMs,
+      },
     },
+    kind: 'caught',
   };
 }
 

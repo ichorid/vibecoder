@@ -58,6 +58,9 @@ export function applyCommand(
         catalog.balance.catPlay,
       );
       if (!caught.accepted) return reject(run, 'unavailable');
+      if (caught.kind === 'skipped') {
+        return { run: withSession(run, caught.state), facts: [], result: 'applied' };
+      }
       const hit = caught.state.play?.outcome?.kind === 'hit' ? 1 : 0;
       const played = withSession(run, caught.state);
       return {

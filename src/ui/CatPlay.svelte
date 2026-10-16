@@ -92,7 +92,8 @@
     </div>
   </div>
   <p class="status" aria-live="polite">
-    {#if phase === 'ready' || phase === 'resume'}Ready…{:else if phase === 'result'}{resultText}{/if}
+    {#if phase === 'ready' || phase === 'resume'}Ready…{:else if phase === 'result'}{resultText}
+      <span class="hint">CATCH! again for the next mouse.</span>{/if}
   </p>
   <button
     type="button"
@@ -107,6 +108,11 @@
 </div>
 
 <style>
+  .hint {
+    display: block;
+    font-size: 11px;
+    opacity: 0.75;
+  }
   .play {
     display: flex;
     flex-direction: column;

@@ -89,3 +89,20 @@ for (const width of [320, 390]) {
     expect(button.y + button.height).toBeLessThanOrEqual(700);
   });
 }
+
+test('after a catch, CATCH again skips the pause and starts the next mouse at once', async ({
+  page,
+}) => {
+  await freshGame(page);
+  await page.getByTestId('cat-button').click();
+  await page.getByRole('button', { name: 'PLAY' }).click();
+  const play = page.getByTestId('cat-play');
+  await waitUntilInside(page);
+  const catchButton = page.getByTestId('catch-button');
+  await catchButton.dispatchEvent('pointerdown', { pointerType: 'touch', button: 0 });
+  await expect(play).toHaveAttribute('data-phase', 'result');
+  await expect(play).toContainText('again for the next mouse');
+  await page.waitForTimeout(250);
+  await catchButton.dispatchEvent('pointerdown', { pointerType: 'touch', button: 0 });
+  await expect(play).toHaveAttribute('data-attempt', '2', { timeout: 300 });
+});
