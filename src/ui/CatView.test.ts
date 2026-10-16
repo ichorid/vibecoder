@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { createUiGame } from '../../tests/helpers/uiGame';
 import type { GameSnapshot } from '../app/createGame';
 import CatView from './CatView.svelte';
+import type { Dispatch } from './contracts';
 
 afterEach(cleanup);
 
@@ -15,10 +16,11 @@ function setup() {
     if (!latest) throw new Error('no snapshot');
     return latest;
   };
+  const dispatch: Dispatch = (command, input) => ui.game.api.dispatch(command, input);
   const view = render(CatView, {
     props: {
       cat: snapshot().cat,
-      dispatch: ui.game.api.dispatch,
+      dispatch,
       clock: { activeNow: () => ui.game.activeNow(), frames: () => () => {} },
       onReturn: () => {},
     },
