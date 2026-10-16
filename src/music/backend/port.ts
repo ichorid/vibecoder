@@ -25,10 +25,16 @@ export interface MusicBackendPort {
   readonly ppq: number;
   loadPresets(presets: readonly PresetDocument[]): void;
   /**
-   * Schedule all events of a phrase at absolute ticks. `onAudible` fires (audio-synchronised)
-   * when the phrase actually starts sounding.
+   * Schedule all events of a phrase at absolute ticks. `onCommit` runs on the audio clock's
+   * lookahead when the phrase can no longer be replaced (drives scheduling; never depends on
+   * animation frames). `onAudible` fires through the draw queue when the phrase actually starts
+   * sounding (UI only; may never fire offline or in a hidden tab).
    */
-  schedulePhrase(plan: PhrasePlan, onAudible: (plan: PhrasePlan) => void): PhraseHandle;
+  schedulePhrase(
+    plan: PhrasePlan,
+    onAudible: (plan: PhrasePlan) => void,
+    onCommit?: (plan: PhrasePlan) => void,
+  ): PhraseHandle;
   /** True once the phrase's start callback ran (lookahead): it can no longer be replaced. */
   isCommitted(handle: PhraseHandle): boolean;
   cancelPhrase(handle: PhraseHandle): void;

@@ -1,0 +1,312 @@
+{
+  "schemaVersion": 1,
+  "id": "discovery-demo-a",
+  "revision": 1,
+  "eraId": "discovery",
+  "bars": 4,
+  "key": {
+    "tonic": "C",
+    "mode": "major"
+  },
+  "harmony": [
+    {
+      "step": 0,
+      "length": 16,
+      "chord": "C"
+    },
+    {
+      "step": 16,
+      "length": 16,
+      "chord": "Am"
+    },
+    {
+      "step": 32,
+      "length": 16,
+      "chord": "F"
+    },
+    {
+      "step": 48,
+      "length": 16,
+      "chord": "G"
+    }
+  ],
+  "energy": 0.4,
+  "tracks": {
+    "lead": [
+      {
+        "type": "note",
+        "step": 0,
+        "length": 2,
+        "pitch": "E5"
+      },
+      {
+        "type": "note",
+        "step": 2,
+        "length": 2,
+        "pitch": "G5"
+      },
+      {
+        "type": "note",
+        "step": 4,
+        "length": 4,
+        "pitch": "A5"
+      },
+      {
+        "type": "note",
+        "step": 8,
+        "length": 8,
+        "pitch": "G5"
+      },
+      {
+        "type": "note",
+        "step": 16,
+        "length": 2,
+        "pitch": "E5"
+      },
+      {
+        "type": "note",
+        "step": 18,
+        "length": 2,
+        "pitch": "C5"
+      },
+      {
+        "type": "note",
+        "step": 20,
+        "length": 4,
+        "pitch": "D5"
+      },
+      {
+        "type": "note",
+        "step": 24,
+        "length": 8,
+        "pitch": "E5"
+      },
+      {
+        "type": "note",
+        "step": 32,
+        "length": 2,
+        "pitch": "A5"
+      },
+      {
+        "type": "note",
+        "step": 34,
+        "length": 2,
+        "pitch": "C6"
+      },
+      {
+        "type": "note",
+        "step": 36,
+        "length": 4,
+        "pitch": "A5"
+      },
+      {
+        "type": "note",
+        "step": 40,
+        "length": 8,
+        "pitch": "F5"
+      },
+      {
+        "type": "note",
+        "step": 48,
+        "length": 4,
+        "pitch": "D5"
+      },
+      {
+        "type": "note",
+        "step": 52,
+        "length": 4,
+        "pitch": "G5"
+      },
+      {
+        "type": "note",
+        "step": 56,
+        "length": 4,
+        "pitch": "B4"
+      },
+      {
+        "type": "note",
+        "step": 60,
+        "length": 4,
+        "pitch": "D5"
+      }
+    ],
+    "bass": [
+      {
+        "type": "note",
+        "step": 0,
+        "length": 8,
+        "pitch": "C3"
+      },
+      {
+        "type": "note",
+        "step": 8,
+        "length": 8,
+        "pitch": "G2"
+      },
+      {
+        "type": "note",
+        "step": 16,
+        "length": 8,
+        "pitch": "A2"
+      },
+      {
+        "type": "note",
+        "step": 24,
+        "length": 8,
+        "pitch": "E3"
+      },
+      {
+        "type": "note",
+        "step": 32,
+        "length": 8,
+        "pitch": "F2"
+      },
+      {
+        "type": "note",
+        "step": 40,
+        "length": 8,
+        "pitch": "C3"
+      },
+      {
+        "type": "note",
+        "step": 48,
+        "length": 8,
+        "pitch": "G2"
+      },
+      {
+        "type": "note",
+        "step": 56,
+        "length": 8,
+        "pitch": "D3"
+      }
+    ],
+    "percussion": [
+      {
+        "type": "drum",
+        "step": 0,
+        "length": 1,
+        "sound": "kick",
+        "velocity": 0.8
+      },
+      {
+        "type": "drum",
+        "step": 4,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.35
+      },
+      {
+        "type": "drum",
+        "step": 8,
+        "length": 1,
+        "sound": "kick",
+        "velocity": 0.7
+      },
+      {
+        "type": "drum",
+        "step": 12,
+        "length": 1,
+        "sound": "snare",
+        "velocity": 0.6
+      },
+      {
+        "type": "drum",
+        "step": 16,
+        "length": 1,
+        "sound": "kick",
+        "velocity": 0.8
+      },
+      {
+        "type": "drum",
+        "step": 20,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.35
+      },
+      {
+        "type": "drum",
+        "step": 24,
+        "length": 1,
+        "sound": "kick",
+        "velocity": 0.7
+      },
+      {
+        "type": "drum",
+        "step": 28,
+        "length": 1,
+        "sound": "snare",
+        "velocity": 0.6
+      },
+      {
+        "type": "drum",
+        "step": 32,
+        "length": 1,
+        "sound": "kick",
+        "velocity": 0.8
+      },
+      {
+        "type": "drum",
+        "step": 36,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.35
+      },
+      {
+        "type": "drum",
+        "step": 40,
+        "length": 1,
+        "sound": "kick",
+        "velocity": 0.7
+      },
+      {
+        "type": "drum",
+        "step": 44,
+        "length": 1,
+        "sound": "snare",
+        "velocity": 0.6
+      },
+      {
+        "type": "drum",
+        "step": 48,
+        "length": 1,
+        "sound": "kick",
+        "velocity": 0.8
+      },
+      {
+        "type": "drum",
+        "step": 52,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.35
+      },
+      {
+        "type": "drum",
+        "step": 56,
+        "length": 1,
+        "sound": "kick",
+        "velocity": 0.7
+      },
+      {
+        "type": "drum",
+        "step": 60,
+        "length": 1,
+        "sound": "snare",
+        "velocity": 0.6
+      }
+    ]
+  },
+  "boundary": {
+    "entryGroup": "tonic",
+    "exitGroup": "dominant"
+  },
+  "motifRef": {
+    "id": "demo-main",
+    "revision": 1
+  },
+  "license": "CC0-1.0",
+  "demo": true,
+  "metadata": {
+    "description": "Demo A: motif E-G-A-G stated in the upper register, I-vi-IV-V, half-time pulse.",
+    "composer": "Temporary demo (agent-authored placeholder, unreviewed)"
+  }
+}

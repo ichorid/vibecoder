@@ -52,6 +52,11 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   pure core `src/music/core/` (Ajv + Tonal, no DOM); generated types
   `src/music/data/patterns.generated.ts` (`npm run music:types`). Music tests run with
   `npm run test:music` (excluded from `test:game`). Progress log: `docs/sound_implementation_progress.md`.
+- D17 (S03) Era transitions: tempo is a phrase property (backend applies `plan.bpm` at its start
+  tick, never a transport reset). Optional stinger = director option
+  `transitions: [{from,to,stinger:'id@rev'}]` naming a validated library pattern; it occupies its
+  own compiled ticks; missing → skipped. No separate fade stage: instrument releases are bounded.
+  No transition JSON schema yet (none needed until a stinger is authored).
 - D5 (P02) App-level commands (`retrySave`, `setTheme`) go through the same public
   `dispatch` as game commands, so UI still sees only `{subscribe, dispatch}`.
 
@@ -87,6 +92,16 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   the backend module is loaded lazily. Verified in the S02 spike: `transport.schedule(cb, '192i')`
   (ticks), audio-time callback args, `transport.clear(id)` and `Tone.Offline` work.
 
+- F9 (S03) Tone `Draw` callbacks never fire inside `Tone.Offline` and are rAF-driven live
+  (hidden tab → none). A director that plans the next phrase from the *audible* callback stalls
+  after one phrase. Port now has `schedulePhrase(plan, onAudible, onCommit?)`: `onCommit` runs on
+  the audio clock (transport callback, lookahead) and drives scheduling; `onAudible` is UI only.
+  Consequence: phrase N+1 exists (uncommitted) for nearly all of N, so a late request replaces
+  N+1 — the director test now asserts "only the uncommitted phrase after the boundary is
+  replaced" instead of "nothing cancelled".
+- F10 (S03) Offline probes must use the audio clock (`context.setTimeout`); transport-time
+  offsets are converted to ticks at the tempo current when scheduled, so they lie after a BPM change.
+
 ## Progress log
 
 - 2026-10-16: P00 verified + committed. Next: P01.
@@ -114,3 +129,7 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   P10 (P10.6 needs S04+S07).
 - 2026-10-16: S00 done (schemas, catalog/semantic validation, music:validate CLI, audio lints).
   Next S01 (timing, shuffle-bag, phrase planner).
+- 2026-10-16: S01, S02 done (see sound progress). S03.1–S03.2 director + library green
+  (commit-driven scheduling, stinger, cross-era tempo verified in real Tone offline render).
+- 2026-10-16: S03 done (director, library, transitions/tempo, 4 demo patterns, evolution
+  timeline; real-Tone renders). test:music 84, test:music-browser 12. Next S04 (Music Lab).

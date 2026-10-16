@@ -1,0 +1,442 @@
+{
+  "schemaVersion": 1,
+  "id": "discovery-demo-b",
+  "revision": 1,
+  "eraId": "discovery",
+  "bars": 4,
+  "key": {
+    "tonic": "C",
+    "mode": "major"
+  },
+  "harmony": [
+    {
+      "step": 0,
+      "length": 16,
+      "chord": "C"
+    },
+    {
+      "step": 16,
+      "length": 16,
+      "chord": "F"
+    },
+    {
+      "step": 32,
+      "length": 16,
+      "chord": "G"
+    },
+    {
+      "step": 48,
+      "length": 16,
+      "chord": "C"
+    }
+  ],
+  "energy": 0.55,
+  "tracks": {
+    "lead": [
+      {
+        "type": "note",
+        "step": 0,
+        "length": 2,
+        "pitch": "E4"
+      },
+      {
+        "type": "note",
+        "step": 2,
+        "length": 2,
+        "pitch": "G4"
+      },
+      {
+        "type": "note",
+        "step": 4,
+        "length": 4,
+        "pitch": "A4"
+      },
+      {
+        "type": "note",
+        "step": 8,
+        "length": 4,
+        "pitch": "G4"
+      },
+      {
+        "type": "note",
+        "step": 12,
+        "length": 4,
+        "pitch": "C5"
+      },
+      {
+        "type": "note",
+        "step": 16,
+        "length": 2,
+        "pitch": "A4"
+      },
+      {
+        "type": "note",
+        "step": 18,
+        "length": 2,
+        "pitch": "C5"
+      },
+      {
+        "type": "note",
+        "step": 20,
+        "length": 4,
+        "pitch": "D5"
+      },
+      {
+        "type": "note",
+        "step": 24,
+        "length": 4,
+        "pitch": "C5"
+      },
+      {
+        "type": "note",
+        "step": 28,
+        "length": 4,
+        "pitch": "A4"
+      },
+      {
+        "type": "note",
+        "step": 32,
+        "length": 2,
+        "pitch": "B4"
+      },
+      {
+        "type": "note",
+        "step": 34,
+        "length": 2,
+        "pitch": "D5"
+      },
+      {
+        "type": "note",
+        "step": 36,
+        "length": 4,
+        "pitch": "E5"
+      },
+      {
+        "type": "note",
+        "step": 40,
+        "length": 4,
+        "pitch": "D5"
+      },
+      {
+        "type": "note",
+        "step": 44,
+        "length": 4,
+        "pitch": "B4"
+      },
+      {
+        "type": "note",
+        "step": 48,
+        "length": 2,
+        "pitch": "E4"
+      },
+      {
+        "type": "note",
+        "step": 50,
+        "length": 2,
+        "pitch": "G4"
+      },
+      {
+        "type": "note",
+        "step": 52,
+        "length": 4,
+        "pitch": "A4"
+      },
+      {
+        "type": "note",
+        "step": 56,
+        "length": 8,
+        "pitch": "G4"
+      }
+    ],
+    "bass": [
+      {
+        "type": "note",
+        "step": 0,
+        "length": 4,
+        "pitch": "C3"
+      },
+      {
+        "type": "note",
+        "step": 8,
+        "length": 4,
+        "pitch": "C3"
+      },
+      {
+        "type": "note",
+        "step": 16,
+        "length": 4,
+        "pitch": "F2"
+      },
+      {
+        "type": "note",
+        "step": 24,
+        "length": 4,
+        "pitch": "F2"
+      },
+      {
+        "type": "note",
+        "step": 32,
+        "length": 4,
+        "pitch": "G2"
+      },
+      {
+        "type": "note",
+        "step": 40,
+        "length": 4,
+        "pitch": "G2"
+      },
+      {
+        "type": "note",
+        "step": 48,
+        "length": 4,
+        "pitch": "C3"
+      },
+      {
+        "type": "note",
+        "step": 56,
+        "length": 4,
+        "pitch": "G2"
+      }
+    ],
+    "percussion": [
+      {
+        "type": "drum",
+        "step": 0,
+        "length": 1,
+        "sound": "kick",
+        "velocity": 0.8
+      },
+      {
+        "type": "drum",
+        "step": 2,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.3
+      },
+      {
+        "type": "drum",
+        "step": 4,
+        "length": 1,
+        "sound": "snare",
+        "velocity": 0.55
+      },
+      {
+        "type": "drum",
+        "step": 6,
+        "length": 1,
+        "sound": "kick",
+        "velocity": 0.6
+      },
+      {
+        "type": "drum",
+        "step": 8,
+        "length": 1,
+        "sound": "kick",
+        "velocity": 0.7
+      },
+      {
+        "type": "drum",
+        "step": 10,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.3
+      },
+      {
+        "type": "drum",
+        "step": 12,
+        "length": 1,
+        "sound": "snare",
+        "velocity": 0.6
+      },
+      {
+        "type": "drum",
+        "step": 14,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.3
+      },
+      {
+        "type": "drum",
+        "step": 16,
+        "length": 1,
+        "sound": "kick",
+        "velocity": 0.8
+      },
+      {
+        "type": "drum",
+        "step": 18,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.3
+      },
+      {
+        "type": "drum",
+        "step": 20,
+        "length": 1,
+        "sound": "snare",
+        "velocity": 0.55
+      },
+      {
+        "type": "drum",
+        "step": 22,
+        "length": 1,
+        "sound": "kick",
+        "velocity": 0.6
+      },
+      {
+        "type": "drum",
+        "step": 24,
+        "length": 1,
+        "sound": "kick",
+        "velocity": 0.7
+      },
+      {
+        "type": "drum",
+        "step": 26,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.3
+      },
+      {
+        "type": "drum",
+        "step": 28,
+        "length": 1,
+        "sound": "snare",
+        "velocity": 0.6
+      },
+      {
+        "type": "drum",
+        "step": 30,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.3
+      },
+      {
+        "type": "drum",
+        "step": 32,
+        "length": 1,
+        "sound": "kick",
+        "velocity": 0.8
+      },
+      {
+        "type": "drum",
+        "step": 34,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.3
+      },
+      {
+        "type": "drum",
+        "step": 36,
+        "length": 1,
+        "sound": "snare",
+        "velocity": 0.55
+      },
+      {
+        "type": "drum",
+        "step": 38,
+        "length": 1,
+        "sound": "kick",
+        "velocity": 0.6
+      },
+      {
+        "type": "drum",
+        "step": 40,
+        "length": 1,
+        "sound": "kick",
+        "velocity": 0.7
+      },
+      {
+        "type": "drum",
+        "step": 42,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.3
+      },
+      {
+        "type": "drum",
+        "step": 44,
+        "length": 1,
+        "sound": "snare",
+        "velocity": 0.6
+      },
+      {
+        "type": "drum",
+        "step": 46,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.3
+      },
+      {
+        "type": "drum",
+        "step": 48,
+        "length": 1,
+        "sound": "kick",
+        "velocity": 0.8
+      },
+      {
+        "type": "drum",
+        "step": 50,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.3
+      },
+      {
+        "type": "drum",
+        "step": 52,
+        "length": 1,
+        "sound": "snare",
+        "velocity": 0.55
+      },
+      {
+        "type": "drum",
+        "step": 54,
+        "length": 1,
+        "sound": "kick",
+        "velocity": 0.6
+      },
+      {
+        "type": "drum",
+        "step": 56,
+        "length": 1,
+        "sound": "kick",
+        "velocity": 0.7
+      },
+      {
+        "type": "drum",
+        "step": 58,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.3
+      },
+      {
+        "type": "drum",
+        "step": 60,
+        "length": 1,
+        "sound": "snare",
+        "velocity": 0.6
+      },
+      {
+        "type": "drum",
+        "step": 62,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.3
+      }
+    ]
+  },
+  "boundary": {
+    "entryGroup": "tonic",
+    "exitGroup": "tonic"
+  },
+  "motifRef": {
+    "id": "demo-main",
+    "revision": 1
+  },
+  "license": "CC0-1.0",
+  "demo": true,
+  "metadata": {
+    "description": "Demo B: the motif low and busier, I-IV-V-I, denser drums, closes on the tonic.",
+    "composer": "Temporary demo (agent-authored placeholder, unreviewed)"
+  }
+}

@@ -46,3 +46,11 @@ export function checkBankCompatibility(
   }
   return problems;
 }
+
+/** Boundary policy shared by the demo banks: any phrase may start on the tonic. */
+export const DEFAULT_BOUNDARY_RULES: BoundaryRules = {
+  allowed: [
+    ['tonic', 'tonic'],
+    ['dominant', 'tonic'],
+  ],
+};

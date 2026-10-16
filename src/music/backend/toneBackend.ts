@@ -96,7 +96,7 @@ export function createToneBackend(tone: Tone, options: ToneBackendOptions = {}):
     loadPresets(list) {
       for (const preset of list) presets.set(preset.id, preset);
     },
-    schedulePhrase(plan, onAudible) {
+    schedulePhrase(plan, onAudible, onCommit) {
       prune();
       const handle: PhraseHandle = {
         id: nextId,
@@ -106,9 +106,17 @@ export function createToneBackend(tone: Tone, options: ToneBackendOptions = {}):
       };
       nextId += 1;
       const record: PhraseRecord = { handle, plan, ids: [], committed: false };
+      // Tempo belongs to the phrase: applied exactly at its start tick, never by a clock reset.
+      if (transport.state !== 'started' && plan.startTick === transport.ticks) {
+        transport.bpm.value = plan.bpm;
+      }
       record.ids.push(
         transport.schedule((time) => {
           record.committed = true;
+          if (transport.bpm.getValueAtTime(time) !== plan.bpm) {
+            transport.bpm.setValueAtTime(plan.bpm, time);
+          }
+          onCommit?.(plan);
           draw.schedule(() => onAudible(plan), time);
         }, `${plan.startTick}i`),
       );

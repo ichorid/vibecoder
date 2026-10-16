@@ -1,0 +1,200 @@
+{
+  "schemaVersion": 1,
+  "id": "singularity-demo-a",
+  "revision": 1,
+  "eraId": "singularity",
+  "bars": 4,
+  "key": {
+    "tonic": "C",
+    "mode": "phrygian"
+  },
+  "harmony": [
+    {
+      "step": 0,
+      "length": 16,
+      "chord": "Cm"
+    },
+    {
+      "step": 16,
+      "length": 16,
+      "chord": "Db"
+    },
+    {
+      "step": 32,
+      "length": 16,
+      "chord": "Ab"
+    },
+    {
+      "step": 48,
+      "length": 16,
+      "chord": "Cm"
+    }
+  ],
+  "energy": 0.3,
+  "tracks": {
+    "lead": [
+      {
+        "type": "note",
+        "step": 0,
+        "length": 2,
+        "pitch": "Eb5"
+      },
+      {
+        "type": "note",
+        "step": 2,
+        "length": 2,
+        "pitch": "G5"
+      },
+      {
+        "type": "note",
+        "step": 4,
+        "length": 4,
+        "pitch": "Ab5"
+      },
+      {
+        "type": "note",
+        "step": 8,
+        "length": 8,
+        "pitch": "G5"
+      },
+      {
+        "type": "note",
+        "step": 16,
+        "length": 8,
+        "pitch": "F5"
+      },
+      {
+        "type": "note",
+        "step": 24,
+        "length": 8,
+        "pitch": "Ab5"
+      },
+      {
+        "type": "note",
+        "step": 32,
+        "length": 2,
+        "pitch": "Eb5"
+      },
+      {
+        "type": "note",
+        "step": 34,
+        "length": 2,
+        "pitch": "G5"
+      },
+      {
+        "type": "note",
+        "step": 36,
+        "length": 4,
+        "pitch": "Ab5"
+      },
+      {
+        "type": "note",
+        "step": 40,
+        "length": 8,
+        "pitch": "C6"
+      },
+      {
+        "type": "note",
+        "step": 48,
+        "length": 8,
+        "pitch": "G5"
+      },
+      {
+        "type": "note",
+        "step": 56,
+        "length": 4,
+        "pitch": "Eb5"
+      },
+      {
+        "type": "note",
+        "step": 60,
+        "length": 4,
+        "pitch": "C5"
+      }
+    ],
+    "bass": [
+      {
+        "type": "note",
+        "step": 0,
+        "length": 16,
+        "pitch": "C2"
+      },
+      {
+        "type": "note",
+        "step": 16,
+        "length": 16,
+        "pitch": "Db2"
+      },
+      {
+        "type": "note",
+        "step": 32,
+        "length": 16,
+        "pitch": "Ab1"
+      },
+      {
+        "type": "note",
+        "step": 48,
+        "length": 16,
+        "pitch": "C2"
+      }
+    ],
+    "percussion": [
+      {
+        "type": "drum",
+        "step": 0,
+        "length": 1,
+        "sound": "kick",
+        "velocity": 0.5
+      },
+      {
+        "type": "drum",
+        "step": 32,
+        "length": 1,
+        "sound": "kick",
+        "velocity": 0.5
+      },
+      {
+        "type": "drum",
+        "step": 8,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.25
+      },
+      {
+        "type": "drum",
+        "step": 24,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.25
+      },
+      {
+        "type": "drum",
+        "step": 40,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.25
+      },
+      {
+        "type": "drum",
+        "step": 56,
+        "length": 1,
+        "sound": "hat",
+        "velocity": 0.25
+      }
+    ]
+  },
+  "boundary": {
+    "entryGroup": "tonic",
+    "exitGroup": "tonic"
+  },
+  "motifRef": {
+    "id": "demo-main",
+    "revision": 1
+  },
+  "license": "CC0-1.0",
+  "demo": true,
+  "metadata": {
+    "description": "Demo A: the motif turned cold (Eb-G-Ab-G), sustained drone, almost no drums.",
+    "composer": "Temporary demo (agent-authored placeholder, unreviewed)"
+  }
+}
