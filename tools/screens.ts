@@ -3,7 +3,7 @@
  * Usage: npx vite-node tools/screens.ts -- <outDir> [scene...]   (preview on 127.0.0.1:4173)
  */
 import { chromium, type Page } from '@playwright/test';
-import { lonelyRun, neglectedRun, saveText } from '../tests/browser/fixtures';
+import { lonelyRun, neglectedRun, progressedRun, saveText } from '../tests/browser/fixtures';
 
 type Scene = {
   width: number;
@@ -15,6 +15,10 @@ type Scene = {
 
 const scenes: Record<string, Scene> = {
   start: { width: 390, height: 844 },
+  tech1: { width: 390, height: 844, save: () => saveText(progressedRun(1)) },
+  tech3: { width: 390, height: 844, save: () => saveText(progressedRun(3)) },
+  tech3Dark: { width: 390, height: 844, dark: true, save: () => saveText(progressedRun(3)) },
+  reveal: { width: 390, height: 844, save: () => saveText(progressedRun(2, true)) },
   startDark: { width: 390, height: 844, dark: true },
   small: { width: 320, height: 568 },
   overlayLarge: { width: 390, height: 844, save: () => saveText(lonelyRun('large')) },

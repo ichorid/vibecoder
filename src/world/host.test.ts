@@ -12,7 +12,13 @@ function fakeRenderer() {
   return { port, calls };
 }
 
-const world: WorldProjection = { technologyIds: [], catAlive: true, theme: 'light' };
+const world: WorldProjection = {
+  technologyIds: [],
+  pendingRevealId: null,
+  cat: { alive: true, presentation: 'normal', round: false },
+  theme: 'light',
+  reducedMotion: false,
+};
 
 function deferred<T>() {
   let resolve!: (value: T) => void;

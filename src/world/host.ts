@@ -1,8 +1,10 @@
 /** World presentation contracts and a renderer lifecycle independent of Pixi drawing. */
-export interface WorldProjection {
-  readonly technologyIds: readonly string[];
-  readonly catAlive: boolean;
+import type { WorldViewModel } from '../game/selectors';
+
+/** Discovered-world projection plus presentation preferences. */
+export interface WorldProjection extends WorldViewModel {
   readonly theme: 'light' | 'dark';
+  readonly reducedMotion: boolean;
 }
 
 export interface RendererPort {

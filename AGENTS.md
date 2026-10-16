@@ -1,6 +1,6 @@
 # VIBE CODER — agent map
 
-Design sources: [docs/initial_design.md](docs/initial_design.md), [docs/architecture.md](docs/architecture.md), [docs/implementation_plan.md](docs/implementation_plan.md).
+Handoff journal: [docs/agent_journal.md](docs/agent_journal.md). Design sources: [docs/initial_design.md](docs/initial_design.md), [docs/architecture.md](docs/architecture.md), [docs/implementation_plan.md](docs/implementation_plan.md).
 
 ## Boundaries
 
@@ -12,15 +12,19 @@ Design sources: [docs/initial_design.md](docs/initial_design.md), [docs/architec
 
 ## Commands
 
-| Command               | Purpose                           |
-| --------------------- | --------------------------------- |
-| `npm ci`              | Reproducible install (lockfile)   |
-| `npm run dev`         | Vite dev server                   |
-| `npm run build`       | Production bundle                 |
-| `npm run check`       | Types, lint, format, custom rules |
-| `npm run check:types` | `svelte-check` + pure game `tsc`  |
-| `npm run lint`        | ESLint (zero warnings)            |
-| `npm run test:rules`  | Local ESLint rule fixtures        |
+| Command                 | Purpose                                 |
+| ----------------------- | --------------------------------------- |
+| `npm ci`                | Reproducible install (lockfile)         |
+| `npm run dev`           | Vite dev server                         |
+| `npm run build`         | Production bundle                       |
+| `npm run check`         | Types, lint, format, custom rules       |
+| `npm run check:types`   | `svelte-check` + pure game `tsc`        |
+| `npm run lint`          | ESLint (zero warnings)                  |
+| `npm run test:rules`    | Local ESLint rule fixtures              |
+| `npm run test:game`     | Vitest: rules, scenarios, components    |
+| `npm run test:browser`  | Playwright vs production preview        |
+| `npm run check:content` | Catalog, assets, art up to date         |
+| `npm run art:export`    | Regenerate `public/assets/` from `art/` |
 
 ## TDD
 
@@ -29,7 +33,7 @@ Follow [implementation_plan.md](docs/implementation_plan.md) §2: one behavior R
 ## Authored vs generated
 
 - **Authored:** `src/`, `tools/eslint-rules/`, `tools/type-fixtures/`, configs.
-- **Generated:** `dist/`, `node_modules/` (never edit).
+- **Generated:** `dist/`, `node_modules/`, `public/assets/` (from `art/` via `npm run art:export`; never edit).
 
 ## Working safely
 

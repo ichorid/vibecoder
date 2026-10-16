@@ -3,6 +3,8 @@
   import CatPlay from './CatPlay.svelte';
   import type { Dispatch, PresentationClock } from './contracts';
   import Memorial from './Memorial.svelte';
+  import AtlasSprite from './AtlasSprite.svelte';
+  import type { DomSpriteSheet } from './contracts';
   import PixelIcon from './PixelIcon.svelte';
   import { catRound, catSitting } from './pixelArt';
 
@@ -10,10 +12,28 @@
     cat: CatViewModel;
     dispatch: Dispatch;
     clock: PresentationClock;
+    sprites?: DomSpriteSheet | null;
+    memorialUrls?: readonly string[];
     onReturn: () => void;
   }
 
-  const { cat, dispatch, clock, onReturn }: Props = $props();
+  const { cat, dispatch, clock, sprites = null, memorialUrls = [], onReturn }: Props = $props();
+
+  const POSES = {
+    normal: 'idle',
+    lonely: 'lonely',
+    attentionSeeking: 'attention',
+    hungry: 'idle',
+    sick: 'sick',
+    critical: 'sleep',
+    dead: 'sleep',
+  } as const;
+  const REACTIONS = { eat: 'eat', purr: 'pet', wiggle: 'attention' } as const;
+
+  const tag = $derived.by(() => {
+    const pose = reaction === 'none' ? POSES[cat.presentation] : REACTIONS[reaction];
+    return `cat-${cat.overfed ? 'round-' : ''}${cat.play ? 'play' : pose}`;
+  });
 
   /** Cosmetic reaction only (e.g. PET during cooldown); never a gameplay reward. */
   let reaction = $state<'none' | 'eat' | 'purr' | 'wiggle'>('none');
@@ -47,8 +67,17 @@
   {#if cat.alive}
     <div class="portrait {cat.presentation}" class:sick={cat.sick} aria-hidden="true">
       {#key reactionKey}
-        <div class="sprite {reaction}">
-          <PixelIcon map={cat.overfed ? catRound : catSitting} scale={8} />
+        <div
+          class="sprite {reaction}"
+          data-testid="cat-portrait"
+          data-sprite={tag}
+          onanimationend={() => (reaction = 'none')}
+        >
+          {#if sprites}
+            <AtlasSprite sheet={sprites} {tag} scale={6} />
+          {:else}
+            <PixelIcon map={cat.overfed ? catRound : catSitting} scale={8} />
+          {/if}
         </div>
       {/key}
     </div>
@@ -81,7 +110,7 @@
       </div>
     {/if}
   {:else}
-    <Memorial />
+    <Memorial urls={memorialUrls} />
   {/if}
 </section>
 
@@ -125,6 +154,16 @@
   }
   .sprite {
     animation: idle 2.4s steps(2) infinite;
+  }
+  .sprite.eat,
+  .sprite.purr,
+  .sprite.wiggle {
+    animation-name: hold;
+  }
+  @keyframes hold {
+    to {
+      opacity: 1;
+    }
   }
   .sprite.eat {
     animation: eat 0.5s steps(2) 3;

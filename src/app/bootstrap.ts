@@ -1,4 +1,3 @@
-import { assetManifest } from '../content/assets';
 import { catalog } from '../content/catalog';
 import { createRun } from '../game/createRun';
 import {
@@ -25,15 +24,7 @@ export function newRunId(): string {
     : `run-${newSeed().toString(16)}-${newSeed().toString(16)}`;
 }
 
-const illustrationFiles = new Map<string, string>(
-  assetManifest.illustrations.map((asset) => [asset.id, asset.file]),
-);
-
-/** Resolve an illustration ID to a URL under the static asset base. */
-export function illustrationUrl(illustrationId: string): string | null {
-  const file = illustrationFiles.get(illustrationId);
-  return file ? `${import.meta.env.BASE_URL}assets/${file}` : null;
-}
+export { illustrationUrl } from './assetUrls';
 
 function browserStorage(): StorageLike | null {
   try {

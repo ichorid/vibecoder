@@ -2,9 +2,14 @@
 import { assetManifest } from '../src/content/assets';
 import { catalog } from '../src/content/catalog';
 import { worldAdditions } from '../src/content/world';
+import { nodeAssetFiles } from './assetFiles';
+import { validateAssets } from './validateAssets';
 import { validateContent } from './validateContent';
 
-const issues = validateContent({ catalog, assets: assetManifest, worldAdditions });
+const issues = [
+  ...validateContent({ catalog, assets: assetManifest, worldAdditions }),
+  ...validateAssets(assetManifest, nodeAssetFiles('public/assets')).map((message) => ({ message })),
+];
 const placeholders = assetManifest.illustrations.filter((a) => a.placeholder).length;
 
 if (issues.length > 0) {

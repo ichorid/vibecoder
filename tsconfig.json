@@ -32,8 +32,10 @@
     "tests/**/*.ts",
     "vitest.config.ts",
     "vitest.rules.config.ts",
+    "playwright.config.ts",
+    "art/**/*.ts",
     "tools/*.ts",
-    "playwright.config.ts"
+    "tools/art/**/*.ts"
   ],
   "exclude": [
     "tools/acceptance/fixtures/types/invalid-command-union.ts",

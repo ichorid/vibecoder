@@ -5,16 +5,18 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && vite-node tools/reportSize.ts",
     "check:types": "svelte-check --tsconfig tsconfig.json && tsc -p tsconfig.game.json && tsc -p tools/type-fixtures/tsconfig.positive.json",
-    "lint": "eslint src tests tools/*.ts vite.config.ts vitest.config.ts playwright.config.ts",
+    "lint": "eslint src tests tools/*.ts tools/art art vite.config.ts vitest.config.ts playwright.config.ts",
     "format:check": "prettier --check .",
     "format": "prettier --write .",
     "check": "npm run check:types && npm run lint && npm run format:check && npm run test:rules && npm run check:content",
     "test:rules": "vitest run --config vitest.rules.config.ts",
     "test:game": "vitest run --config vitest.config.ts",
-    "check:content": "vite-node tools/checkContent.ts",
-    "test:browser": "playwright test"
+    "check:content": "vite-node tools/checkContent.ts && vite-node tools/art/export.ts -- --check",
+    "test:browser": "playwright test",
+    "art:export": "vite-node tools/art/export.ts",
+    "art:check": "vite-node tools/art/export.ts -- --check"
   },
   "dependencies": {
     "pixi.js": "^8.6.6",

@@ -92,7 +92,7 @@ export function createGame(options: GameOptions): Game {
     game: selectGame(run, catalog),
     history: selectHistory(run, catalog),
     cat: selectCat(run, catalog),
-    world: selectWorld(run),
+    world: selectWorld(run, catalog),
     profile,
     save: { status: saveStatus },
   });

@@ -6,15 +6,16 @@
     world: WorldProjection;
     active: boolean;
     description: string;
+    atlasUrl: (theme: 'light' | 'dark') => string;
     createRenderer?: RendererFactory;
   }
 
-  const { world, active, description, createRenderer }: Props = $props();
+  const { world, active, description, atlasUrl, createRenderer }: Props = $props();
   let element: HTMLDivElement | undefined = $state();
 
   /** Pixi loads in its own chunk after the DOM shell is interactive. */
   const lazyPixi: RendererFactory = async (parent) =>
-    (await import('./renderer')).createPixiRenderer(parent);
+    (await import('./renderer')).createPixiRenderer(parent, { atlasUrl });
 
   const host = createWorldHost((parent) => (createRenderer ?? lazyPixi)(parent));
 

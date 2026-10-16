@@ -234,3 +234,39 @@ RED: 4/5 failed against a null schedule. GREEN: mood 20–39 → small for 4 s e
 `npm run check` OK; `test:game` 177/177; `test:browser` 17/17; build OK (initial JS 36 KiB gzip).
 Not verified: real touch timing on iOS/Android (P11.3).
 Next: P06.1.
+
+## Task: P06 (persistent world, art, recursive zoom-out)
+
+Status: **done** for the current three technologies (device performance not measured)
+
+### P06.1 manifest and atlas import
+
+Files: `art/` (canvas, shapes, font, PNG encoder, packer, palettes, sprites, illustrations), `tools/art/{build,export,preview}.ts`, `src/content/{atlas,assets}.ts`, `tools/{validateAssets,assetFiles}.ts`, `art/README.md`.
+RED: PNG/canvas 7/8 failed against stubs; atlas contract 6/7; asset validator 4/5. (Shape/font/packer helpers were tested alongside their implementation.)
+GREEN: one documented `vibe-atlas/1` PNG+JSON contract produced only by `npm run art:export` (deterministic bytes); `art:check` (in `check:content`) fails on stale/hand-edited output; validator rejects wrong format, unknown frames, non-positive durations, out-of-bounds rects, PNG size mismatch, missing files and missing required tags. The same cat tag feeds Pixi (`toPixiSheet`) and DOM (`domAnimation` → `AtlasSprite.svelte`). Cat tags idle/sleep/walk/eat/play/pet/lonely/sick/attention plus `cat-round-*`.
+
+### P06.2 scene and camera math
+
+Files: `src/content/world.ts`, `src/world/camera.ts`, `camera.test.ts`.
+RED: 6/7 failed against stubs. GREEN: room fixed at (0,0); unique addition IDs and valid links; strictly growing portrait envelopes; fit contains the envelope, zoom decreases with unlocks, resize refits without unlocking; `screen = (world − center) × zoom + viewportCenter`; one easing, log-space zoom, 1.6 s transitions.
+
+### P06.3 LOD and the world cat's fate
+
+Files: `src/world/lod.ts`, `lod.test.ts`.
+RED: 5/6 failed. GREEN: CSS-pixel bands detail ≥96 / compact ≥16 / dots with 10 % hysteresis; cat sprite ≥12 px → cluster ≥3 → pixel ≥0.5 → hidden; always hidden when dead or at final framing. Late framing is still only proven by the explicit numeric fixture (no final technology yet).
+
+### P06.4 reveal and kit
+
+Files: `src/world/{renderer,scenePlan}.ts`, `scenePlan.test.ts`, `selectWorld.test.ts`, `src/app/{assetUrls,domSheet}.ts`, `ui/{AtlasSprite,Memorial,CatView,CatOverlay,UnlockAnnouncement}.svelte`, `tests/browser/world-reveal.spec.ts`.
+GREEN: renderer rebuilt on the atlas (clusters, connectors, moving packets, per-cluster LOD, wandering cat with presentation-only RNG, palette swap on theme, cosmetic slow-down during announcements, reduced-motion jump). Pure planner: static rebuild from unlocked IDs, pending reveal only while Game is visible (replayed after reload), never rebuilds existing clusters. Browser: reveal + zoom-out during the announcement, real 128×96 illustration, rebuilt scene after theme switch with cat present, dead cat absent, memorial = exported PNGs, Cat view uses `cat-idle` from the atlas. Announcement moved to the lower world area so the reveal is visible (visual review). Three unique illustrations, room/programmer/cat/kit and memorial art are generated (procedural pixel art; artistic quality still needs human review).
+
+### P06.5 budgets
+
+Files: `tools/reportSize.ts` (runs in `npm run build`), `tests/browser/world-budget.spec.ts`.
+Measured (production build, this commit): entry JS 37.9 KiB gzip; all JS incl. lazy Pixi 214.5 KiB gzip (budget 350); first assets (light atlas + CSS) 37 KiB (budget 1 MiB); all PNG art 18 KiB; atlas 512×256 (≈0.5 MiB RGBA each theme). Browser: ticker stops while Game is hidden, updates never rebuild sprites, failed illustration → fallback frame without blocking.
+Not measured: frame time / GPU memory on a real phone; late-game composition (exists only after P08).
+
+### Exit gate
+
+`npm run check` OK; `test:game` 225/225; `test:browser` 25/25; build within budgets.
+Next: P07.1.

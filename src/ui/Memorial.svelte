@@ -1,17 +1,34 @@
 <script lang="ts">
   import PixelIcon from './PixelIcon.svelte';
   import { memorialKeyboard, memorialLap } from './pixelArt';
+
+  /** URLs of the two exported photos; inline fallbacks keep the memorial if they fail. */
+  const { urls = [] }: { urls?: readonly string[] } = $props();
+  const photos = [
+    { caption: 'The cat asleep on the keyboard beside you.', fallback: memorialKeyboard },
+    { caption: 'The cat curled up happily on your lap.', fallback: memorialLap },
+  ];
+  const failed = $state<boolean[]>([false, false]);
 </script>
 
 <div class="memorial" data-testid="memorial">
-  <figure class="photo">
-    <PixelIcon map={memorialKeyboard} scale={5} />
-    <figcaption class="visually-hidden">The cat asleep on the keyboard beside you.</figcaption>
-  </figure>
-  <figure class="photo tilted">
-    <PixelIcon map={memorialLap} scale={5} />
-    <figcaption class="visually-hidden">The cat curled up happily on your lap.</figcaption>
-  </figure>
+  {#each photos as photo, i (i)}
+    <figure class="photo" class:tilted={i === 1}>
+      {#if urls[i] && !failed[i]}
+        <img
+          class="pixelated"
+          src={urls[i]}
+          alt={photo.caption}
+          width="64"
+          height="48"
+          onerror={() => (failed[i] = true)}
+        />
+      {:else}
+        <PixelIcon map={photo.fallback} scale={5} />
+        <figcaption class="visually-hidden">{photo.caption}</figcaption>
+      {/if}
+    </figure>
+  {/each}
 </div>
 
 <style>
@@ -30,6 +47,11 @@
     box-shadow: 0 3px 0 var(--shadow);
     filter: sepia(0.25) saturate(0.85);
     transform: rotate(-2deg);
+  }
+  .photo img {
+    display: block;
+    width: min(192px, 70vw);
+    height: auto;
   }
   .tilted {
     transform: rotate(3deg);

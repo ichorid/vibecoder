@@ -2,7 +2,7 @@
   import { tick, type Snippet } from 'svelte';
   import type { TechnologyId, UpgradeId } from '../game/ids';
   import type { GameViewModel } from '../game/selectors';
-  import type { Dispatch } from './contracts';
+  import type { Dispatch, DomSpriteSheet } from './contracts';
   import { formatActiveTime, formatAmount } from './format';
   import CatOverlay from './CatOverlay.svelte';
   import UnlockAnnouncement from './UnlockAnnouncement.svelte';
@@ -14,10 +14,19 @@
     illustrationUrl: (illustrationId: string) => string | null;
     attention?: { readonly level: AttentionLevel | null; readonly key: number } | undefined;
     onCatOverlay?: () => void;
+    sprites?: DomSpriteSheet | null;
     world?: Snippet;
   }
 
-  const { game, dispatch, illustrationUrl, attention, onCatOverlay, world }: Props = $props();
+  const {
+    game,
+    dispatch,
+    illustrationUrl,
+    attention,
+    onCatOverlay,
+    sprites = null,
+    world,
+  }: Props = $props();
   let controls: HTMLElement | undefined = $state();
 
   function primary() {
@@ -60,6 +69,7 @@
           level={attention.level}
           variant={attention.key}
           surfaces={{ cards: game.offers.length > 0, log: game.log.length > 0 }}
+          {sprites}
           onOpen={onCatOverlay}
         />
       {/key}

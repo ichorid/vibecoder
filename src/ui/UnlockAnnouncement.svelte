@@ -19,8 +19,8 @@
         class="pixelated"
         src={illustrationUrl}
         alt=""
-        width="160"
-        height="120"
+        width="128"
+        height="96"
         onerror={() => (failed = true)}
       />
     {:else}
@@ -35,7 +35,10 @@
 <style>
   .announcement {
     position: absolute;
-    inset: 8px;
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+    max-height: calc(100% - 16px);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -63,7 +66,7 @@
     color: var(--accent-strong);
   }
   .frame {
-    width: min(160px, 50vw);
+    width: min(256px, 62vw);
     aspect-ratio: 4 / 3;
     border: 3px solid var(--border);
     background: var(--panel-strong);

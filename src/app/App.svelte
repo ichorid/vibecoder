@@ -15,6 +15,10 @@
   import SettingsMenu from '../ui/SettingsMenu.svelte';
   import type { RendererFactory } from '../world/host';
   import WorldCanvas from '../world/WorldCanvas.svelte';
+  import { describeScene } from '../content/world';
+  import { atlasUrl, memorialUrls } from './assetUrls';
+  import { loadDomSheet } from './domSheet';
+  import type { DomSpriteSheet } from '../ui/contracts';
 
   interface Props {
     api: UiGameApi;
@@ -36,6 +40,20 @@
   }: Props = $props();
 
   let view = $state<ViewId>('game');
+  let reducedMotion = $state(false);
+  /** DOM sprites share the world atlas; inline fallbacks show until it loads. */
+  let sprites = $state<DomSpriteSheet | null>(null);
+
+  $effect(() => {
+    const theme = $api.profile.theme;
+    let current = true;
+    void loadDomSheet(theme).then((sheet) => {
+      if (current && sheet) sprites = sheet;
+    });
+    return () => {
+      current = false;
+    };
+  });
   let settingsOpen = $state(false);
   let settingsButton: HTMLElement | null = null;
 
@@ -97,7 +115,16 @@
       view = next;
     };
     window.addEventListener('popstate', onPop);
-    return () => window.removeEventListener('popstate', onPop);
+    const motion = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+    const onMotion = () => {
+      reducedMotion = motion?.matches ?? false;
+    };
+    onMotion();
+    motion?.addEventListener('change', onMotion);
+    return () => {
+      window.removeEventListener('popstate', onPop);
+      motion?.removeEventListener('change', onMotion);
+    };
   });
 
   $effect(() => {
@@ -137,12 +164,14 @@
         {illustrationUrl}
         attention={view === 'game' ? $api.cat.attention : undefined}
         onCatOverlay={() => open('cat')}
+        {sprites}
       >
         {#snippet world()}
           <WorldCanvas
-            world={{ ...$api.world, theme: $api.profile.theme }}
+            world={{ ...$api.world, theme: $api.profile.theme, reducedMotion }}
             active={view === 'game'}
-            description="A programmer types at a desk in a cozy room. An orange cat keeps them company."
+            description={describeScene($api.world.technologyIds, $api.world.cat.alive)}
+            {atlasUrl}
             {...createRenderer ? { createRenderer } : {}}
           />
         {/snippet}
@@ -152,7 +181,14 @@
       <div class="view"><HistoryView history={$api.history} onReturn={returnToGame} /></div>
     {:else if view === 'cat'}
       <div class="view">
-        <CatView cat={$api.cat} dispatch={api.dispatch} {clock} onReturn={returnToGame} />
+        <CatView
+          cat={$api.cat}
+          dispatch={api.dispatch}
+          {clock}
+          {sprites}
+          {memorialUrls}
+          onReturn={returnToGame}
+        />
       </div>
     {/if}
   </main>

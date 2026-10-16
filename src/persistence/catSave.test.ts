@@ -25,7 +25,7 @@ describe('cat facts survive saving', () => {
     while (run.cat.alive) run = stepRun(run, 100, catalog).run;
     const reloaded = roundtrip(run);
     expect(reloaded.cat.alive).toBe(false);
-    expect(selectWorld(reloaded).catAlive).toBe(false);
+    expect(selectWorld(reloaded, catalog).cat.alive).toBe(false);
     expect(steps(reloaded, 100, catalog).cat.alive).toBe(false);
   });
 });

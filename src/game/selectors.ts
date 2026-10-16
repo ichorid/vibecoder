@@ -177,10 +177,25 @@ export function selectCat(run: ReadonlyRun, catalog: Catalog): CatViewModel {
 
 export interface WorldViewModel {
   readonly technologyIds: readonly TechnologyId[];
-  readonly catAlive: boolean;
+  /** The discovery currently being announced; its addition is revealed when Game shows it. */
+  readonly pendingRevealId: TechnologyId | null;
+  readonly cat: {
+    readonly alive: boolean;
+    readonly presentation: CatPresentation;
+    readonly round: boolean;
+  };
 }
 
-/** Discovered-world projection for the renderer: unlocked IDs and the cat's lifecycle fact. */
-export function selectWorld(run: ReadonlyRun): WorldViewModel {
-  return { technologyIds: run.unlockedTechnologyIds, catAlive: run.cat.alive };
+/** Discovered-world projection for the renderer: unlocked IDs and the cat's presentation facts. */
+export function selectWorld(run: ReadonlyRun, catalog: Catalog): WorldViewModel {
+  const conditions = catConditions(run.cat, catalog.balance.cat);
+  return {
+    technologyIds: run.unlockedTechnologyIds,
+    pendingRevealId: run.pendingUnlockIds[0] ?? null,
+    cat: {
+      alive: run.cat.alive,
+      presentation: catPresentation(conditions),
+      round: run.cat.alive && conditions.overfed,
+    },
+  };
 }

@@ -43,3 +43,36 @@ export function lonelyRun(level: 'small' | 'large', seed = 31): RunState {
   }
   throw new Error(`no ${level} intrusion reached`);
 }
+
+import { selectGame } from '../../src/game/selectors';
+
+/**
+ * Play the ordinary loop (one click per second, buy the first affordable offer, acknowledge
+ * reveals, feed/pet on the baseline schedule) until `count` technologies are unlocked.
+ * `leavePending` stops right after the last purchase so its reveal is still pending.
+ */
+export function progressedRun(count: number, leavePending = false, seed = 41): RunState {
+  let run = createRun(seed, `progress-${seed}`);
+  for (let i = 0; i < 60 * 600; i += 1) {
+    if (run.pendingUnlockIds.length > 0) {
+      if (leavePending && run.unlockedTechnologyIds.length >= count) return run;
+      const id = run.pendingUnlockIds[0];
+      if (id) run = applyCommand(run, { type: 'acknowledgeUnlock', id }, run.activeMs, catalog).run;
+    }
+    if (run.unlockedTechnologyIds.length >= count) return run;
+    if (run.activeMs % 1000 === 0) {
+      run = applyCommand(run, { type: 'primaryAction' }, run.activeMs, catalog).run;
+    }
+    const offer = selectGame(run, catalog).offers.find((o) => o.affordable);
+    if (offer)
+      run = applyCommand(run, { type: 'buyUpgrade', id: offer.id }, run.activeMs, catalog).run;
+    if (run.activeMs % 180_000 === 0 && run.cat.fullness < 70) {
+      run = applyCommand(run, { type: 'feedCat' }, run.activeMs, catalog).run;
+    }
+    if (run.activeMs % 60_000 === 30_000) {
+      run = applyCommand(run, { type: 'petCat' }, run.activeMs, catalog).run;
+    }
+    run = stepRun(run, 100, catalog).run;
+  }
+  throw new Error(`could not reach ${count} technologies`);
+}

@@ -67,7 +67,7 @@ describe('validateContent', () => {
   });
 
   it('rejects a missing illustration or world addition', () => {
-    expect(messages(bundle({}, { assets: { illustrations: [] } }))).toMatch(
+    expect(messages(bundle({}, { assets: { ...assetManifest, illustrations: [] } }))).toMatch(
       /missing illustration "tech-autocomplete"/,
     );
     expect(messages(bundle({}, { worldAdditions: [] }))).toMatch(

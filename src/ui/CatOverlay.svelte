@@ -1,5 +1,7 @@
 <script lang="ts">
   import type { AttentionLevel } from '../game/types';
+  import AtlasSprite from './AtlasSprite.svelte';
+  import type { DomSpriteSheet } from './contracts';
   import PixelIcon from './PixelIcon.svelte';
   import { catRound, catSitting } from './pixelArt';
 
@@ -9,10 +11,11 @@
     variant: number;
     /** Which surfaces exist right now, so the cat never sits on something absent. */
     surfaces: { cards: boolean; log: boolean };
+    sprites?: DomSpriteSheet | null;
     onOpen: () => void;
   }
 
-  const { level, variant, surfaces, onOpen }: Props = $props();
+  const { level, variant, surfaces, sprites = null, onOpen }: Props = $props();
   const spot = $derived.by(() => {
     if (level === 'large') return 'block';
     const options = [
@@ -33,7 +36,16 @@
   aria-label="The cat wants attention. Open Cat."
   onclick={onOpen}
 >
-  <PixelIcon map={variant % 2 === 0 ? catSitting : catRound} scale={level === 'large' ? 9 : 4} />
+  {#if sprites}
+    <AtlasSprite
+      sheet={sprites}
+      tag="cat-attention"
+      scale={level === 'large' ? 8 : 3}
+      flip={variant % 2 === 1}
+    />
+  {:else}
+    <PixelIcon map={variant % 2 === 0 ? catSitting : catRound} scale={level === 'large' ? 9 : 4} />
+  {/if}
 </button>
 
 <style>
@@ -79,7 +91,7 @@
   }
   /* Large: covers the primary action until tapped or the intrusion passes. */
   .large.block {
-    top: -40px;
+    top: -84px;
     left: 50%;
     margin-left: -90px;
     width: 180px;

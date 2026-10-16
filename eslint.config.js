@@ -21,6 +21,8 @@ const typedLintFiles = [
   'src/**/*.svelte',
   'tests/**/*.ts',
   'tools/*.ts',
+  'tools/art/**/*.ts',
+  'art/**/*.ts',
   'playwright.config.ts',
   'vite.config.ts',
   'vitest.config.ts',

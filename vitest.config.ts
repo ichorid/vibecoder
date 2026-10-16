@@ -17,7 +17,7 @@ export default defineConfig({
     conditions: ['browser'],
   },
   test: {
-    include: ['src/**/*.test.ts', 'tests/**/*.test.ts', 'tools/*.test.ts'],
+    include: ['src/**/*.test.ts', 'tests/**/*.test.ts', 'tools/**/*.test.ts', 'art/**/*.test.ts'],
     environment: 'node',
   },
 });

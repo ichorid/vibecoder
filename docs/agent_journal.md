@@ -31,6 +31,13 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   reload to restore the session, while navigating away cancels it.
 - D10 (P05) Input timing: `dispatch(cmd, { timeStamp })`; createGame maps event time into the
   active clock via `runtime.inputLagMs` (clamped to the current active interval).
+- D11 (P06) Art pipeline realised as planned in D2: `art/` TS sources → `npm run art:export`
+  → `public/assets/` (committed, generated, checked by `art:check`). Kit motifs `kit-<id>` and
+  `lod-<id>` live in `art/sprites/kit.ts`; illustrations register in `art/illustrations/index.ts`
+  and the manifest `src/content/assets.ts`. New technology = illustration fn + manifest entry +
+  world addition in `src/content/world.ts`.
+- D12 (P06) Renderer mirrors presentation state on the canvas (`data-built`, `data-zoom`,
+  `data-cat-lod`, `data-ticker`, `data-sprites`) for browser specs; never read by gameplay.
 - D5 (P02) App-level commands (`retrySave`, `setTheme`) go through the same public
   `dispatch` as game commands, so UI still sees only `{subscribe, dispatch}`.
 
@@ -57,6 +64,10 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
 - F6 Prettier reflows code, so exact-string scripted edits break. A formatter-tolerant helper
   lives in the session scratchpad (`wedit.py`); if unavailable, re-read files and use Edit.
 
+- F7 Killing the preview: any shell whose command line contains the preview command text is
+  matched by `pkill -f`. Use scratchpad scripts `preview-start.sh` / `preview-stop.sh` and run
+  them by path only (recreate them if the scratchpad is gone).
+
 ## Progress log
 
 - 2026-10-16: P00 verified + committed. Next: P01.
@@ -72,3 +83,5 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
 - 2026-10-16: P05 done (PLAY minigame, input timing, resume cue, attention overlay).
   177 unit + 17 browser. `tools/screens.ts` (vite-node) screenshots fixture scenes for review.
   Next P06 (atlas/art pipeline, camera, LOD, reveal).
+- 2026-10-16: P06 done (art pipeline, atlas, camera, LOD, renderer, reveal, budgets).
+  225 unit + 25 browser. Next P07 (tokens/agents/compute, debt/review, coordination, techs 04–12).

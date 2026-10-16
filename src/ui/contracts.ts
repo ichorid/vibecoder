@@ -70,3 +70,22 @@ export interface PresentationClock {
   /** Subscribe to animation frames; returns a disposer. */
   frames(callback: () => void): () => void;
 }
+
+/** One sprite-atlas animation for DOM rendering (same frames the world renderer uses). */
+export interface DomAnimationView {
+  readonly frames: readonly {
+    readonly x: number;
+    readonly y: number;
+    readonly w: number;
+    readonly h: number;
+  }[];
+  readonly frameMs: number;
+}
+
+/** The sprite atlas as seen by DOM sprites: image URL, size, and animations by tag. */
+export interface DomSpriteSheet {
+  readonly imageUrl: string;
+  readonly width: number;
+  readonly height: number;
+  readonly animations: Readonly<Record<string, DomAnimationView>>;
+}
