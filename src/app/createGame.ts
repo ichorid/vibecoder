@@ -96,6 +96,7 @@ function needsImmediateSave(facts: readonly GameFact[]): boolean {
       fact.type === 'catLeft' ||
       fact.type === 'releaseShipped' ||
       fact.type === 'demoMade' ||
+      fact.type === 'demoDesigned' ||
       fact.type === 'endingReached' ||
       fact.type === 'choiceMade',
   );

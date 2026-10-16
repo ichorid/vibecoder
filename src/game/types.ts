@@ -144,6 +144,8 @@ export interface DemoRecord {
   /** 1-based, in making order. */
   number: number;
   seed: number;
+  /** The variant the player designed it as (0–2, 3 = mystery), or null: the judge chose. */
+  pick: number | null;
   /** Whether the cat was there (its greeting changes). */
   catAlive: boolean;
   activeMs: number;
@@ -242,6 +244,8 @@ export interface RunState {
   releases: ReleaseRecord[];
   /** Coded demos, in making order (cosmetic). */
   demos: DemoRecord[];
+  /** The player's design for the next demo (see `DemoRecord.pick`), until it is made. */
+  demoPick: number | null;
   /** The corner plant: watered too often it drowns, too rarely it dries out. */
   plant: PlantState;
   /** Experience carried in from earlier runs' endings: +this much code yield (0.1 = +10 %). */
@@ -257,6 +261,7 @@ export type GameCommand =
   | { type: 'acknowledgeUnlock'; id: TechnologyId }
   | { type: 'shipRelease' }
   | { type: 'makeDemo' }
+  | { type: 'designDemo'; pick: number | null }
   | { type: 'waterPlant' }
   | { type: 'feedCat' }
   | { type: 'petCat' }
@@ -274,6 +279,7 @@ export type GameFact =
   | { type: 'catLeft' }
   | { type: 'releaseShipped'; window: ReleaseWindow; outcome: ReleaseResult }
   | { type: 'demoMade'; number: number }
+  | { type: 'demoDesigned' }
   | { type: 'catCared'; kind: 'feed' | 'pet' | 'play' }
   | { type: 'purchased'; id: UpgradeId }
   | { type: 'technologyDiscovered'; id: TechnologyId };

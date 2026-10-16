@@ -12,6 +12,10 @@ import { deriveSeed, nextInt, nextUint32 } from './random';
 import type { Transition } from './simulation';
 import type { DemoRecord, ReadonlyRun, RunState } from './types';
 
+/** Variants offered for the next demo (0…VARIANT_PICKS−1), and the mystery pick after them. */
+export const VARIANT_PICKS = 3;
+export const MYSTERY_PICK = 3;
+
 /** Price of demo `n` (1-based), rounded to a tidy number. */
 export function demoPrice(content: DemoContent, n: number): number {
   const raw = content.basePrice * content.priceGrowth ** (n - 1);
@@ -22,6 +26,8 @@ export function demoPrice(content: DemoContent, n: number): number {
 export interface DemoOffer {
   readonly number: number;
   readonly price: number;
+  /** The seed the next demo will get (the previews are built from it). */
+  readonly seed: number;
 }
 
 /** The demo on offer now (null before the project works, after the end, or at the cap). */
@@ -30,7 +36,7 @@ export function nextDemo(run: ReadonlyRun, catalog: Catalog): DemoOffer | null {
   if (!run.unlockedTechnologyIds.includes(catalog.demos.availableFrom)) return null;
   const number = run.demos.length + 1;
   if (number > MAX_DEMOS) return null;
-  return { number, price: demoPrice(catalog.demos, number) };
+  return { number, price: demoPrice(catalog.demos, number), seed: nextUint32(run.rng.demo).value };
 }
 
 /** `count` distinct entries of `items`, drawn in order from `state`. */
@@ -91,6 +97,7 @@ export function makeDemo(run: RunState, catalog: Catalog): MakeResult {
   const record: DemoRecord = {
     number: offer.number,
     seed: seed.value,
+    pick: run.demoPick,
     catAlive: run.cat.alive,
     activeMs: run.activeMs,
   };
@@ -100,6 +107,7 @@ export function makeDemo(run: RunState, catalog: Catalog): MakeResult {
       rng: { ...run.rng, demo: seed.state },
       economy: { ...run.economy, output: run.economy.output - offer.price },
       demos: [...run.demos, record],
+      demoPick: null,
       history: [...run.history, { kind: 'demo', number: record.number, activeMs: run.activeMs }],
     },
     `💾 ${demoLine(record, catalog)}`,
@@ -108,6 +116,20 @@ export function makeDemo(run: RunState, catalog: Catalog): MakeResult {
   return {
     accepted: true,
     transition: { run: next, facts: [{ type: 'demoMade', number: record.number }] },
+  };
+}
+
+/** Design the next demo: one of the previewed variants, the mystery, or null (the judge). */
+export function designDemo(
+  run: RunState,
+  pick: number | null,
+  catalog: Catalog,
+): { readonly accepted: true; readonly transition: Transition } | { readonly accepted: false } {
+  const valid = pick === null || (Number.isInteger(pick) && pick >= 0 && pick <= MYSTERY_PICK);
+  if (!valid || !nextDemo(run, catalog)) return { accepted: false };
+  return {
+    accepted: true,
+    transition: { run: { ...run, demoPick: pick }, facts: [{ type: 'demoDesigned' }] },
   };
 }
 

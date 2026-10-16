@@ -13,7 +13,7 @@ function readyForDemo(seed: number): RunState {
 const litPixels = (page: Page) =>
   page
     .getByTestId('demo-screen')
-    .locator('canvas')
+    .locator('canvas.picture')
     .evaluate((canvas: HTMLCanvasElement) => {
       const ctx = canvas.getContext('2d');
       if (!ctx) return 0;
@@ -28,6 +28,7 @@ test('code a demo: depacking, a drawn picture, the title card; History plays it 
   page,
 }) => {
   await loadSave(page, saveText(readyForDemo(41)));
+  await expect(page.getByTestId('demo-design')).toHaveCount(0); // designing is on the demo screen
   const strip = page.getByTestId('demo-strip');
   await expect(strip).toContainText('DEMO #1');
   await strip.click();
@@ -59,8 +60,39 @@ test('the demo fits a 390 px screen without horizontal scrolling', async ({ page
     timeout: 5000,
   });
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+  // the picture, the designer's four choices and CLOSE all fit without scrolling
+  await expect(page.getByTestId('demo-variant-0')).toHaveAttribute('data-fingerprint', /./, {
+    timeout: 5000,
+  });
+  for (const id of ['demo-variant-0', 'demo-mystery']) {
+    const box = await page.getByTestId(id).boundingBox();
+    expect((box?.x ?? -1) + (box?.width ?? 0)).toBeLessThanOrEqual(390);
+  }
   const close = await page.getByRole('button', { name: 'CLOSE' }).boundingBox();
   expect((close?.y ?? 1e9) + (close?.height ?? 0)).toBeLessThanOrEqual(700);
+});
+
+test('the demo screen offers the next demo: the picked preview is what gets coded', async ({
+  page,
+}) => {
+  await loadSave(page, saveText(readyForDemo(41)));
+  await page.getByTestId('demo-strip').click();
+  const demo = page.getByTestId('demo-screen');
+  await expect(demo).toHaveAttribute('data-phase', 'play', { timeout: 5000 });
+  const variant = demo.getByTestId('demo-variant-2');
+  await expect(variant).toHaveAttribute('data-fingerprint', /^[0-9a-f]{8}$/, { timeout: 5000 });
+  const wanted = await variant.getAttribute('data-fingerprint');
+  await variant.click();
+  await expect(variant).toHaveAttribute('aria-checked', 'true');
+  await page.getByRole('button', { name: 'CLOSE' }).click();
+  // a reload keeps the design
+  await page.reload();
+  await page.getByTestId('demo-strip').click();
+  await expect(demo).toHaveAttribute('data-phase', 'play', { timeout: 5000 });
+  await expect(demo).toHaveAttribute('data-fingerprint', wanted ?? '');
+  await expect(demo.getByTestId('demo-designer')).toContainText('DESIGN DEMO #3');
+  await demo.getByTestId('demo-mystery').click();
+  await expect(demo.getByTestId('demo-mystery')).toHaveAttribute('aria-checked', 'true');
 });
 
 test('the Demo lab is a dev-server page only', async ({ page }) => {

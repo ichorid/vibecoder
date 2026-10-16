@@ -77,6 +77,7 @@ export function createRun(seed: number, runId: string, experience = 0): RunState
     choices: {},
     releases: [],
     demos: [],
+    demoPick: null,
     plant: { water: 60, alive: true, diedAtActiveMs: null, cause: null, warned: false },
     experience,
     ending: null,

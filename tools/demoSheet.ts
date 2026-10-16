@@ -1,9 +1,10 @@
 /**
  * Dev utility (not a test): render demo contact sheets to PNG for looking at the generator.
- * Usage: npx vite-node tools/demoSheet.ts -- [--mode seeds|lineage|anim] [--seed 1]
- *        [--count 24] [--out demo-sheet.png]
+ * Usage: npx vite-node tools/demoSheet.ts -- [--mode seeds|lineage|anim|webs] [--seed 1]
+ *        [--count 24] [--step 0.4] [--out demo-sheet.png]
  * `seeds`: first demos of consecutive seeds; `lineage`: demos 1…count of one run (each the
- * judge's pick after the last); `anim`: one demo over time (trails included).
+ * judge's pick after the last); `anim`: one demo over time, `--step` seconds apart (trails
+ * included); `webs`: first demos that came out as web forms.
  */
 import { writeFileSync } from 'node:fs';
 import { deflateSync } from 'node:zlib';
@@ -20,6 +21,7 @@ const mode = flag('mode', 'seeds');
 const seed = Number(flag('seed', '1'));
 const count = Number(flag('count', '24'));
 const out = flag('out', 'demo-sheet.png');
+const step = Number(flag('step', '0.4'));
 
 const frames: Uint32Array[] = [];
 if (mode === 'seeds') {
@@ -29,7 +31,10 @@ if (mode === 'seeds') {
     frames.push(c.rgba.slice());
   }
 } else if (mode === 'lineage') {
-  const seeds = Array.from({ length: count }, (_, i) => subSeed(seed, 1000 + i));
+  const seeds = Array.from({ length: count }, (_, i) => ({
+    seed: subSeed(seed, 1000 + i),
+    pick: null,
+  }));
   const t0 = performance.now();
   for (let n = 1; n <= count; n++) {
     const c = createDemoCanvas(genomeOf(seeds.slice(0, n)));
@@ -37,11 +42,21 @@ if (mode === 'seeds') {
     frames.push(c.rgba.slice());
   }
   console.log(`lineage: ${((performance.now() - t0) / count).toFixed(1)} ms per demo`);
+} else if (mode === 'webs') {
+  for (let i = 0; frames.length < count && i < 5000; i++) {
+    const { genome } = firstDemo(subSeed(seed, i));
+    if (genome.root.child.prim === 'ball' || genome.root.child.kind !== 'layers') continue;
+    const c = createDemoCanvas(genome);
+    drawDemo(c, 3, { trails: false });
+    frames.push(c.rgba.slice());
+  }
 } else {
+  // 25 frames per second, one picture every `step` seconds
   const c = createDemoCanvas(firstDemo(seed).genome);
-  for (let f = 0; f < count * 10; f++) {
+  const every = Math.max(1, Math.round(step * 25));
+  for (let f = 0; f < count * every; f++) {
     drawDemo(c, f / 25);
-    if (f % 10 === 9) frames.push(c.rgba.slice());
+    if (f % every === every - 1) frames.push(c.rgba.slice());
   }
 }
 

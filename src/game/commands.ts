@@ -11,7 +11,7 @@ import {
 } from './progression';
 import { waterPlant } from './plant';
 import { shipRelease } from './releases';
-import { makeDemo } from './demos';
+import { designDemo, makeDemo } from './demos';
 import { appendLog } from './log';
 import type { Transition } from './simulation';
 import type { GameCommand, RunState } from './types';
@@ -117,6 +117,11 @@ export function applyCommand(
       const made = makeDemo(run, catalog);
       if (!made.accepted) return reject(run, made.reason);
       return { ...made.transition, result: 'applied' };
+    }
+    case 'designDemo': {
+      const designed = designDemo(run, command.pick, catalog);
+      if (!designed.accepted) return reject(run, 'unavailable');
+      return { ...designed.transition, result: 'applied' };
     }
     case 'feedCat': {
       const fed = feedCat(run.cat, run.rng.cat, activeTimestamp, catalog.balance.cat);

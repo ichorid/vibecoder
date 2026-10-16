@@ -4,19 +4,34 @@
  * a horn again). The families, parameter ranges, waves and mutation operators are this game's
  * own (docs/feature_demo.md); no form of the original Organic Art is reproduced.
  *
+ * Motion (§Swirl): slow, large oscillations of bends, twists and caps make the tubes wind and
+ * unwind — each rib turns by u·angle(t), so outer ribs turn more and spirals breathe. A
+ * `ripple` (this game's extension) shifts a wave's phase with the parent rib's position, so a
+ * wave travels round the tentacles of an anemone. Colour genes paint stripes, flowing colour
+ * waves or one colour per tentacle, and pulse light along the tubes.
+ *
  * House rules every genome obeys (`structureOk`): `stack` and `tilt` may only open a horn,
  * and `bend` and `twist` are never neighbours.
  */
 import type { DemoRng } from './rng';
 import { demoRng } from './rng';
 
-/** Wave periods in seconds; each genome adds its own phases. */
-export const WAVE_PERIODS = [3.3, 4.7, 6.9, 9.1, 13.7, 2.2, 1.45] as const;
+/**
+ * Wave periods in seconds, slow to fast; each genome adds its own phases. 0–3 drive swirls and
+ * the pose, 4–6 breathing, 7–8 a light shimmer.
+ */
+export const WAVE_PERIODS = [41, 31, 23, 17, 13, 9.5, 7, 4.5, 3] as const;
 export const WAVES = WAVE_PERIODS.length;
+const SLOW = [0, 3] as const;
+const MID = [3, 6] as const;
 
-/** A constant, or a base plus one or two waves. */
+/**
+ * A constant, or a base plus one or two waves. `ripple` (radians) shifts the waves' phase by
+ * ripple × the parent rib's position (0…1): neighbouring tentacles move out of step.
+ */
 export type Param =
-  number | { base: number; amp: number; osc: number; amp2?: number; osc2?: number };
+  | number
+  | { base: number; amp: number; osc: number; amp2?: number; osc2?: number; ripple?: number };
 
 export type Rule =
   | { op: 'stack' | 'bend' | 'grow'; a: Param }
@@ -33,7 +48,7 @@ export interface Ball {
 }
 
 export const TENDRILS = ['taper', 'spring', 'shell', 'cone'] as const;
-export const ARRANGEMENTS = ['fan', 'ring', 'tower', 'whorl'] as const;
+export const ARRANGEMENTS = ['fan', 'ring', 'tower', 'whorl', 'layers'] as const;
 export type TendrilKind = (typeof TENDRILS)[number];
 export type ArrangementKind = (typeof ARRANGEMENTS)[number];
 
@@ -44,26 +59,59 @@ export interface Horn {
   ribs: Param;
   rules: Rule[];
   child: Horn | Ball;
-  /** Alternate ribs swap colour ramps. */
+  /** Alternate ribs swap colour ramps (colour mode `alt`). */
   alt: boolean;
   /** A bigger ball at the tip (scale relative to the last rib), or none. */
   bulb: number | null;
+  /**
+   * A strand (web forms): after its rules, the tube is moved back by `center` × its stack
+   * length (0.5 = it turns about its middle) and turned `turn`° about Z (90 = lying sideways).
+   */
+  lay?: { center: number; turn: number };
 }
 
 export type DemoStyle = 'bobs' | 'wire';
 export type Backdrop = 'bars' | 'stars';
+/** `tumble`: the form sways in front of the camera; `vortex`: its axis faces the camera. */
+export type View = 'tumble' | 'vortex';
+
+export const COLOUR_MODES = ['alt', 'bands', 'flow', 'tentacles', 'mono'] as const;
+export type ColourMode = (typeof COLOUR_MODES)[number];
+
+/**
+ * How balls are coloured along a tube (u = 0 at its root, 1 at its tip; p = the parent rib's
+ * position): `bands` stripes `pattern[⌊u·bands⌋]`; `flow` moves those stripes along at `speed`
+ * stripes per second (shifted by `ripple`·p); `tentacles` gives each tube one colour by its
+ * parent rib; `alt` alternates ramps on flagged horns; `mono` is one ramp. `pulse` (0–0.6)
+ * darkens balls in a light wave that travels the same way.
+ */
+export interface Colour {
+  mode: ColourMode;
+  pattern: Tone[];
+  bands: number;
+  speed: number;
+  ripple: number;
+  pulse: number;
+}
 
 export interface Genome {
-  version: 1;
+  version: 2;
   root: Horn;
   /** Radial copies about Z, and whether each copy is mirrored (flipped about X). */
   copies: number;
   mirror: boolean;
   phase: number[];
-  /** Degrees per second about Y, and a slow tilt about X driven by one wave. */
-  spin: number;
+  view: View;
+  /** Sway: a tilt of `tiltAmp`° on wave `tiltOsc`, a turn of `spinAmp`° on wave `spinOsc`… */
   tiltAmp: number;
   tiltOsc: number;
+  spinAmp: number;
+  spinOsc: number;
+  /** …plus a slow steady drift in degrees per second. */
+  drift: number;
+  /** Ball size relative to the gap between neighbouring ribs (lace 0.45 … fat bobs 1.3). */
+  thickness: number;
+  colour: Colour;
   palette: number;
   style: DemoStyle;
   backdrop: Backdrop;
@@ -76,53 +124,72 @@ export const BUDGET = 900;
 export const MIN_INSTANCES = 12;
 export const PALETTE_COUNT = 8;
 
+const osc = (r: DemoRng, band: readonly [number, number] = MID) => r.int(band[0], band[1]);
+
 const R = (r: DemoRng, base: number, wobble = 0.3, two = 0.3): Param => {
   const p: Exclude<Param, number> = {
     base,
     amp: base * wobble * r.range(0.4, 1),
-    osc: r.int(0, WAVES - 1),
+    osc: osc(r, [2, 8]),
   };
   if (r.chance(two)) {
     p.amp2 = p.amp * r.range(0.3, 0.8);
-    p.osc2 = r.int(0, WAVES - 1);
+    p.osc2 = osc(r, [2, 8]);
   }
   return p;
 };
+
+/**
+ * A swirl: a slow oscillation of ±`degrees` on top of an angle. Winding and unwinding over
+ * tens of seconds is what makes the forms writhe instead of jitter.
+ */
+function swirl(r: DemoRng, p: Param, degrees: number): Param {
+  const q = typeof p === 'number' ? { base: p, amp: 0, osc: osc(r) } : { ...p };
+  q.amp2 = r.sign() * degrees;
+  q.osc2 = osc(r, SLOW);
+  return q;
+}
+
 const ball = (tone: Tone = 0): Ball => ({ prim: 'ball', tone });
 
 type Shape = Pick<Horn, 'ribs' | 'rules'>;
 
 const TENDRIL: Record<TendrilKind, (r: DemoRng) => Shape> = {
-  // length, a slow spin of the ribs, shrink, then the curl
+  // length, a slow spin of the ribs, shrink, then the curl (which sways)
   taper: (r) => ({
     ribs: R(r, r.int(14, 34), 0.15, 0),
     rules: [
       { op: 'stack', a: R(r, r.range(0.9, 2)) },
       { op: 'twist', a: R(r, r.sign() * r.range(30, 120), 0.6), b: 0 },
       { op: 'grow', a: r.range(0.35, 0.7) },
-      { op: 'bend', a: R(r, r.sign() * r.range(40, 160), 0.5) },
+      { op: 'bend', a: swirl(r, R(r, r.sign() * r.range(40, 160), 0.3), r.range(40, 140)) },
     ],
   }),
-  // an offset twist winds the ribs round a helix that swells or thins as it goes
+  // an offset twist winds the ribs round a helix that winds and unwinds
   spring: (r) => ({
     ribs: R(r, r.int(22, 48), 0.1, 0),
     rules: [
       { op: 'stack', a: R(r, r.range(1, 2.6)) },
       {
         op: 'twist',
-        a: R(r, r.sign() * r.range(400, 1500), 0.25),
+        a: swirl(r, R(r, r.sign() * r.range(400, 1500), 0.15), r.range(180, 540)),
         b: R(r, r.range(0.08, 0.32), 0.4),
       },
       { op: 'grow', a: r.range(0.45, 1.6) },
-      ...(r.chance(0.5) ? [{ op: 'bend' as const, a: R(r, r.sign() * r.range(10, 50), 0.8) }] : []),
+      ...(r.chance(0.5)
+        ? [{ op: 'bend' as const, a: swirl(r, R(r, r.sign() * r.range(10, 50), 0.5), 40) }]
+        : []),
     ],
   }),
-  // a stacked tube bent through more than a turn while it shrinks: a logarithmic spiral
+  // a stacked tube bent through more than a turn while it shrinks: a breathing log spiral
   shell: (r) => ({
     ribs: R(r, r.int(26, 56), 0.1, 0),
     rules: [
       { op: 'stack', a: r.range(0.6, 1.4) },
-      { op: 'bend', a: R(r, r.sign() * 360 * r.range(1.1, 2.6), 0.12) },
+      {
+        op: 'bend',
+        a: swirl(r, R(r, r.sign() * 360 * r.range(1.1, 2.6), 0.08), r.range(60, 180)),
+      },
       { op: 'grow', a: R(r, r.range(0.12, 0.4), 0.25) },
     ],
   }),
@@ -133,7 +200,12 @@ const TENDRIL: Record<TendrilKind, (r: DemoRng) => Shape> = {
       ribs: n,
       rules: [
         { op: 'stack', a: R(r, r.range(1, 2), 0.2) },
-        { op: 'branch', a: R(r, r.range(40, 120), 0.3), k: r.pick([1, 2, 3]), n },
+        {
+          op: 'branch',
+          a: swirl(r, R(r, r.range(40, 120), 0.2), r.range(20, 50)),
+          k: r.pick([1, 2, 3]),
+          n,
+        },
         { op: 'grow', a: r.range(0.25, 0.8) },
       ],
     };
@@ -141,11 +213,19 @@ const TENDRIL: Record<TendrilKind, (r: DemoRng) => Shape> = {
 };
 
 const ARRANGE: Record<ArrangementKind, (r: DemoRng) => Shape> = {
+  // an anemone: the cap opens and closes slowly
   fan: (r) => {
     const n = r.int(5, 14);
     return {
       ribs: n,
-      rules: [{ op: 'branch', a: R(r, r.range(150, 340), 0.25), k: r.pick([1, 1, 2]), n }],
+      rules: [
+        {
+          op: 'branch',
+          a: swirl(r, R(r, r.range(150, 320), 0.1), r.range(30, 80)),
+          k: r.pick([1, 1, 2]),
+          n,
+        },
+      ],
     };
   },
   ring: (r) => {
@@ -158,19 +238,38 @@ const ARRANGE: Record<ArrangementKind, (r: DemoRng) => Shape> = {
       ],
     };
   },
+  // tiers that turn against each other: a vortex seen from above
   tower: (r) => ({
     ribs: r.int(3, 6),
     rules: [
       { op: 'stack', a: R(r, r.range(1.2, 2.6), 0.2) },
-      { op: 'twist', a: R(r, r.sign() * r.range(90, 400), 0.4), b: 0 },
+      {
+        op: 'twist',
+        a: swirl(r, R(r, r.sign() * r.range(90, 400), 0.2), r.range(90, 270)),
+        b: 0,
+      },
       { op: 'grow', a: r.range(0.3, 0.7) },
+    ],
+  }),
+  // web layers: strands stacked a little apart, each one larger and turned against the last;
+  // the turn swings slowly, so the layers wind into a spiral and back
+  layers: (r) => ({
+    ribs: r.int(4, 8),
+    rules: [
+      { op: 'stack', a: R(r, r.range(0.1, 0.4), 0.3) },
+      {
+        op: 'twist',
+        a: swirl(r, R(r, r.sign() * r.range(90, 240), 0.2), r.range(60, 180)),
+        b: 0,
+      },
+      { op: 'grow', a: R(r, r.range(1.6, 4), 0.2) },
     ],
   }),
   whorl: (r) => ({
     ribs: r.int(6, 14),
     rules: [
       { op: 'stack', a: r.range(0.6, 1.4) },
-      { op: 'bend', a: R(r, r.sign() * r.range(300, 640), 0.15) },
+      { op: 'bend', a: swirl(r, R(r, r.sign() * r.range(300, 640), 0.1), r.range(60, 180)) },
       { op: 'grow', a: r.range(0.25, 0.6) },
     ],
   }),
@@ -186,8 +285,82 @@ export function tendril(r: DemoRng, kind: TendrilKind = r.pick(TENDRILS)): Horn 
   };
 }
 
+/** Every wave parameter of a horn's rules. */
+function waveParams(h: Horn): Exclude<Param, number>[] {
+  const out: Exclude<Param, number>[] = [];
+  for (const rule of h.rules) {
+    if (rule.op === 'tilt') continue;
+    if (typeof rule.a === 'object') out.push(rule.a);
+    if (rule.op === 'twist' && typeof rule.b === 'object') out.push(rule.b);
+  }
+  return out;
+}
+
+/** Make the tentacles of an arrangement move out of step (or in step again). */
+function setRipple(r: DemoRng, h: Horn, on: boolean): void {
+  const ripple = on ? r.pick([1, 2, 3]) * 2 * Math.PI * r.sign() : 0;
+  for (const p of waveParams(h)) {
+    if (ripple) p.ripple = ripple;
+    else delete p.ripple;
+  }
+}
+
 function arrangement(r: DemoRng, child: Horn, kind: ArrangementKind = r.pick(ARRANGEMENTS)): Horn {
+  setRipple(r, child, r.chance(0.65));
   return { kind, ...ARRANGE[kind](r), child, alt: false, bulb: null };
+}
+
+/**
+ * A web: a strand laid sideways about its middle, in swirling layers, repeated round a full
+ * turn as spokes and seen face on. (The principle of Organic Art's web forms, rebuilt from
+ * this game's own parts: tendril → layers → ring.)
+ */
+function web(r: DemoRng): Horn {
+  // sized so spokes × layers × strand ribs stays inside the budget
+  const strand = tendril(r, r.pick(['taper', 'spring'] as const));
+  strand.ribs = r.int(8, 14);
+  strand.lay = { center: r.range(0.35, 0.6), turn: 90 * r.sign() };
+  strand.bulb = null;
+  setRipple(r, strand, r.chance(0.5));
+  const layers: Horn = {
+    kind: 'layers',
+    ...ARRANGE.layers(r),
+    ribs: r.int(3, 5),
+    child: strand,
+    alt: false,
+    bulb: null,
+  };
+  const n = r.int(5, 8);
+  return {
+    kind: 'ring',
+    ribs: n,
+    rules: [
+      { op: 'tilt', deg: r.range(-12, 12) },
+      { op: 'twist', a: 360 * (n / (n + 1)), b: R(r, r.range(0, 0.2), 0.5) },
+    ],
+    child: layers,
+    alt: false,
+    bulb: null,
+  };
+}
+
+export function randomColour(r: DemoRng): Colour {
+  const mode = r.pick<ColourMode>(['alt', 'bands', 'flow', 'flow', 'tentacles', 'mono']);
+  const pattern = r.pick<Tone[]>([
+    [0, 1],
+    [0, 1, 2, 1],
+    [0, 0, 1],
+    [0, 2],
+    [1, 0, 2],
+  ]);
+  return {
+    mode,
+    pattern,
+    bands: r.int(2, 6),
+    speed: r.sign() * r.range(0.2, 1.2),
+    ripple: r.chance(0.5) ? r.int(1, 3) : 0,
+    pulse: r.chance(0.45) ? r.range(0.2, 0.6) : 0,
+  };
 }
 
 const maxOf = (p: Param) =>
@@ -233,18 +406,24 @@ export function withinBudget(g: Genome): boolean {
 export function randomGenome(seed: number, family?: TendrilKind): Genome {
   const r = demoRng(seed);
   for (let attempt = 0; attempt < 20; attempt++) {
-    let root = tendril(r, family);
-    const levels = family ? 0 : r.pick([0, 1, 1, 1, 2]);
+    const webbed = !family && r.chance(0.2);
+    let root = webbed ? web(r) : tendril(r, family);
+    const levels = family || webbed ? 0 : r.pick([0, 1, 1, 1, 2]);
     for (let l = 0; l < levels; l++) root = arrangement(r, root);
     const g: Genome = {
-      version: 1,
+      version: 2,
       root,
-      copies: family ? 1 : r.pick([1, 1, 1, 2, 3, 4, 5, 6]),
-      mirror: !family && r.chance(0.3),
+      copies: family || webbed ? 1 : r.pick([1, 1, 1, 2, 3, 4, 5, 6]),
+      mirror: !family && !webbed && r.chance(0.3),
       phase: WAVE_PERIODS.map(() => r.range(0, Math.PI * 2)),
-      spin: r.sign() * r.range(8, 30),
-      tiltAmp: r.range(10, 50),
-      tiltOsc: r.int(0, WAVES - 1),
+      view: webbed || r.chance(0.45) ? 'vortex' : 'tumble',
+      tiltAmp: r.range(10, 40),
+      tiltOsc: osc(r, SLOW),
+      spinAmp: r.range(40, 160),
+      spinOsc: osc(r, SLOW),
+      drift: r.sign() * r.range(0, 5),
+      thickness: webbed ? r.range(0.45, 0.7) : r.range(0.7, 1.25),
+      colour: randomColour(r),
       palette: r.int(0, PALETTE_COUNT - 1),
       style: styleFor(seed),
       backdrop: r.chance(0.35) ? 'stars' : 'bars',
@@ -259,14 +438,19 @@ export function randomGenome(seed: number, family?: TendrilKind): Genome {
 export function fallbackGenome(): Genome {
   const r = demoRng(1);
   return {
-    version: 1,
+    version: 2,
     root: { ...tendril(r, 'spring'), bulb: null },
     copies: 1,
     mirror: false,
     phase: WAVE_PERIODS.map(() => 0),
-    spin: 15,
+    view: 'tumble',
     tiltAmp: 20,
     tiltOsc: 0,
+    spinAmp: 90,
+    spinOsc: 1,
+    drift: 3,
+    thickness: 1,
+    colour: { mode: 'flow', pattern: [0, 1], bands: 3, speed: 0.5, ripple: 0, pulse: 0.3 },
     palette: 0,
     style: 'bobs',
     backdrop: 'bars',
@@ -283,6 +467,14 @@ export function styleFor(seed: number): DemoStyle {
 }
 
 export const cloneGenome = (g: Genome): Genome => JSON.parse(JSON.stringify(g)) as Genome;
+
+/** A short hash of a genome (tests and the UI check that a preview is what gets built). */
+export function genomeFingerprint(g: Genome): string {
+  const text = JSON.stringify(g);
+  let h = 2166136261;
+  for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 16777619);
+  return (h >>> 0).toString(16).padStart(8, '0');
+}
 
 // ---- mutation ----
 
@@ -303,7 +495,39 @@ export const MUTATIONS = {
   },
   wave: (g: Genome, r: DemoRng) => {
     const rule = r.pick(r.pick(hornChain(g.root)).rules);
-    if ('a' in rule && typeof rule.a === 'object') rule.a = { ...rule.a, osc: r.int(0, WAVES - 1) };
+    if ('a' in rule && typeof rule.a === 'object') rule.a = { ...rule.a, osc: osc(r, [2, 8]) };
+  },
+  /** Add, retime or remove a slow swirl on one angle. */
+  swirl: (g: Genome, r: DemoRng) => {
+    const rule = r.pick(r.pick(hornChain(g.root)).rules);
+    if (rule.op === 'bend' || rule.op === 'twist' || rule.op === 'branch') {
+      const big = rule.op === 'twist' ? r.range(120, 540) : r.range(30, 150);
+      if (typeof rule.a === 'object' && rule.a.amp2 !== undefined && r.chance(0.3)) {
+        const { amp2: _amp2, osc2: _osc2, ...rest } = rule.a;
+        rule.a = rest;
+      } else rule.a = swirl(r, rule.a, big);
+    }
+  },
+  /** Tentacles in step, or a wave running round them. */
+  ripple: (g: Genome, r: DemoRng) => {
+    const chain = hornChain(g.root);
+    const inner = chain.at(-1);
+    if (inner && chain.length > 1) {
+      setRipple(r, inner, !waveParams(inner).some((p) => p.ripple));
+    }
+  },
+  view: (g: Genome) => {
+    g.view = g.view === 'tumble' ? 'vortex' : 'tumble';
+  },
+  thickness: (g: Genome, r: DemoRng) => {
+    g.thickness = Math.max(0.4, Math.min(1.4, g.thickness * Math.exp(r.range(-0.35, 0.35))));
+  },
+  /** Lay the innermost tube down as a strand about its middle, or stand it up again. */
+  lay: (g: Genome, r: DemoRng) => {
+    const inner = hornChain(g.root).at(-1);
+    if (!inner) return;
+    if (inner.lay) delete inner.lay;
+    else inner.lay = { center: r.range(0.35, 0.6), turn: 90 * r.sign() };
   },
   ribs: (g: Genome, r: DemoRng) => {
     const h = r.pick(hornChain(g.root));
@@ -316,7 +540,7 @@ export const MUTATIONS = {
     const h = r.pick(hornChain(g.root));
     if (h.rules.length >= 5) return;
     const rule: Rule = r.pick<Rule>([
-      { op: 'bend', a: R(r, r.sign() * r.range(15, 60), 0.6) },
+      { op: 'bend', a: swirl(r, R(r, r.sign() * r.range(15, 60), 0.4), r.range(20, 80)) },
       { op: 'twist', a: R(r, r.range(60, 360), 0.5), b: 0 },
       { op: 'grow', a: r.range(0.6, 1.5) },
     ]);
@@ -348,6 +572,26 @@ export const MUTATIONS = {
     if (parent) parent.child = tendril(r);
     else g.root = tendril(r);
   },
+  /** A new way of colouring the balls, or a twist on the current one. */
+  colour: (g: Genome, r: DemoRng) => {
+    const c = g.colour;
+    switch (r.int(0, 4)) {
+      case 0:
+        g.colour = randomColour(r);
+        break;
+      case 1:
+        c.bands = Math.max(1, Math.min(8, c.bands + r.pick([-1, 1, 2])));
+        break;
+      case 2:
+        c.speed = -c.speed * r.range(0.6, 1.6);
+        break;
+      case 3:
+        c.pulse = c.pulse > 0 ? 0 : r.range(0.2, 0.6);
+        break;
+      default:
+        c.ripple = c.ripple ? 0 : r.int(1, 3);
+    }
+  },
   palette: (g: Genome, r: DemoRng) => {
     g.palette = (g.palette + r.int(1, PALETTE_COUNT - 1)) % PALETTE_COUNT;
   },
@@ -360,11 +604,21 @@ export const MUTATIONS = {
 } satisfies Record<string, (g: Genome, r: DemoRng) => void>;
 
 export type MutationId = keyof typeof MUTATIONS;
-export const COSMETIC: ReadonlySet<MutationId> = new Set(['palette', 'backdrop', 'trails']);
+export const COSMETIC: ReadonlySet<MutationId> = new Set([
+  'colour',
+  'palette',
+  'backdrop',
+  'trails',
+]);
 
 const WEIGHTS: readonly [MutationId, number][] = [
   ['tweak', 6],
-  ['wave', 2],
+  ['wave', 1.5],
+  ['swirl', 2],
+  ['ripple', 1],
+  ['view', 0.5],
+  ['lay', 0.6],
+  ['thickness', 1],
   ['ribs', 2],
   ['addRule', 1.5],
   ['dropRule', 1],
@@ -373,6 +627,7 @@ const WEIGHTS: readonly [MutationId, number][] = [
   ['copies', 1],
   ['bulb', 1],
   ['swapTendril', 0.5],
+  ['colour', 2.5],
   ['palette', 1],
   ['backdrop', 0.4],
   ['trails', 0.4],

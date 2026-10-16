@@ -5,12 +5,22 @@
  * - a transform is 13 floats in a typed array (m0..m8 rotation, s scale, t0..t2 translation),
  *   row-vector convention p' = (p · M) · s + t, composed in place without allocation;
  * - each horn's rib transforms are computed ONCE per frame into a table, then only composed
- *   with each parent rib (an inner tendril is not re-evaluated for every rib of its parent);
+ *   with each parent rib — except a horn whose waves ripple: its table depends on the parent
+ *   rib and is rebuilt for each one;
  * - innermost ribs keep only centre and scale: a ball looks the same from every side.
  */
-import { WAVE_PERIODS, type Genome, type Horn, type Param, type Rule } from './genome';
+import {
+  WAVE_PERIODS,
+  type Ball,
+  type Colour,
+  type Genome,
+  type Horn,
+  type Param,
+  type Rule,
+} from './genome';
 
 const DEG = Math.PI / 180;
+const TAU = Math.PI * 2;
 const X = 13;
 export const MAX_INSTANCES = 4096;
 
@@ -23,6 +33,8 @@ export interface Instances {
   readonly s: Float32Array;
   /** Colour ramp 0–2. */
   readonly tone: Uint8Array;
+  /** Light 0–1 (colour pulses darken balls in a travelling wave). */
+  readonly glow: Float32Array;
   /** Consecutive ribs of one tube share a chain number (the wire style connects them). */
   readonly chain: Uint32Array;
   count: number;
@@ -35,15 +47,40 @@ export function createInstances(capacity = MAX_INSTANCES): Instances {
     z: new Float32Array(capacity),
     s: new Float32Array(capacity),
     tone: new Uint8Array(capacity),
+    glow: new Float32Array(capacity),
     chain: new Uint32Array(capacity),
     count: 0,
   };
 }
 
-export const value = (p: Param, w: ArrayLike<number>): number =>
-  typeof p === 'number'
-    ? p
-    : p.base + p.amp * (w[p.osc] ?? 0) + (p.amp2 ? p.amp2 * (w[p.osc2 ?? 0] ?? 0) : 0);
+/** Waves at one moment; `up` is the parent rib's position 0…1 (for rippling waves). */
+export interface WaveContext {
+  readonly w: ArrayLike<number>;
+  readonly t: number;
+  readonly phase: readonly number[];
+  up: number;
+}
+
+const waveAt = (ctx: WaveContext, osc: number, shift: number) =>
+  shift === 0
+    ? (ctx.w[osc] ?? 0)
+    : Math.sin((TAU * ctx.t) / (WAVE_PERIODS[osc] ?? 1) + (ctx.phase[osc] ?? 0) + shift);
+
+export function value(p: Param, ctx: WaveContext): number {
+  if (typeof p === 'number') return p;
+  const shift = p.ripple ? p.ripple * ctx.up : 0;
+  let v = p.base + p.amp * waveAt(ctx, p.osc, shift);
+  if (p.amp2 !== undefined && p.osc2 !== undefined) v += p.amp2 * waveAt(ctx, p.osc2, shift);
+  return v;
+}
+
+/** A context for plain wave values (tests, the dev page). */
+export const constantWaves = (w: ArrayLike<number>): WaveContext => ({
+  w,
+  t: 0,
+  phase: [],
+  up: 0,
+});
 
 export function setIdentity(o: Float32Array, k: number): void {
   o.fill(0, k, k + X);
@@ -129,29 +166,29 @@ export function compose(
 const tmp = new Float32Array(X * 4);
 
 /** One rule at tube position u ∈ [0, 1] (the grammar's definitions). */
-export function ruleAt(o: Float32Array, k: number, rule: Rule, u: number, w: ArrayLike<number>) {
+export function ruleAt(o: Float32Array, k: number, rule: Rule, u: number, ctx: WaveContext) {
   switch (rule.op) {
     case 'tilt':
       setRotation(o, k, 0, rule.deg);
       return;
     case 'stack': // move up by u·h
       setIdentity(o, k);
-      o[k + 11] = u * value(rule.a, w);
+      o[k + 11] = u * value(rule.a, ctx);
       return;
     case 'bend': // rotate about Z by u·angle
-      setRotation(o, k, 2, u * value(rule.a, w));
+      setRotation(o, k, 2, u * value(rule.a, ctx));
       return;
     case 'twist': {
       // rotate about Y by u·angle around the point x = −offset
-      const off = value(rule.b, w);
-      setRotation(o, k, 1, u * value(rule.a, w));
+      const off = value(rule.b, ctx);
+      setRotation(o, k, 1, u * value(rule.a, ctx));
       o[k + 10] = off * (o[k] ?? 1) - off;
       o[k + 12] = off * (o[k + 2] ?? 0);
       return;
     }
     case 'grow': {
       // scale by g^u (a negative g keeps its sign)
-      const g = value(rule.a, w);
+      const g = value(rule.a, ctx);
       setIdentity(o, k);
       o[k + 9] = g < 0 ? -((-g) ** u) : g ** u;
       return;
@@ -159,7 +196,7 @@ export function ruleAt(o: Float32Array, k: number, rule: Rule, u: number, w: Arr
     case 'branch': {
       // tilt down a sphere cap of `a` degrees, turn round the golden angle (phyllotaxis)
       const uc = u < 0 ? 0 : u > 1 ? 1 : u;
-      const frac = Math.max(1e-4, (1 - Math.cos((value(rule.a, w) / 2) * DEG)) / 2);
+      const frac = Math.max(1e-4, (1 - Math.cos((value(rule.a, ctx) / 2) * DEG)) / 2);
       const c = Math.max(-1, Math.min(1, 0.99999 - uc * 1.99998 * frac));
       setRotation(tmp, X * 2, 0, Math.acos(c) / DEG);
       setRotation(tmp, X * 3, 1, rule.k * 137.5 * uc * rule.n);
@@ -169,6 +206,18 @@ export function ruleAt(o: Float32Array, k: number, rule: Rule, u: number, w: Arr
   }
 }
 
+/** A strand's placement after its rules: back by `center` × its length, then turned about Z. */
+export function layInto(o: Float32Array, k: number, h: Horn, ctx: WaveContext): void {
+  if (!h.lay) return;
+  const stack = h.rules.find((r) => r.op === 'stack');
+  const length = stack && stack.op === 'stack' ? value(stack.a, ctx) : 1;
+  setIdentity(tmp, X * 3);
+  tmp[X * 3 + 11] = -h.lay.center * length;
+  setRotation(tmp, X * 2, 2, h.lay.turn);
+  compose(tmp, X * 3, tmp, X * 3, tmp, X * 2);
+  compose(o, k, o, k, tmp, X * 3);
+}
+
 /** The transform of rib position `i` of a horn with `ribs` ribs: its rules, first to last. */
 export function ribAt(
   o: Float32Array,
@@ -176,53 +225,87 @@ export function ribAt(
   h: Horn,
   i: number,
   ribs: number,
-  w: ArrayLike<number>,
+  ctx: WaveContext,
 ) {
   const first = h.rules[0];
-  if (ribs === 0 || !first) {
-    setIdentity(o, k);
-    return;
+  if (ribs === 0 || !first) setIdentity(o, k);
+  else {
+    const u = i / ribs;
+    ruleAt(o, k, first, u, ctx);
+    for (let q = 1; q < h.rules.length; q++) {
+      const rule = h.rules[q];
+      if (!rule) continue;
+      ruleAt(tmp, X, rule, u, ctx);
+      compose(o, k, o, k, tmp, X);
+    }
   }
-  const u = i / ribs;
-  ruleAt(o, k, first, u, w);
-  for (let q = 1; q < h.rules.length; q++) {
-    const rule = h.rules[q];
-    if (!rule) continue;
-    ruleAt(tmp, X, rule, u, w);
-    compose(o, k, o, k, tmp, X);
-  }
+  layInto(o, k, h, ctx);
 }
 
 interface Table {
   xf: Float32Array;
   /** Ribs drawn: the whole positions 0…⌈ribs⌉−1, then the (fractional) end at `ribs`. */
   n: number;
+  ribs: number;
   tip: Float32Array;
 }
 const tables = new WeakMap<Horn, Table>();
+const rippling = new WeakMap<Horn, boolean>();
 
-function buildTables(h: Horn, w: ArrayLike<number>): void {
-  const ribs = Math.max(0, value(h.ribs, w));
+/** Whether a horn's waves depend on its parent rib (then its table is per parent rib). */
+export function ripples(h: Horn): boolean {
+  let known = rippling.get(h);
+  if (known === undefined) {
+    const params: Param[] = [h.ribs];
+    for (const rule of h.rules) {
+      if (rule.op === 'tilt') continue;
+      params.push(rule.a);
+      if (rule.op === 'twist') params.push(rule.b);
+    }
+    known = params.some((p) => typeof p === 'object' && Boolean(p.ripple));
+    rippling.set(h, known);
+  }
+  return known;
+}
+
+function buildTable(h: Horn, ctx: WaveContext): Table {
+  const ribs = Math.max(0, value(h.ribs, ctx));
   const n = Math.ceil(ribs) + 1;
   let t = tables.get(h);
   if (!t || t.xf.length < n * X) {
-    t = { xf: new Float32Array((n + 8) * X), n, tip: new Float32Array(X) };
+    t = { xf: new Float32Array((n + 8) * X), n, ribs, tip: new Float32Array(X) };
     tables.set(h, t);
   }
   t.n = n;
-  for (let j = 0; j < n - 1; j++) ribAt(t.xf, j * X, h, j, ribs, w);
-  ribAt(t.xf, (n - 1) * X, h, ribs, ribs, w);
+  t.ribs = ribs;
+  for (let j = 0; j < n - 1; j++) ribAt(t.xf, j * X, h, j, ribs, ctx);
+  ribAt(t.xf, (n - 1) * X, h, ribs, ribs, ctx);
   if (h.bulb !== null) {
     t.tip.set(t.xf.subarray((n - 1) * X, n * X));
     t.tip[9] = (t.tip[9] ?? 1) * h.bulb;
   }
-  if (h.child.prim !== 'ball') buildTables(h.child, w);
+  return t;
+}
+
+/** Tables that do not depend on the parent rib, once per frame. */
+function prepare(h: Horn, ctx: WaveContext): void {
+  if (!ripples(h)) {
+    ctx.up = 0;
+    buildTable(h, ctx);
+  }
+  if (h.child.prim !== 'ball') prepare(h.child, ctx);
 }
 
 const scratch = Array.from({ length: 8 }, () => new Float32Array(X));
 let chainSeq = 0;
 
-function emit(out: Instances, p: Float32Array, tone: number): void {
+interface Paint {
+  readonly colour: Colour;
+  readonly t: number;
+  readonly copy: number;
+}
+
+function emit(out: Instances, p: Float32Array, tone: number, glow: number): void {
   if (out.count >= out.x.length) return;
   const i = out.count++;
   out.x[i] = p[10] ?? 0;
@@ -230,17 +313,64 @@ function emit(out: Instances, p: Float32Array, tone: number): void {
   out.z[i] = p[12] ?? 0;
   out.s[i] = Math.abs(p[9] ?? 0);
   out.tone[i] = tone;
+  out.glow[i] = glow;
   out.chain[i] = chainSeq;
 }
 
-function walk(h: Horn, parent: Float32Array, depth: number, tone: number, out: Instances): void {
+const fract = (x: number) => x - Math.floor(x);
+
+/** The colour ramp of rib `j` (position u) of a tube, by the genome's colour genes. */
+function rampOf(
+  h: Horn,
+  child: Ball,
+  j: number,
+  last: boolean,
+  u: number,
+  travel: number,
+  tone: number,
+  index: number,
+  paint: Paint,
+): number {
+  const { colour } = paint;
+  const pattern = colour.pattern;
+  const n = Math.max(1, pattern.length);
+  switch (colour.mode) {
+    case 'mono':
+      return child.tone;
+    case 'bands':
+      return pattern[Math.floor(u * colour.bands) % n] ?? 0;
+    case 'flow':
+      return pattern[Math.floor(fract((u * colour.bands + travel) / n) * n)] ?? 0;
+    case 'tentacles':
+      return pattern[(index + paint.copy) % n] ?? 0;
+    default:
+      return (tone + (h.alt && j % 2 === 1 && !last ? 1 : 0) + child.tone) % 2;
+  }
+}
+
+function walk(
+  h: Horn,
+  parent: Float32Array,
+  depth: number,
+  tone: number,
+  out: Instances,
+  ctx: WaveContext,
+  paint: Paint,
+  up: number,
+  index: number,
+): void {
+  if (ripples(h)) {
+    ctx.up = up;
+    buildTable(h, ctx);
+  }
   const t = tables.get(h);
   if (!t) return;
-  const child = h.child;
+  const child: Horn | Ball = h.child;
   const xf = t.xf;
   if (child.prim === 'ball') {
     // leaf tube: centre and scale only
     chainSeq++;
+    const { colour } = paint;
     const p0 = parent[0] ?? 0,
       p1 = parent[1] ?? 0,
       p2 = parent[2] ?? 0;
@@ -254,6 +384,7 @@ function walk(h: Horn, parent: Float32Array, depth: number, tone: number, out: I
       q0 = parent[10] ?? 0,
       q1 = parent[11] ?? 0,
       q2 = parent[12] ?? 0;
+    const travel = colour.ripple * up - colour.speed * paint.t;
     for (let j = 0; j < t.n; j++) {
       if (out.count >= out.x.length) return;
       const k = j * X;
@@ -265,21 +396,29 @@ function walk(h: Horn, parent: Float32Array, depth: number, tone: number, out: I
       out.y[i] = (a * p1 + b * p4 + c * p7) * ps + q1;
       out.z[i] = (a * p2 + b * p5 + c * p8) * ps + q2;
       out.s[i] = Math.abs((xf[k + 9] ?? 0) * ps);
-      out.tone[i] = (tone + (h.alt && j % 2 === 1 && j < t.n - 1 ? 1 : 0) + child.tone) % 2;
+      const u = t.ribs > 0 ? Math.min(j, t.ribs) / t.ribs : 0;
+      out.tone[i] = rampOf(h, child, j, j === t.n - 1, u, travel, tone, index, paint);
+      out.glow[i] =
+        colour.pulse > 0
+          ? 1 - colour.pulse * (0.5 + 0.5 * Math.sin(TAU * 0.5 * (u * colour.bands + travel)))
+          : 1;
       out.chain[i] = chainSeq;
     }
   } else {
     const o = scratch[depth] ?? new Float32Array(X);
+    const span = Math.max(1, t.n - 1);
     for (let j = 0; j < t.n; j++) {
       compose(o, 0, xf, j * X, parent, 0);
-      walk(child, o, depth + 1, tone + (h.alt && j % 2 === 1 ? 1 : 0), out);
+      const toneJ = tone + (h.alt && j % 2 === 1 ? 1 : 0);
+      walk(child, o, depth + 1, toneJ, out, ctx, paint, j / span, j);
     }
   }
   if (h.bulb !== null) {
+    // the tip is in the horn's own frame: compose with the parent
     const o = scratch[depth] ?? new Float32Array(X);
     compose(o, 0, t.tip, 0, parent, 0);
     chainSeq++;
-    emit(out, o, 2);
+    emit(out, o, 2, 1);
   }
 }
 
@@ -289,21 +428,35 @@ const waves = new Float64Array(WAVE_PERIODS.length);
 /** The wave values of a genome at time t (seconds). */
 export function wavesAt(g: Genome, t: number, w: Float64Array = waves): Float64Array {
   for (let i = 0; i < WAVE_PERIODS.length; i++) {
-    w[i] = Math.sin((2 * Math.PI * t) / (WAVE_PERIODS[i] ?? 1) + (g.phase[i] ?? 0));
+    w[i] = Math.sin((TAU * t) / (WAVE_PERIODS[i] ?? 1) + (g.phase[i] ?? 0));
   }
   return w;
+}
+
+/** The pose at time t into `o` (13 floats at `k`); exported for the reference test. */
+export function poseAt(o: Float32Array, k: number, g: Genome, w: ArrayLike<number>, t: number) {
+  const tilt = g.tiltAmp * (w[g.tiltOsc] ?? 0);
+  const turn = g.spinAmp * (w[g.spinOsc] ?? 0) + g.drift * t;
+  if (g.view === 'vortex') {
+    // the form's axis points at the camera; it rolls in the picture plane
+    setRotation(o, k, 0, -90 + tilt * 0.4);
+    setRotation(tmp, X * 2, 2, turn);
+  } else {
+    // it sways in front of the camera
+    setRotation(o, k, 0, tilt - 15);
+    setRotation(tmp, X * 2, 1, turn);
+  }
+  compose(o, k, o, k, tmp, X * 2);
 }
 
 /** Fill `out` with the genome's ribs at time t; returns the count. */
 export function expand(g: Genome, t: number, out: Instances): number {
   const w = wavesAt(g, t);
-  buildTables(g.root, w);
+  const ctx: WaveContext = { w, t, phase: g.phase, up: 0 };
+  prepare(g.root, ctx);
   out.count = 0;
   chainSeq = 0;
-  // pose: a slow tilt about X, then the spin about Y
-  setRotation(base, 0, 0, g.tiltAmp * (w[g.tiltOsc] ?? 0) - 15);
-  setRotation(base, X, 1, t * g.spin);
-  compose(base, 0, base, 0, base, X);
+  poseAt(base, 0, g, w, t);
   const copy = base.subarray(X, X * 2);
   for (let c = 0; c < g.copies; c++) {
     for (let m = 0; m < (g.mirror ? 2 : 1); m++) {
@@ -312,7 +465,7 @@ export function expand(g: Genome, t: number, out: Instances): number {
       setRotation(base, X * 2, 2, (360 * c) / g.copies);
       compose(base, X, base, X, base, X * 2);
       compose(base, X, base, X, base, 0); // mirror, then the copy's turn, then the pose
-      walk(g.root, copy, 0, c % 2, out);
+      walk(g.root, copy, 0, c % 2, out, ctx, { colour: g.colour, t, copy: c }, 0, c);
     }
   }
   return out.count;

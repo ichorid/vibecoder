@@ -9,7 +9,8 @@ const param = (p: Param) =>
   typeof p === 'number'
     ? n(p)
     : `${n(p.base)} + ${n(p.amp)} * w${p.osc}` +
-      (p.amp2 !== undefined && p.osc2 !== undefined ? ` + ${n(p.amp2)} * w${p.osc2}` : '');
+      (p.amp2 !== undefined && p.osc2 !== undefined ? ` + ${n(p.amp2)} * w${p.osc2}` : '') +
+      (p.ripple ? ` ~ripple ${n(p.ripple / (2 * Math.PI))}` : '');
 
 export function hornScript(g: Genome): string {
   const lines = WAVE_PERIODS.map(
@@ -37,6 +38,7 @@ export function hornScript(g: Genome): string {
           lines.push(`${h}.${rule.op}(${param(rule.a)})`);
       }
     }
+    if (node.lay) lines.push(`${h}.lay(center ${n(node.lay.center)}, rotZ(${n(node.lay.turn)}))`);
     if (node.alt) lines.push(`${h}.alternate()`);
     if (node.bulb !== null) lines.push(`${h}.tip(ball[2], scale(${n(node.bulb)}))`);
     return h;
@@ -44,7 +46,10 @@ export function hornScript(g: Genome): string {
   const root = visit(g.root);
   lines.push(
     '',
-    `pose = rotX(${n(g.tiltAmp)} * w${g.tiltOsc} - 15) then rotY(T * ${n(g.spin)})`,
+    g.view === 'vortex'
+      ? `pose = rotX(${n(g.tiltAmp * 0.4)} * w${g.tiltOsc} - 90) then rotZ(${n(g.spinAmp)} * w${g.spinOsc} + T * ${n(g.drift)})   # vortex`
+      : `pose = rotX(${n(g.tiltAmp)} * w${g.tiltOsc} - 15) then rotY(${n(g.spinAmp)} * w${g.spinOsc} + T * ${n(g.drift)})`,
+    `colour ${g.colour.mode} [${g.colour.pattern.join(' ')}] bands ${g.colour.bands} speed ${n(g.colour.speed)} ripple ${g.colour.ripple} pulse ${n(g.colour.pulse)}`,
     `render(${root}, ${g.copies} copies${g.mirror ? ', mirrored' : ''}, pose)`,
     `# palette ${g.palette}, ${g.style}, ${g.backdrop}${g.trails ? `, trails every ${g.trails} frames` : ''}`,
   );

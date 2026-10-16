@@ -132,7 +132,7 @@ function drawBobs(buf: Uint8Array, n: number): void {
     const x0 = Math.round((p[o] ?? 0) - sprite.c);
     const y0 = Math.round((p[o + 1] ?? 0) - sprite.c);
     // depth fog: the back of the form is up to ~45 % darker
-    const fog = Math.round(140 + 116 * nearness(p[o + 2] ?? 3));
+    const fog = Math.round((140 + 116 * nearness(p[o + 2] ?? 3)) * (inst.glow[i] ?? 1));
     const ramp = RAMP[inst.tone[i] ?? 0] ?? 2;
     const { d, light, mask } = sprite;
     for (let y = 0; y < d; y++) {
@@ -181,7 +181,7 @@ function drawWire(buf: Uint8Array, n: number): void {
   for (let q = 0; q < n; q++) {
     const i = order[q] ?? 0;
     const o = i * 4;
-    const level = 1 + Math.round(3 * nearness(p[o + 2] ?? 3));
+    const level = 1 + Math.round(3 * nearness(p[o + 2] ?? 3) * (inst.glow[i] ?? 1));
     const ramp = RAMP[inst.tone[i] ?? 0] ?? 2;
     if (i > 0 && inst.chain[i] === inst.chain[i - 1] && inst.tone[i] !== 2) {
       const a = (i - 1) * 4;

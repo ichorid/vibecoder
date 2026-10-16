@@ -15,6 +15,7 @@ const runFrames = (count: number) => {
     const due = frames;
     frames = [];
     for (const cb of due) cb(performance.now());
+    flushSync(); // components that mount mid-way start their own frames
   }
   flushSync();
 };
@@ -34,7 +35,10 @@ afterEach(() => {
 
 const demo: DemoViewModel = {
   number: 2,
-  seeds: [11, 22],
+  steps: [
+    { seed: 11, pick: null },
+    { seed: 22, pick: null },
+  ],
   title: 'Organic Tentacles',
   group: 'Vibe Coderz',
   greetings: ['the reviewer agent', 'the rubber duck', 'the GPU fans'],
@@ -88,5 +92,50 @@ describe('the demo popup', () => {
     if (!history) throw new Error('no history');
     await fireEvent.click(within(history).getByRole('button', { name: 'Watch demo 1' }));
     expect(screen.getByTestId('demo-screen')).toBeTruthy();
+  });
+
+  it("the demo screen offers the next demo's design; the picked preview is what gets coded", async () => {
+    const run = progressedRun(4, false);
+    const ui = createUiGame({ ...run, economy: { ...run.economy, output: 50_000 } });
+    render(App, {
+      props: {
+        api: ui.game.api,
+        illustrationUrl: () => null,
+        createRenderer: nullRenderer,
+        clock: { activeNow: () => ui.game.activeNow(), frames: () => () => {} },
+      },
+    });
+    // the choice lives on the demo screen only
+    expect(screen.queryByTestId('demo-designer')).toBeNull();
+    await fireEvent.click(screen.getByTestId('demo-strip'));
+    await fireEvent.click(screen.getByTestId('demo-depack')); // skip the intro
+    runFrames(400);
+    const first = screen.getByTestId('demo-screen');
+    const designer = within(first).getByTestId('demo-designer');
+    expect(designer.textContent).toContain('DESIGN DEMO #2');
+    const variant = within(designer).getByTestId('demo-variant-1');
+    const wanted = variant.getAttribute('data-fingerprint');
+    expect(wanted).toMatch(/^[0-9a-f]{8}$/);
+    expect(
+      within(designer).getByTestId('demo-variant-0').getAttribute('data-fingerprint'),
+    ).not.toBe(wanted);
+    await fireEvent.click(variant);
+    expect(variant.getAttribute('aria-checked')).toBe('true');
+    await fireEvent.click(screen.getByRole('button', { name: 'CLOSE' }));
+    await fireEvent.click(screen.getByTestId('demo-strip'));
+    await fireEvent.click(screen.getByTestId('demo-depack'));
+    runFrames(400);
+    const second = screen.getByTestId('demo-screen');
+    expect(second.getAttribute('data-phase')).toBe('play');
+    expect(second.getAttribute('data-fingerprint')).toBe(wanted);
+    await fireEvent.click(within(second).getByTestId('demo-mystery'));
+    expect(within(second).getByTestId('demo-mystery').getAttribute('aria-checked')).toBe('true');
+    // an older demo replayed from History offers no design
+    await fireEvent.click(screen.getByRole('button', { name: 'CLOSE' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'HISTORY' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Watch demo 1' }));
+    await fireEvent.click(screen.getByTestId('demo-depack'));
+    runFrames(400);
+    expect(screen.queryByTestId('demo-designer')).toBeNull();
   });
 });

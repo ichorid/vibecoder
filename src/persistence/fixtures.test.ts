@@ -8,6 +8,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { catalog } from '../content/catalog';
 import { createRun } from '../game/createRun';
+import type { GameCommand, RunState } from '../game/types';
 import { applyCommand } from '../game/commands';
 import {
   neglectedRun,
@@ -41,23 +42,27 @@ function shippedRun() {
   return applyCommand(run, { type: 'shipRelease' }, run.activeMs, catalog).run;
 }
 
-/** A run that has shipped v0.1 and coded two demos. */
+/** A run that has shipped v0.1, coded two demos (the second designed) and designed a third. */
 function demoRun() {
+  const act = (run: RunState, command: GameCommand) =>
+    applyCommand(run, command, run.activeMs, catalog).run;
   let run = shippedRun();
   run = { ...run, economy: { ...run.economy, output: run.economy.output + 10_000 } };
-  run = applyCommand(run, { type: 'makeDemo' }, run.activeMs, catalog).run;
-  return applyCommand(run, { type: 'makeDemo' }, run.activeMs, catalog).run;
+  run = act(run, { type: 'makeDemo' });
+  run = act(run, { type: 'designDemo', pick: 2 });
+  run = act(run, { type: 'makeDemo' });
+  return act(run, { type: 'designDemo', pick: 3 });
 }
 
-/** Current-format fixtures (schema 8), produced by the same real game paths. */
+/** Current-format fixtures (schema 9), produced by the same real game paths. */
 const BUILDERS: Record<string, () => string> = {
-  'v8-fresh': () => saveWithProfile(createRun(1, 'fixture-fresh'), []),
-  'v8-midgame': () => saveWithProfile(progressedRun(6, true), []),
-  'v8-dead-cat': () => saveWithProfile(neglectedRun(), []),
-  'v8-stray-cat': () => saveWithProfile(strayRun(), []),
-  'v8-shipped': () => saveWithProfile(shippedRun(), []),
-  'v8-demos': () => saveWithProfile(demoRun(), []),
-  'v8-ended': () => {
+  'v9-fresh': () => saveWithProfile(createRun(1, 'fixture-fresh'), []),
+  'v9-midgame': () => saveWithProfile(progressedRun(6, true), []),
+  'v9-dead-cat': () => saveWithProfile(neglectedRun(), []),
+  'v9-stray-cat': () => saveWithProfile(strayRun(), []),
+  'v9-shipped': () => saveWithProfile(shippedRun(), []),
+  'v9-demos': () => saveWithProfile(demoRun(), []),
+  'v9-ended': () => {
     const run = endedRun();
     return saveWithProfile(run, [
       { id: 'the-forgotten-project', runId: run.id, activeMs: run.activeMs, order: 1 },
@@ -112,6 +117,15 @@ const V7 = [
   'v7-stray-cat',
   'v7-shipped',
   'v7-ended',
+] as const;
+const V8 = [
+  'v8-fresh',
+  'v8-midgame',
+  'v8-dead-cat',
+  'v8-stray-cat',
+  'v8-shipped',
+  'v8-demos',
+  'v8-ended',
 ] as const;
 const file = (name: string) => readFileSync(`${DIR}/${name}.json`, 'utf8');
 
@@ -185,9 +199,23 @@ describe('released save fixtures', () => {
     });
   }
 
-  it('coded demos round-trip with their seeds and History entries', () => {
-    const save = loaded(fixture('v8-demos'));
-    expect(save.run.demos.map((d) => d.number)).toEqual([1, 2]);
+  for (const name of V8) {
+    it(`${name} keeps its demos, each the judge's choice, and no design yet (8 → 9)`, () => {
+      const save = loaded(file(name));
+      const raw = JSON.parse(file(name)) as { run: { demos: { seed: number }[] } };
+      expect(save.run.demos.map((d) => d.seed)).toEqual(raw.run.demos.map((d) => d.seed));
+      expect(save.run.demos.every((d) => d.pick === null)).toBe(true);
+      expect(save.run.demoPick).toBeNull();
+    });
+  }
+
+  it('coded and designed demos round-trip with their seeds, picks and History entries', () => {
+    const save = loaded(fixture('v9-demos'));
+    expect(save.run.demos.map((d) => [d.number, d.pick])).toEqual([
+      [1, null],
+      [2, 2],
+    ]);
+    expect(save.run.demoPick).toBe(3);
     expect(save.run.history.filter((h) => h.kind === 'demo')).toHaveLength(2);
   });
 
@@ -199,14 +227,14 @@ describe('released save fixtures', () => {
   });
 
   it('a shipped release round-trips with its outcome, comment and cat', () => {
-    const save = loaded(fixture('v8-shipped'));
+    const save = loaded(fixture('v9-shipped'));
     expect(save.run.releases).toHaveLength(1);
     expect(save.run.releases[0]).toMatchObject({ window: 1, catAlive: true });
     expect(save.run.history.some((h) => h.kind === 'release')).toBe(true);
   });
 
   it('a stray cat stays gone and is not mistaken for a dead one', () => {
-    const stray = loaded(fixture('v8-stray-cat'));
+    const stray = loaded(fixture('v9-stray-cat'));
     expect(stray.run.cat.alive).toBe(false);
     expect(stray.run.cat.leftAtActiveMs).not.toBeNull();
     expect(stray.run.cat.diedAtActiveMs).toBeNull();
@@ -231,25 +259,25 @@ describe('released save fixtures', () => {
   });
 
   it('mid-game keeps RNG streams, the pending reveal and care cooldowns', () => {
-    const save = loaded(fixture('v8-midgame'));
-    const original = JSON.parse(fixture('v8-midgame')) as { run: { rng: unknown } };
+    const save = loaded(fixture('v9-midgame'));
+    const original = JSON.parse(fixture('v9-midgame')) as { run: { rng: unknown } };
     expect(save.run.rng).toEqual(original.run.rng);
     expect(save.run.pendingUnlockIds.length).toBeGreaterThan(0);
     expect(save.run.cat.lastFedAtActiveMs).not.toBeNull();
   });
 
   it('a dead cat stays dead and an ended run stays ended', () => {
-    const dead = loaded(fixture('v8-dead-cat'));
+    const dead = loaded(fixture('v9-dead-cat'));
     expect(dead.run.cat.alive).toBe(false);
     expect(dead.run.history.some((h) => h.kind === 'cat' && h.id === 'cat-died')).toBe(true);
-    const ended = loaded(fixture('v8-ended'));
+    const ended = loaded(fixture('v9-ended'));
     expect(ended.run.status).toBe('ended');
     expect(ended.run.ending?.id).toBe('the-forgotten-project');
     expect(ended.profile.endings.map((e) => e.id)).toEqual(['the-forgotten-project']);
   });
 
   it('a future schema, unknown IDs or out-of-range values are refused and never overwritten', () => {
-    const base = JSON.parse(fixture('v8-midgame')) as Record<string, unknown> & {
+    const base = JSON.parse(fixture('v9-midgame')) as Record<string, unknown> & {
       run: Record<string, unknown> & { cat: Record<string, unknown> };
     };
     const cases: [string, unknown, string][] = [

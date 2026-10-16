@@ -27,6 +27,9 @@ const demoSave = () => {
 const playDemo = async (page: Page) => {
   await page.getByTestId('demo-strip').click();
   await page.locator('[data-testid="demo-screen"][data-phase="play"]').waitFor();
+  await page
+    .locator('[data-testid="demo-variant-0"][data-fingerprint]:not([data-fingerprint=""])')
+    .waitFor();
   await page.waitForTimeout(1500);
 };
 

@@ -490,3 +490,12 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   averaging nearest C5 among shifts keeping ≥ 75 % of notes in range, held lead notes are cut to
   a dotted quarter. Recursion songs set `lead: { maxSteps: null, centre: null }`: their files are
   byte-identical. After: lead means 68–72, max length 6 steps outside Recursion.
+- 2026-10-16: demos v2 (user): swirl (slow 3–41 s waves, ±40–540° swirls, vortex/tumble views,
+  no turntable), ripple between tentacles, web forms (strand `lay` → swirling `layers` → ring),
+  colour genes (bands / flow / tentacles / alt / mono, light pulses) and `thickness`, all
+  mutable; judge flow term; first demo = best of 4 viable. Designing: the demo screen (only
+  there, newest demo) shows variants A★/B/C + ??? mystery for the next demo, built from its
+  real seed; `designDemo` command, `run.demoPick`, `DemoRecord.pick`, save schema 9 (v8
+  fixtures kept, v9 + v9-demos added). Lineage ≈ 50 ms per demo in Node. Generator changes mean
+  existing saves' demos now look different (cosmetic, seeds unchanged).
+

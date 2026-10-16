@@ -121,6 +121,8 @@ export interface Verdict {
     readonly detail: number;
     readonly grain: number;
     readonly motion: number;
+    /** Mask change between the judged moments, 3 s apart (a mesmerising form keeps flowing). */
+    readonly flow: number;
   };
 }
 
@@ -136,6 +138,9 @@ export function judge(g: Genome, ancestors: readonly (readonly Uint8Array[])[] =
   const cells = stats.reduce((sum, s) => sum + s.cells, 0) / stats.length;
   const detail = stats.reduce((sum, s) => sum + s.detail, 0) / stats.length;
   const grain = fr.size / fr.r;
+  const flow =
+    masks.slice(1).reduce((sum, m, i) => sum + maskDiff(masks[i] ?? m, m), 0) /
+    Math.max(1, masks.length - 1);
   const novelty =
     ancestors.length === 0
       ? 0
@@ -151,12 +156,13 @@ export function judge(g: Genome, ancestors: readonly (readonly Uint8Array[])[] =
     12 * Math.max(0, grain - 0.06) -
     6 * Math.max(0, fr.biggest - 0.22) -
     0.4 * Math.min(1, Math.abs(Math.log(Math.max(1e-3, motion) / MOTION_TARGET))) +
+    0.6 * Math.min(flow, 0.6) +
     0.6 * novelty;
   return {
     ok,
     score,
     masks,
-    parts: { biggest: fr.biggest, coverage, cells, detail, grain, motion },
+    parts: { biggest: fr.biggest, coverage, cells, detail, grain, motion, flow },
   };
 }
 
@@ -188,15 +194,26 @@ export interface Judged {
   readonly verdict: Verdict;
 }
 
-/** The first demo: draws from the seed until one is viable (else a known-good spring). */
+/** Viable first draws the judge compares before choosing the first demo. */
+const FIRST_CHOICES = 4;
+
+/**
+ * The first demo: the best-scoring of the first few viable draws from the seed (else a
+ * known-good spring).
+ */
 export function firstDemo(seed: number): Judged {
-  for (let attempt = 0; attempt < 30; attempt++) {
+  let best: Judged | null = null;
+  let viable = 0;
+  for (let attempt = 0; attempt < 30 && viable < FIRST_CHOICES; attempt++) {
     const genome = randomGenome(subSeed(seed, attempt));
     const verdict = judge(genome);
-    if (verdict.ok) {
-      dress(genome, seed, false);
-      return { genome, verdict };
-    }
+    if (!verdict.ok) continue;
+    viable++;
+    if (!best || verdict.score > best.verdict.score) best = { genome, verdict };
+  }
+  if (best) {
+    dress(best.genome, seed, false);
+    return best;
   }
   const genome = fallbackGenome();
   return { genome, verdict: judge(genome) };
@@ -236,59 +253,140 @@ export function pickScore(parent: Judged, child: Judged): number {
   return child.verdict.score + (skeleton(child.genome) !== skeleton(parent.genome) ? 0.15 : 0);
 }
 
-/** The next demo after `parent` (the parent again, recoloured, if no child qualifies). */
+/** How many variants the player chooses between; `MYSTERY` is the fourth choice. */
+export const VARIANTS = 3;
+/** The "mystery" pick: a brand-new random form, unseen until it is built. */
+export const MYSTERY = 3;
+/** Two variants must differ at least this much to be offered side by side. */
+const VARIANT_SPREAD = 0.25;
+
+/**
+ * The variants the next demo can grow into: the judge's best child first, then the next best
+ * that look different from those already chosen (each with looks from its own sub-seed).
+ * After no demo at all, three different first demos.
+ */
+export function variants(
+  parent: Judged | null,
+  seed: number,
+  ancestors: readonly (readonly Uint8Array[])[] = [],
+): Judged[] {
+  if (!parent) {
+    return [0, 1, 2].map((i) => firstDemo(i === 0 ? seed : subSeed(seed, 0xf1257 + i)));
+  }
+  const ranked = candidates(parent, seed, ancestors)
+    .map((c) => ({ c, score: pickScore(parent, c) }))
+    .sort((a, b) => b.score - a.score)
+    .map(({ c }) => c);
+  const chosen: Candidate[] = [];
+  for (const c of ranked) {
+    if (chosen.length >= VARIANTS) break;
+    if (chosen.every((o) => change(o.verdict, c.verdict) >= VARIANT_SPREAD)) chosen.push(c);
+  }
+  for (const c of ranked) {
+    if (chosen.length >= VARIANTS) break;
+    if (!chosen.includes(c)) chosen.push(c);
+  }
+  if (chosen.length === 0) {
+    // nothing qualified: the same form, recoloured
+    const genome = cloneGenome(parent.genome);
+    dress(genome, seed, true);
+    return [{ genome, verdict: parent.verdict }];
+  }
+  return chosen.map((c, i) => {
+    const genome = cloneGenome(c.genome);
+    dress(genome, i === 0 ? seed : subSeed(seed, 0x7a51 + i), false);
+    return { genome, verdict: c.verdict };
+  });
+}
+
+/** The next demo after `parent`: the judge's own pick. */
 export function nextDemo(
   parent: Judged,
   seed: number,
   ancestors: readonly (readonly Uint8Array[])[] = [],
 ): Judged {
-  let best: Candidate | null = null;
-  let bestScore = -Infinity;
-  for (const c of candidates(parent, seed, ancestors)) {
-    const score = pickScore(parent, c);
-    if (score > bestScore) {
-      best = c;
-      bestScore = score;
-    }
-  }
-  const genome = best ? cloneGenome(best.genome) : cloneGenome(parent.genome);
-  dress(genome, seed, !best);
-  return { genome, verdict: best?.verdict ?? parent.verdict };
+  return variants(parent, seed, ancestors)[0] ?? parent;
 }
 
-// ---- lineages: demo n is the judge's pick after demo n−1 ----
+/** A mystery demo: a new random form, no relation to the last one. */
+export function mysteryDemo(seed: number): Judged {
+  return firstDemo(subSeed(seed, 0x3157e7));
+}
 
-const cache = new Map<string, Judged>();
+// ---- lineages: demo n grows out of demo n−1 as the player (or the judge) picked ----
+
+/** One demo of a run: its seed, and which variant was picked (null = the judge's choice). */
+export interface DemoStep {
+  readonly seed: number;
+  readonly pick: number | null;
+}
+
+const chainCache = new Map<string, Judged>();
+const variantCache = new Map<string, Judged[]>();
 const CACHE_LIMIT = 128;
+const remember = <T>(cache: Map<string, T>, key: string, value: T) => {
+  if (cache.size >= CACHE_LIMIT) cache.delete(cache.keys().next().value ?? '');
+  cache.set(key, value);
+};
+const keyOf = (steps: readonly DemoStep[]) =>
+  steps.map((s) => `${s.seed}:${s.pick ?? ''}`).join(',');
+const ancestorsOf = (chain: readonly Judged[]) =>
+  chain.slice(Math.max(0, chain.length - ANCESTORS)).map((j) => j.verdict.masks);
 
-/**
- * Replays a lineage one demo per `next()` (the UI shows it as "depacking"), memoised by seed
- * prefix; the value when done is the last demo's genome.
- */
-export function* lineage(seeds: readonly number[]): Generator<number, Genome, void> {
+function variantsAfter(chain: readonly Judged[], prefix: string, seed: number): Judged[] {
+  const key = `${prefix}|${seed}`;
+  let found = variantCache.get(key);
+  if (!found) {
+    found = variants(chain.at(-1) ?? null, seed, ancestorsOf(chain));
+    remember(variantCache, key, found);
+  }
+  return found;
+}
+
+/** Replays the demos one per `next()` (the UI shows it as "depacking"), memoised by prefix. */
+function* replay(steps: readonly DemoStep[]): Generator<number, Judged[], void> {
   const chain: Judged[] = [];
-  for (let i = 0; i < seeds.length; i++) {
-    const key = seeds.slice(0, i + 1).join(',');
-    let judged = cache.get(key);
+  for (let i = 0; i < steps.length; i++) {
+    const step = steps[i];
+    if (!step) break;
+    const key = keyOf(steps.slice(0, i + 1));
+    let judged = chainCache.get(key);
     if (!judged) {
-      const seed = seeds[i] ?? 0;
-      const parent = chain[i - 1];
-      const ancestors = chain.slice(Math.max(0, i - ANCESTORS), i).map((j) => j.verdict.masks);
-      judged = parent ? nextDemo(parent, seed, ancestors) : firstDemo(seed);
-      if (cache.size >= CACHE_LIMIT) cache.delete(cache.keys().next().value ?? '');
-      cache.set(key, judged);
-      yield (i + 1) / seeds.length;
+      if (step.pick === MYSTERY) judged = mysteryDemo(step.seed);
+      else {
+        const options = variantsAfter(chain, keyOf(steps.slice(0, i)), step.seed);
+        judged = options[step.pick ?? 0] ?? options[0] ?? firstDemo(step.seed);
+      }
+      remember(chainCache, key, judged);
+      yield (i + 1) / steps.length;
     }
     chain.push(judged);
   }
+  return chain;
+}
+
+/** The last demo's genome, replayed step by step; the yielded values are progress 0…1. */
+export function* lineage(steps: readonly DemoStep[]): Generator<number, Genome, void> {
+  const chain = yield* replay(steps);
   return chain.at(-1)?.genome ?? fallbackGenome();
 }
 
-/** The whole lineage at once (tests, the dev page). */
-export function genomeOf(seeds: readonly number[]): Genome {
-  const it = lineage(seeds);
+/** The variants the next demo (seed `seed`) can be, after the run's demos so far. */
+export function* nextVariants(
+  steps: readonly DemoStep[],
+  seed: number,
+): Generator<number, Judged[], void> {
+  const chain = yield* replay(steps);
+  return variantsAfter(chain, keyOf(steps), seed);
+}
+
+/** Run a step generator to the end (tests, the dev page). */
+export function finish<T>(it: Generator<number, T, void>): T {
   for (;;) {
     const step = it.next();
     if (step.done) return step.value;
   }
 }
+
+/** The last demo's genome at once. */
+export const genomeOf = (steps: readonly DemoStep[]): Genome => finish(lineage(steps));

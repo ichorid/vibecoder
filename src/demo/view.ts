@@ -87,7 +87,7 @@ export function framing(g: Genome, inst: Instances): Framing {
   }
   ratios.sort((a, b) => a - b);
   const median = ratios[ratios.length >> 1] ?? 0.1;
-  const size = Math.max(r * 0.02, Math.min(r * 0.2, median * 1.1));
+  const size = Math.max(r * 0.015, Math.min(r * 0.2, median * g.thickness));
   const maxScale = first ? first.s.reduce((m, v) => Math.max(m, v), 0) : 1;
   return { cx, cy, cz, r, size, biggest: (size * maxScale) / r };
 }

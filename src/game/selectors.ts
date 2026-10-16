@@ -103,12 +103,23 @@ export interface DemoOfferViewModel {
   readonly price: number;
   readonly affordable: boolean;
   readonly shortfall: number;
+  /** The next demo's seed and the demos before it: the designer previews from these. */
+  readonly seed: number;
+  readonly steps: readonly DemoStepViewModel[];
+  /** The player's design (variant 0–2, 3 = mystery), or null: the judge chooses. */
+  readonly pick: number | null;
 }
 
-/** A coded demo: what the popup shows; `seeds` is its whole lineage (demos 1…number). */
+/** One demo of a lineage: its seed and how it was picked. */
+export interface DemoStepViewModel {
+  readonly seed: number;
+  readonly pick: number | null;
+}
+
+/** A coded demo: what the popup shows; `steps` is its whole lineage (demos 1…number). */
 export interface DemoViewModel {
   readonly number: number;
-  readonly seeds: readonly number[];
+  readonly steps: readonly DemoStepViewModel[];
   readonly title: string;
   readonly group: string;
   readonly greetings: readonly string[];
@@ -506,6 +517,9 @@ export function selectGame(
         price: demoOffer.price,
         affordable: run.economy.output >= demoOffer.price,
         shortfall: Math.max(0, demoOffer.price - run.economy.output),
+        seed: demoOffer.seed,
+        steps: run.demos.map((d) => ({ seed: d.seed, pick: d.pick })),
+        pick: run.demoPick,
       }
     : null;
   const pendingId = run.pendingUnlockIds[0];
@@ -539,10 +553,10 @@ export function selectGame(
 
 /** Every demo of the run with its texts and lineage. */
 export function selectDemos(run: ReadonlyRun, catalog: Catalog): readonly DemoViewModel[] {
-  const seeds = run.demos.map((d) => d.seed);
+  const steps = run.demos.map((d) => ({ seed: d.seed, pick: d.pick }));
   return run.demos.map((record, i) => ({
     number: record.number,
-    seeds: seeds.slice(0, i + 1),
+    steps: steps.slice(0, i + 1),
     ...demoText(record, catalog),
     activeMs: record.activeMs,
   }));

@@ -153,6 +153,7 @@
   /** Dev server only: the Demo lab (Vite drops the import from production builds). */
   const loadDemoLab = import.meta.env.DEV ? () => import('../ui/DemoLab.svelte') : null;
   let demoLabOpen = $state(false);
+  const designDemo = (pick: number | null) => api.dispatch({ type: 'designDemo', pick });
 
   let settingsOpen = $state(false);
   let settingsButton: HTMLElement | null = null;
@@ -357,7 +358,13 @@
   </main>
   {#if watched}
     {#key watched.number}
-      <DemoScreen demo={watched} {reducedMotion} onClose={() => (watching = null)} />
+      <DemoScreen
+        demo={watched}
+        {reducedMotion}
+        onClose={() => (watching = null)}
+        next={watched.number === $api.game.demos.length ? $api.game.demo : null}
+        onDesign={designDemo}
+      />
     {/key}
   {/if}
   {#if demoLabOpen && loadDemoLab}

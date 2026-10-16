@@ -52,6 +52,38 @@ structure — guaranteed by construction, without storing any original data here
   rule, wrap/unwrap an arrangement, copies/mirror, bulb, swap the tendril, palette, backdrop,
   trails); a child that breaks the house rules or the budget is redrawn.
 
+## Swirl, ripple, webs and colour (user, 2026-10-16)
+
+The first version jittered instead of swirling. The original's motion comes from three things,
+now in the generator (`genome.ts`): **slow, large oscillations** (its clock runs ≈ 20°/s, so
+its waves have 9–90 s periods and twists swing ±360°) — waves are now 3–41 s and every family
+has a *swirl* (±40–540° on a slow wave) on its main angle; **differential rotation** (each rib
+turns by u·angle(t), so spirals wind and unwind); and **no turntable**: a `vortex` view puts
+the form's axis at the camera and rolls it slowly, `tumble` sways it.
+
+- **Ripple** (this game's extension): a wave's phase shifts with the parent rib's position, so a
+  wave runs round an anemone's tentacles. A rippling horn's table is rebuilt per parent rib.
+- **Webs** (principles of the original's web forms, rebuilt from our parts): a strand laid
+  sideways about its middle (`lay`, applied after the rules, so the house rules hold), stacked in
+  swirling, growing `layers`, repeated as spokes in a ring, seen face on.
+- **Colour genes** (mutable): `bands` stripes along tubes, `flow` stripes that travel (with a
+  ripple between tentacles), `tentacles` one colour per tube, `alt`, `mono`; `pulse` runs a
+  light wave along the tubes. `thickness` ranges from lace (0.45) to fat bobs (1.3).
+- The judge adds `+0.6·min(flow, 0.6)`, where flow = mask change between moments 3 s apart
+  (first demos: 0.22 / 0.42 / 0.67 at p10/p50/p90). The first demo is the best of four viable
+  draws.
+
+## Designing the next demo (user, 2026-10-16)
+
+On the demo screen — and only there, under the newest demo — the player chooses what the next
+demo grows into: three live previews (A is the judge's own pick; B and C are the next best that
+look different) or **???**, a mystery that starts a brand-new random form. The previews are
+built from the next demo's real seed (`nextUint32(rng.demo)`, exposed by the offer), so the
+picked preview is exactly what is coded (UI and browser tests compare genome fingerprints).
+The design is kept in `run.demoPick` (command `designDemo`) and copied to the demo's `pick`;
+lineages replay `(seed, pick)` steps. Save schema 9 (8 → 9: `pick: null` on demos, `demoPick:
+null`).
+
 ## Judge (`src/demo/judge.ts`)
 
 Each new demo: up to 60 mutations of the previous genome; up to 12 that are *viable* (at 3, 6
@@ -63,7 +95,8 @@ rendering):
 ```
 −3·|coverage − 0.28| + cells/160 + 1.2·min(detail, 0.5)
 −12·max(0, ribSize/radius − 0.06) − 6·max(0, biggestBall/radius − 0.22)
-−0.4·min(1, |ln(motion/0.25)|) + 0.6·novelty (+0.15 if the tree's skeleton changed)
+−0.4·min(1, |ln(motion/0.25)|) + 0.6·min(flow, 0.6) + 0.6·novelty
+(+0.15 if the tree's skeleton changed)
 ```
 
 `detail` = edge pixels per covered pixel (blobs are low); `motion` = mask change over 0.4 s
@@ -95,7 +128,8 @@ See `src/game/demos.ts` and `src/content/demos.ts`: available from the Terminal 
 It); the first demo costs 1,500 code and each next one ×2.2; it never spends more than its price.
 The run records each demo's seed (from its own `rng.demo` stream) and whether the cat was there;
 titles, groups and greetings are derived from the seed. A demo adds a log line and a History
-entry from which it can be watched again. Save schema 8 adds `demos` and `rng.demo`.
+entry from which it can be watched again. Save schema 8 adds `demos` and `rng.demo`; schema 9
+adds the designed picks.
 
 ## Dev tools
 

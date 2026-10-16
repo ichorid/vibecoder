@@ -5,8 +5,9 @@
    * pixels, the title card and a scroller. Reduced motion: one still frame, no scroller.
    */
   import { onMount } from 'svelte';
-  import type { DemoViewModel } from '../game/selectors';
-  import type { Genome } from '../demo/genome';
+  import type { DemoOfferViewModel, DemoViewModel } from '../game/selectors';
+  import { genomeFingerprint, type Genome } from '../demo/genome';
+  import DemoDesigner from './DemoDesigner.svelte';
   import { lineage } from '../demo/judge';
   import { createDemoCanvas, DEMO_H, DEMO_W, drawDemo, type DemoCanvas } from '../demo/raster';
 
@@ -14,9 +15,13 @@
     demo: DemoViewModel;
     reducedMotion: boolean;
     onClose: () => void;
+    /** The next demo, to design while this one plays (only on the newest demo). */
+    next?: DemoOfferViewModel | null;
+    onDesign?: (pick: number | null) => void;
   }
 
-  const { demo, reducedMotion, onClose }: Props = $props();
+  const { demo, reducedMotion, onClose, next = null, onDesign }: Props = $props();
+  let fingerprint = $state('');
 
   /** The intro is part of the joke: at least this long, even when nothing needs replaying. */
   const MIN_DEPACK_MS = 900;
@@ -35,7 +40,7 @@
 
   onMount(() => {
     close?.focus();
-    const replay = lineage(demo.seeds);
+    const replay = lineage(demo.steps);
     let genome: Genome | null = null;
     let picture: DemoCanvas | null = null;
     let context: CanvasRenderingContext2D | null = null;
@@ -56,6 +61,7 @@
     function start() {
       if (!genome) return;
       phase = 'play';
+      fingerprint = genomeFingerprint(genome);
       picture = createDemoCanvas(genome);
       try {
         context = canvas?.getContext('2d') ?? null;
@@ -106,6 +112,7 @@
   tabindex="-1"
   data-testid="demo-screen"
   data-phase={phase}
+  data-fingerprint={fingerprint}
   onkeydown={keydown}
 >
   <div class="crt">
@@ -129,7 +136,7 @@
         <span class="bar" aria-hidden="true"
           ><span class="bar-fill" style:width="{Math.round(progress * 100)}%"></span></span
         >
-        <span class="depack-note">CRUNCHED BY VIBE CODER · {demo.seeds.length} GENERATIONS</span>
+        <span class="depack-note">CRUNCHED BY VIBE CODER · {demo.steps.length} GENERATIONS</span>
       </button>
     {/if}
   </div>
@@ -146,6 +153,9 @@
         >{scrollText}</span
       >
     </div>
+  {/if}
+  {#if phase === 'play' && next && onDesign}
+    <DemoDesigner offer={next} onPick={onDesign} {reducedMotion} />
   {/if}
   <button type="button" class="close" bind:this={close} onclick={onClose}>CLOSE</button>
 </div>
@@ -166,9 +176,13 @@
     color: #e8e3d0;
     font-family: ui-monospace, 'Cascadia Mono', 'DejaVu Sans Mono', monospace;
   }
+  .demo-screen {
+    overflow-y: auto;
+  }
   .crt {
     position: relative;
-    width: min(100%, 720px, calc((100dvh - 200px) * 1.6));
+    flex: none;
+    width: min(100%, 720px, calc((100dvh - 330px) * 1.6));
     aspect-ratio: 16 / 10;
     border: 3px solid #2b2f45;
     background: #000;
@@ -238,6 +252,9 @@
     color: #59b7ff;
   }
   .scroller {
+    flex: none;
+    min-height: 1.4em;
+    line-height: 1.4;
     width: min(100%, 720px);
     overflow: hidden;
     white-space: nowrap;

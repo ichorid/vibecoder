@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { catalog } from '../content/catalog';
 import { applyCommand } from './commands';
 import { createRun } from './createRun';
-import { demoPrice, demoText, nextDemo } from './demos';
+import { demoPrice, demoText, MYSTERY_PICK, nextDemo } from './demos';
 import type { TechnologyId } from './ids';
 import { selectGame, selectHistory } from './selectors';
 import { stepRun } from './simulation';
@@ -67,7 +67,7 @@ describe('coding a demo', () => {
   });
 
   it('titles, groups and greetings come from the seed, and the cat only while it is there', () => {
-    const record = { number: 3, seed: 12345, catAlive: true, activeMs: 0 };
+    const record = { number: 3, seed: 12345, pick: null, catAlive: true, activeMs: 0 };
     const text = demoText(record, catalog);
     expect(text).toEqual(demoText(record, catalog));
     expect(text.title.length).toBeGreaterThan(3);
@@ -83,7 +83,7 @@ describe('coding a demo', () => {
     const game = selectGame(run, catalog);
     expect(game.demo).toMatchObject({ number: 2, affordable: true });
     expect(game.demos).toHaveLength(1);
-    expect(game.demos[0]?.seeds).toEqual([run.demos[0]?.seed]);
+    expect(game.demos[0]?.steps).toEqual([{ seed: run.demos[0]?.seed, pick: null }]);
     const entry = selectHistory(run, catalog).entries.at(-1);
     expect(entry).toMatchObject({ kind: 'demo', demo: 1, icon: { kind: 'symbol', id: 'demo' } });
   });
@@ -96,5 +96,29 @@ describe('coding a demo', () => {
     run = stepRun(run, 100, catalog).run;
     run = stepRun(run, 100, catalog).run;
     expect(run.log.filter((l) => l.text.startsWith('💾'))).toHaveLength(1);
+  });
+
+  it('the player can design the next demo: a variant or the mystery, kept until it is made', () => {
+    const run = ready();
+    const design = (pick: number | null, r: RunState = run) =>
+      applyCommand(r, { type: 'designDemo', pick }, r.activeMs, catalog);
+    expect(design(4).result).toBe('unavailable');
+    expect(design(1.5).result).toBe('unavailable');
+    expect(design(1, withTechnologies(['autocomplete'])).result).toBe('unavailable');
+    const picked = design(MYSTERY_PICK);
+    expect(picked.result).toBe('applied');
+    expect(picked.run.demoPick).toBe(MYSTERY_PICK);
+    expect(picked.facts).toEqual([{ type: 'demoDesigned' }]);
+    // the offer shows the seed the next demo will have, so the previews match what is built
+    const offer = selectGame(picked.run, catalog).demo;
+    expect(offer?.pick).toBe(MYSTERY_PICK);
+    const made = make(picked.run).run;
+    expect(made.demos[0]).toMatchObject({ seed: offer?.seed, pick: MYSTERY_PICK });
+    expect(made.demoPick).toBeNull();
+    const view = selectGame(made, catalog);
+    expect(view.demos[0]?.steps).toEqual([{ seed: offer?.seed, pick: MYSTERY_PICK }]);
+    expect(view.demo?.steps).toEqual(view.demos[0]?.steps);
+    // back to the judge's choice
+    expect(design(null, picked.run).run.demoPick).toBeNull();
   });
 });

@@ -94,7 +94,7 @@
   function loadRun(number: number) {
     const demo = demos.find((d) => d.number === number);
     if (!demo) return;
-    const genome = genomeOf(demo.seeds);
+    const genome = genomeOf(demo.steps);
     show({ genome, verdict: judge(genome) });
   }
   function pick(i: number) {

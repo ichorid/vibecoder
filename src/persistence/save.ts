@@ -47,11 +47,16 @@ function decodePlant(value: unknown, path: string): RunState['plant'] {
   return plant;
 }
 
+/** A demo design: a variant 0–2, the mystery 3, or null (the judge's choice). */
+const decodePick = (value: unknown, path: string): number | null =>
+  value === null ? null : num(value, path, { min: 0, max: 3, integer: true });
+
 function decodeDemo(value: unknown, path: string): DemoRecord {
   const raw = record(value, path);
   return {
     number: num(raw.number, `${path}.number`, { min: 1, max: MAX_DEMOS, integer: true }),
     seed: num(raw.seed, `${path}.seed`, { min: 0, max: 0xffffffff, integer: true }),
+    pick: decodePick(raw.pick, `${path}.pick`),
     catAlive: bool(raw.catAlive, `${path}.catAlive`),
     activeMs: num(raw.activeMs, `${path}.activeMs`, nonNegative),
   };
@@ -428,6 +433,7 @@ export function decodeRun(value: unknown, path = 'run'): RunState {
     choices: decodeChoices(raw.choices, `${path}.choices`),
     releases: list(raw.releases, `${path}.releases`, decodeRelease, MAX_RELEASES),
     demos: list(raw.demos, `${path}.demos`, decodeDemo, MAX_DEMOS),
+    demoPick: decodePick(raw.demoPick, `${path}.demoPick`),
     plant: decodePlant(raw.plant, `${path}.plant`),
     experience: num(raw.experience, `${path}.experience`, { min: 0, max: 100 }),
     ending: raw.ending === null ? null : decodeEnding(raw.ending, `${path}.ending`),
