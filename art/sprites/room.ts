@@ -119,27 +119,43 @@ function monitor(p: Palette, frame: number): PixelCanvas {
   return c;
 }
 
+/**
+ * The programmer at desk scale (desk 40 px ≈ 72 cm, so ≈ 0.56 px/cm): an office chair standing on
+ * the floor with the seat at ≈ 45 cm, shoulders ≈ 55 cm above it, eyes near the monitor top, legs
+ * under the desk, hands on the keyboard. Placed at world (−36, −20) so the wheels meet the floor
+ * line of the desk legs (world y 50); local = world + (36, 20).
+ */
 function programmer(p: Palette, frame: number): PixelCanvas {
-  const c = createCanvas(30, 40);
-  // Chair.
-  c.rect(4, 14, 16, 18, p.chair);
-  c.rect(4, 14, 16, 2, p.chairDark);
-  c.rect(10, 32, 4, 5, p.chairDark);
-  c.rect(5, 37, 14, 2, p.chairDark);
-  // Body in a hoodie, seen from behind at three-quarters.
-  ellipse(c, 14, 20, 7, 8, p.hoodie);
-  c.rect(8, 22, 12, 6, p.hoodieDark);
+  const c = createCanvas(36, 70);
+  // Chair: back behind the torso, seat, gas lift, five-star base on wheels.
+  c.rect(5, 14, 9, 32, p.chair);
+  c.rect(5, 14, 9, 2, p.chairDark);
+  c.rect(6, 43, 24, 4, p.chair);
+  c.rect(6, 46, 24, 1, p.chairDark);
+  c.rect(16, 47, 4, 17, p.chairDark);
+  c.rect(8, 64, 20, 2, p.chairDark);
+  for (const x of [8, 17, 26]) c.rect(x, 66, 2, 2, p.chairDark);
+  // Legs: thighs forward on the seat, shins down under the desk, shoes on the floor.
+  c.rect(17, 39, 14, 5, p.jeans);
+  c.rect(27, 43, 5, 21, p.jeans);
+  c.rect(26, 64, 9, 3, p.chairDark);
+  // Torso in a hoodie, seen from behind at three-quarters.
+  ellipse(c, 18, 29, 9, 13, p.hoodie);
+  c.rect(10, 32, 16, 9, p.hoodieDark);
   // Arms reaching to the keyboard; hands alternate while typing.
-  c.rect(19, 18, 8, 3, p.hoodie);
-  c.rect(26, 18 + (frame % 2), 3, 2, p.skin);
-  c.rect(17, 21, 9, 3, p.hoodieDark);
-  c.rect(25, 21 + ((frame + 1) % 2), 3, 2, p.skinShade);
-  // Head and hair.
-  c.disc(15, 8, 5, p.skin);
-  ellipse(c, 14, 5, 6, 4, p.hair);
-  c.rect(8, 5, 4, 6, p.hair);
-  c.set(19, 9, p.skinShade);
-  c.rect(16, 3, 3, 1, p.hair);
+  c.rect(22, 18, 6, 9, p.hoodie);
+  c.rect(24, 24, 10, 4, p.hoodie);
+  c.rect(33, 24 + (frame % 2), 3, 2, p.skin);
+  c.rect(22, 28, 11, 3, p.hoodieDark);
+  c.rect(32, 28 + ((frame + 1) % 2), 3, 2, p.skinShade);
+  // Neck, head and hair (face turned to the monitor on the right).
+  c.rect(16, 13, 5, 4, p.skinShade);
+  c.disc(19, 8, 7, p.skin);
+  ellipse(c, 17, 5, 8, 5, p.hair);
+  c.rect(11, 4, 5, 9, p.hair);
+  c.rect(20, 1, 5, 2, p.hair);
+  c.set(25, 9, p.skinShade);
+  c.set(24, 12, p.skinShade);
   outline(c, p.outline);
   return c;
 }

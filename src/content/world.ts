@@ -347,7 +347,7 @@ export const ROOM_ADDITION: WorldAddition = {
     { sprite: 'room-desk', x: -38, y: 6 },
     { sprite: 'room-monitor', x: 2, y: -25 },
     { sprite: 'cat-bowl', x: 50, y: 46 },
-    { sprite: 'programmer-typing', x: -30, y: -12 },
+    { sprite: 'programmer-typing', x: -36, y: -20 },
   ],
   links: [],
   lodSprite: 'lod-terminal',
