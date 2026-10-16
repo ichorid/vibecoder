@@ -1,6 +1,10 @@
 <script lang="ts">
   import type { SetupLimit, SetupViewModel } from '../game/setup';
+  import { ACTION_ICONS, cardIcon, STAT_ICONS } from './cardIcons';
   import { formatAmount } from './format';
+  import * as icons from './icons';
+  import PixelIcon from './PixelIcon.svelte';
+  import type { PixelMap } from './pixelArt';
 
   interface Props {
     setup: SetupViewModel;
@@ -19,6 +23,16 @@
   };
   const pct = (value: number) => `${Math.round(value * 100)}%`;
 
+  const LIMIT_ICONS: Record<SetupLimit, PixelMap> = {
+    manual: icons.writeCodeIcon,
+    compute: icons.computeIcon,
+    costs: icons.costIcon,
+    tasks: icons.tasksIcon,
+    tokens: STAT_ICONS.tokens,
+    coordination: icons.delegateIcon,
+    debt: STAT_ICONS.debt,
+  };
+
   const LIMITS: Record<SetupLimit, string> = {
     manual: 'No agents yet: every line of code is one of your presses.',
     compute: 'Some agents have no compute to run on. A compute slot lets one more work.',
@@ -30,6 +44,10 @@
   };
 </script>
 
+{#snippet ico(map: PixelMap)}
+  <span class="ico" aria-hidden="true"><PixelIcon {map} scale={2} /></span>
+{/snippet}
+
 <section class="setup" aria-labelledby="setup-title" data-testid="setup-view">
   <div class="bar">
     <button type="button" class="return" onclick={onReturn}>← BACK TO CODE</button>
@@ -39,22 +57,23 @@
   <h3>Right now, per second</h3>
   <ol class="flow" data-testid="setup-flow">
     <li>
-      <span class="what">Your button: <strong>{e.action}</strong></span>
-      <span class="value press">{e.pressEffect}</span>
+      <span class="what">{@render ico(ACTION_ICONS[e.actionId])}Your button</span>
+      <span class="value">{e.action}</span>
+      <span class="note" data-testid="setup-press">One press: {e.pressEffect}</span>
     </li>
     {#if e.agents > 0}
       <li>
-        <span class="what">Agents running</span>
+        <span class="what">{@render ico(icons.agentIcon)}Agents running</span>
         <span class="value">{n(e.activeAgents)} of {n(e.agents)}</span>
         <span class="note">{n(e.compute)} compute; an agent needs one to run</span>
       </li>
       <li>
-        <span class="what">Work they could do</span>
+        <span class="what">{@render ico(icons.automationIcon)}Work they could do</span>
         <span class="value">{n(e.potentialWorkPerSecond)} work/s</span>
         <span class="note">{n(e.workPerAgentPerSecond)} work/s per agent</span>
       </li>
       <li>
-        <span class="what">Tasks allow</span>
+        <span class="what">{@render ico(icons.tasksIcon)}Tasks allow</span>
         <span class="value">{n(e.taskLimitedWorkPerSecond)} work/s</span>
         <span class="note"
           >{n(e.tasksQueued)} queued, +{n(e.tasksPerSecond)}/s on their own, +{n(e.tasksPerPrompt)}
@@ -62,7 +81,7 @@
         >
       </li>
       <li>
-        <span class="what">Tokens pay for</span>
+        <span class="what">{@render ico(STAT_ICONS.tokens)}Tokens pay for</span>
         <span class="value">{n(e.fundedWorkPerSecond)} work/s</span>
         <span class="note"
           >{n(e.tokens)} tokens, +{n(e.tokenSupplyPerSecond)}/s supply, −{n(e.tokenUsePerSecond)}/s
@@ -73,34 +92,34 @@
         >
       </li>
       <li class="factor">
-        <span class="what">× Coordination</span>
+        <span class="what">{@render ico(icons.delegateIcon)}× Coordination</span>
         <span class="value">{pct(e.coordination)}</span>
         <span class="note"
           >{n(e.managed)} agent{e.managed === 1 ? '' : 's'} can be managed without losses</span
         >
       </li>
       <li class="factor">
-        <span class="what">× Quality</span>
+        <span class="what">{@render ico(STAT_ICONS.debt)}× Quality</span>
         <span class="value">{pct(e.quality)}</span>
         <span class="note">from {n(e.debt)} technical debt</span>
       </li>
       <li class="factor">
-        <span class="what">× Efficiency</span>
+        <span class="what">{@render ico(icons.optimizeIcon)}× Efficiency</span>
         <span class="value">{pct(e.efficiency)}</span>
       </li>
       <li>
-        <span class="what">= Useful code from agents</span>
+        <span class="what">{@render ico(STAT_ICONS.output)}= Useful code from agents</span>
         <span class="value">{n(e.usefulCodePerSecond)} code/s</span>
       </li>
     {/if}
     {#if e.passiveCodePerSecond > 0}
       <li>
-        <span class="what">+ Code on its own</span>
+        <span class="what">{@render ico(STAT_ICONS.automation)}+ Code on its own</span>
         <span class="value">{n(e.passiveCodePerSecond)} code/s</span>
       </li>
     {/if}
     <li class="total">
-      <span class="what">Total</span>
+      <span class="what">{@render ico(STAT_ICONS.output)}Total</span>
       <span class="value" data-testid="setup-total">{n(e.totalCodePerSecond)} code/s</span>
       <span class="note">plus whatever you press</span>
     </li>
@@ -110,16 +129,16 @@
     <h3>Technical debt</h3>
     <ol class="flow">
       <li>
-        <span class="what">Added by unchecked work</span>
+        <span class="what">{@render ico(STAT_ICONS.debt)}Added by unchecked work</span>
         <span class="value">+{n(e.debtAddedPerSecond)}/s</span>
         <span class="note">{pct(e.uncheckedShare)} of agent work goes unchecked</span>
       </li>
       <li>
-        <span class="what">Paid down by review</span>
+        <span class="what">{@render ico(icons.reviewIcon)}Paid down by review</span>
         <span class="value">−{n(e.debtReviewedPerSecond)}/s</span>
       </li>
       <li class="total">
-        <span class="what">Debt now</span>
+        <span class="what">{@render ico(STAT_ICONS.debt)}Debt now</span>
         <span class="value">{n(e.debt)}</span>
       </li>
     </ol>
@@ -129,15 +148,15 @@
     <h3>Money</h3>
     <ol class="flow">
       <li>
-        <span class="what">Revenue</span>
+        <span class="what">{@render ico(STAT_ICONS.revenue)}Revenue</span>
         <span class="value">+${n(e.money.revenuePerSecond)}/s</span>
       </li>
       <li>
-        <span class="what">Operating costs</span>
+        <span class="what">{@render ico(icons.costIcon)}Operating costs</span>
         <span class="value">−${n(e.money.costPerSecond)}/s</span>
       </li>
       <li class="total">
-        <span class="what">Margin</span>
+        <span class="what">{@render ico(STAT_ICONS.margin)}Margin</span>
         <span class="value">${n(e.money.marginPerSecond)}/s</span>
         <span class="note">${n(e.money.revenue)} in the bank</span>
       </li>
@@ -148,7 +167,7 @@
     <h3>Holding production back</h3>
     <ul class="limits" data-testid="setup-limits">
       {#each setup.limits as limit (limit)}
-        <li data-limit={limit}>{LIMITS[limit]}</li>
+        <li data-limit={limit}>{@render ico(LIMIT_ICONS[limit])}<span>{LIMITS[limit]}</span></li>
       {/each}
     </ul>
   {/if}
@@ -157,13 +176,16 @@
     <h3>Stacked upgrades</h3>
     <ul class="cards" data-testid="setup-stacked">
       {#each setup.stacked as item (item.id)}
-        <li>
-          <span class="title"
-            >{item.title}{#if item.maxLevel > 1}<span class="level"
-                >×{item.level}/{item.maxLevel}</span
-              >{/if}</span
-          >
-          <span class="effects">▸ {item.effects.join(' · ')}</span>
+        <li class="stacked">
+          {@render ico(cardIcon(item.id))}
+          <span class="text">
+            <span class="title"
+              >{item.title}{#if item.maxLevel > 1}<span class="level"
+                  >×{item.level}/{item.maxLevel}</span
+                >{/if}</span
+            >
+            <span class="effects">▸ {item.effects.join(' · ')}</span>
+          </span>
         </li>
       {/each}
     </ul>
@@ -246,16 +268,25 @@
     border-bottom: 0;
   }
   .what {
+    display: flex;
+    align-items: center;
+    gap: 6px;
     font-weight: 700;
+  }
+  .ico {
+    flex: none;
+    display: inline-flex;
+    width: 18px;
+    justify-content: center;
+  }
+  .note {
+    padding-left: 24px;
   }
   .value {
     font-weight: 900;
     font-variant-numeric: tabular-nums;
     text-align: right;
     white-space: nowrap;
-  }
-  .press {
-    white-space: normal;
   }
   .note {
     grid-column: 1 / -1;
@@ -273,8 +304,10 @@
     font-size: 14px;
     border-bottom: 1px solid var(--grid, #c7bb9e);
   }
-  .limits li::before {
-    content: '⚠ ';
+  .limits li {
+    display: flex;
+    align-items: center;
+    gap: 6px;
   }
   .cards li {
     display: flex;
@@ -282,6 +315,11 @@
     gap: 2px;
     padding: 6px 8px;
     border-bottom: 1px solid var(--grid, #c7bb9e);
+  }
+  .cards .stacked {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
   }
   .cards .tech {
     flex-direction: row;

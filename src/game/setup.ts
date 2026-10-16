@@ -30,6 +30,7 @@ export interface SetupViewModel {
   }[];
   readonly economy: {
     readonly action: string;
+    readonly actionId: PrimaryActionId;
     /** What one press of the main button does right now. */
     readonly pressEffect: string;
     readonly agents: number;
@@ -173,6 +174,7 @@ export function selectSetup(run: ReadonlyRun, catalog: Catalog): SetupViewModel 
     }),
     economy: {
       action: catalog.primaryActionLabels[currentPrimaryAction(run, catalog)],
+      actionId: currentPrimaryAction(run, catalog),
       pressEffect: pressEffect(currentPrimaryAction(run, catalog), rates, catalog),
       agents: rates.agents,
       compute: rates.compute,

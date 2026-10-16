@@ -383,3 +383,35 @@ export const palmIcon: PixelMap = {
   ],
   palette: { g: '#4f9b55', b: '#8a5a33', y: '#e7b42f' },
 };
+
+/** Setup: queued tasks (a clipboard with a checklist). */
+export const tasksIcon: PixelMap = {
+  rows: [
+    '...kkk...',
+    '.kkwwwkk.',
+    '.kpppppk.',
+    '.kpkkppk.',
+    '.kpppppk.',
+    '.kpkkppk.',
+    '.kpppppk.',
+    '.kpkkppk.',
+    '.kkkkkkk.',
+  ],
+  palette: { k: 'var(--ink)', w: '#b7b3a9', p: 'var(--panel)' },
+};
+
+/** Setup: operating costs (a coin going out). */
+export const costIcon: PixelMap = {
+  rows: [
+    '..yyyyy..',
+    '.yYYYYYy.',
+    'yYYYYYYYy',
+    'yYkkkkkYy',
+    'yYYYYYYYy',
+    '.yYYYYYy.',
+    '..yyyyy..',
+    '....r....',
+    '...rrr...',
+  ],
+  palette: { Y: '#f6c945', y: '#c99212', k: 'var(--ink)', r: '#e8483c' },
+};
