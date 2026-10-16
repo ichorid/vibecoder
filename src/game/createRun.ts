@@ -30,6 +30,7 @@ export function createRun(seed: number, runId: string): RunState {
     cat: createCat(),
     history: [],
     unlockedTechnologyIds: [],
+    upgradeLevels: {},
     pendingUnlockIds: [],
     ending: null,
   };

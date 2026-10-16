@@ -14,6 +14,12 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   This satisfies "editable sources + export command, no proprietary editor".
   Visual quality still needs a human check (P11.2) — recorded as not verified.
 - D3 (commits) One commit per phase (user instruction), not per task.
+- D4 (P02) Progression model: each technology has one progression upgrade (`discovers`);
+  buying it lets `resolveDiscoveries` unlock the tech in the same dispatch. Offers are
+  declarative `requires` (+ optional `extraCondition`) because content may only type-import
+  game code. Autocomplete offer appears at lifetime output ≥5 (not at t=0).
+- D5 (P02) App-level commands (`retrySave`, `setTheme`) go through the same public
+  `dispatch` as game commands, so UI still sees only `{subscribe, dispatch}`.
 
 ## Unexpected findings
 
@@ -29,3 +35,5 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
 - 2026-10-16: P01 done (RNG, createRun, runtime clock, step/commands, store, lifecycle).
   35 game tests. Snapshot currently `{ run }`; plan: add view models in P02.2 and keep UI
   off the raw run.
+- 2026-10-16: P02 done (economy, 3 techs, discoveries, selectors, validator, save/autosave).
+  81 tests. Next P03 (Svelte views, Playwright).

@@ -86,3 +86,39 @@ GREEN: immediate subscriber snapshot, unsubscribe, deep-frozen snapshots, public
 `npm run check` OK; `npm run test:game` 35/35; `npm run build` OK; acceptance 37/37.
 Not yet verified: real mobile lifecycle (fake lifecycle only).
 Next: P02.1.
+
+## Task: P02 (first loop and saving)
+
+Status: **done**
+
+### P02.1 WRITE CODE and first prices
+
+Files: `src/game/{ids,catalog,economy,progression}.ts`, `src/content/{balance,upgrades,technologies,catalog}.ts`, `economy.test.ts`, `tests/helpers/run.ts`.
+RED: 3/5 failed with `buyUpgrade` stubbed to `unavailable` (unaffordable result, exact price, double purchase).
+GREEN: prices 10/30/90 output, one-time `maxLevel: 1`, visibility re-checked in the handler, lifetime output untouched by spending, `roundAmount` to avoid float drift.
+
+### P02.2 discoveries and visibility
+
+Files: `progression.ts`, `selectors.ts`, `progression.test.ts`.
+RED: 5/7 failed against stub selectors/resolver (offer visible before price, once-only effect + history + announcement, ack gating, IDE passive/PROMPT).
+GREEN: progression upgrade → `resolveDiscoveries` commits unlock + History + pending announcement once; progression offers hidden while an announcement is pending; `acknowledgeUnlock` idempotent (`unavailable` on repeat); derived rates from definitions; `selectGame` ≤3 offers by priority; no future titles in Game/History models.
+
+### P02.3 content checks
+
+Files: `tools/validateContent.ts`, `tools/checkContent.ts`, `tools/validateContent.test.ts`, `src/content/{assets,world}.ts`, `check:content` (in `check`).
+RED: 7/8 failed against an always-empty validator. GREEN: duplicates, unknown prerequisites/technologies, cycles, invalid price/growth/maxLevel, unknown effect kinds, missing illustration/world addition. Manifest entries are flagged `placeholder: true` — release debt reported by the CLI.
+
+### P02.4 envelope and safe loading
+
+Files: `src/persistence/{save,decode,migrations}.ts`, `save.test.ts`, `tests/helpers/memoryStorage.ts`.
+RED: 15/18 failed against stub decode/adapter. GREEN: one versioned envelope (schema 1, content 1, revision, profile, run); strict structural+range decoding; future schema → `unsupported`; corrupt saves preserved untouched; dead/alive death-fact consistency; wall-clock metadata ignored; identity migration only.
+
+### P02.5 autosave
+
+Files: `src/app/createGame.ts`, `autosave.test.ts`.
+RED: 5/7 failed before persistence wiring. GREEN: periodic save every 5 active s while dirty, immediate save on purchase/discovery, clicks coalesced, typed `save.status` with `retrySave`, suspension writes settled time, reload does not reapply effects. Snapshot now carries `game`/`history` view models and `profile`.
+
+### Exit gate
+
+`npm run check` OK (incl. `check:content`); `npm run test:game` 81/81; build OK; acceptance 37/37.
+Next: P03.1.

@@ -31,7 +31,8 @@
     "vite.config.ts",
     "tests/**/*.ts",
     "vitest.config.ts",
-    "vitest.rules.config.ts"
+    "vitest.rules.config.ts",
+    "tools/*.ts"
   ],
   "exclude": [
     "tools/acceptance/fixtures/types/invalid-command-union.ts",

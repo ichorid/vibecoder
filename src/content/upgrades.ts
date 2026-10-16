@@ -1,0 +1,43 @@
+import type { UpgradeDefinition } from '../game/catalog';
+
+export const upgrades = [
+  {
+    id: 'autocomplete',
+    title: 'Autocomplete',
+    description: 'Your editor finishes your sentences. Mostly the wrong ones.',
+    currency: 'output',
+    basePrice: 10,
+    priceGrowth: 1,
+    maxLevel: 1,
+    requires: { lifetimeOutput: 5 },
+    priority: 10,
+    discovers: 'autocomplete',
+    effectsPerLevel: [],
+  },
+  {
+    id: 'generated-snippets',
+    title: 'Generated snippets',
+    description: 'Whole functions appear from a comment. Some of them compile.',
+    currency: 'output',
+    basePrice: 30,
+    priceGrowth: 1,
+    maxLevel: 1,
+    requires: { technologies: ['autocomplete'] },
+    priority: 10,
+    discovers: 'generated-snippets',
+    effectsPerLevel: [],
+  },
+  {
+    id: 'ai-native-ide',
+    title: 'AI-native IDE',
+    description: 'An editor that writes code while you watch. You mostly watch.',
+    currency: 'output',
+    basePrice: 90,
+    priceGrowth: 1,
+    maxLevel: 1,
+    requires: { technologies: ['generated-snippets'] },
+    priority: 10,
+    discovers: 'ai-native-ide',
+    effectsPerLevel: [],
+  },
+] as const satisfies readonly UpgradeDefinition[];

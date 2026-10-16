@@ -1,4 +1,5 @@
 import type { Catalog } from './catalog';
+import { deriveRates, roundAmount } from './economy';
 import type { GameFact, RunState } from './types';
 
 export interface Transition {
@@ -11,15 +12,22 @@ export interface Transition {
  * 1. active time, 2. production, (3. cat, 4. progression, 5. narrative/endings added later),
  * 6. facts for presentation. Never mutates its input.
  */
-export function stepRun(run: RunState, stepMs: number, _catalog: Catalog): Transition {
+export function stepRun(run: RunState, stepMs: number, catalog: Catalog): Transition {
   if (run.status !== 'playing') return { run, facts: [] };
-  const produced = run.economy.pendingManualWork;
+  const rates = deriveRates(run, catalog);
+  const produced = roundAmount(
+    run.economy.pendingManualWork + (rates.passiveOutputPerSecond * stepMs) / 1000,
+  );
   return {
     run: {
       ...run,
       activeMs: run.activeMs + stepMs,
-      economy: { ...run.economy, output: run.economy.output + produced, pendingManualWork: 0 },
-      stats: { ...run.stats, lifetimeOutput: run.stats.lifetimeOutput + produced },
+      economy: {
+        ...run.economy,
+        output: roundAmount(run.economy.output + produced),
+        pendingManualWork: 0,
+      },
+      stats: { ...run.stats, lifetimeOutput: roundAmount(run.stats.lifetimeOutput + produced) },
     },
     facts: [],
   };

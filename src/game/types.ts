@@ -1,4 +1,4 @@
-import type { TechnologyId } from './ids';
+import type { TechnologyId, UpgradeId } from './ids';
 
 export type RunStatus = 'playing' | 'ended';
 
@@ -36,7 +36,9 @@ export interface CatState {
   diedAtActiveMs: number | null;
 }
 
-export type HistoryEntry = { kind: 'event'; textId: string; activeMs: number };
+export type HistoryEntry =
+  | { kind: 'technology'; id: TechnologyId; activeMs: number }
+  | { kind: 'event'; textId: string; activeMs: number };
 
 export interface RunState {
   id: string;
@@ -51,16 +53,21 @@ export interface RunState {
   cat: CatState;
   history: HistoryEntry[];
   unlockedTechnologyIds: TechnologyId[];
+  upgradeLevels: Partial<Record<UpgradeId, number>>;
   pendingUnlockIds: TechnologyId[];
   ending: null;
 }
 
 export type ReadonlyRun = DeepReadonly<RunState>;
 
-export type GameCommand = { type: 'primaryAction' };
+export type GameCommand =
+  | { type: 'primaryAction' }
+  | { type: 'buyUpgrade'; id: UpgradeId }
+  | { type: 'acknowledgeUnlock'; id: TechnologyId };
 
 /** Typed facts returned with a transition for app wiring (saving, presentation). No event bus. */
-export type GameFact = never;
+export type GameFact =
+  { type: 'purchased'; id: UpgradeId } | { type: 'technologyDiscovered'; id: TechnologyId };
 
 export function assertNever(value: never): never {
   throw new Error(`Unexpected value: ${String(value)}`);
