@@ -12,9 +12,16 @@ function withEvents(events: readonly EventDefinition[]): Catalog {
   return { ...catalog, events };
 }
 
-const once: EventDefinition = { id: 'test-once', text: 'Once.', once: true, when: () => true };
+const once: EventDefinition = {
+  id: 'test-once',
+  emoji: '🧪',
+  text: 'Once.',
+  once: true,
+  when: () => true,
+};
 const repeating: EventDefinition = {
   id: 'test-repeat',
+  emoji: '🧪',
   text: 'Again.',
   cooldownMs: 10_000,
   when: () => true,
@@ -25,7 +32,7 @@ describe('narrative events', () => {
     const cat = withEvents([once]);
     let run = createRun(1, 'r');
     for (let i = 0; i < 20; i += 1) run = evaluateNarrative(run, cat, []);
-    expect(run.log.filter((l) => l.text === 'Once.')).toHaveLength(1);
+    expect(run.log.filter((l) => l.text === '🧪 Once.')).toHaveLength(1);
   });
 
   it('respects a cooldown instead of repeating every tick', () => {
@@ -34,7 +41,7 @@ describe('narrative events', () => {
     for (let i = 0; i < 250; i += 1) {
       run = evaluateNarrative({ ...run, activeMs: i * 100 }, cat, []);
     }
-    expect(run.log.filter((l) => l.text === 'Again.')).toHaveLength(3);
+    expect(run.log.filter((l) => l.text === '🧪 Again.')).toHaveLength(3);
   });
 
   it('stays quiet in a step that recorded a discovery or the death', () => {

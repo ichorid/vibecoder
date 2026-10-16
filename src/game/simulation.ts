@@ -75,7 +75,7 @@ function recordDeath(run: RunState, catalog: Catalog, facts: GameFact[]): RunSta
     catPlay: null,
     history: [...run.history, { kind: 'cat', id: 'cat-died', activeMs: run.activeMs }],
   };
-  return appendLog(dead, catalog.catText.conditions.dead, catalog);
+  return appendLog(dead, `🕯️ ${catalog.catText.conditions.dead}`, catalog);
 }
 
 /**
@@ -138,7 +138,7 @@ function tokenAutomation(run: RunState, stepMs: number, catalog: Catalog): RunSt
     };
     return appendLog(
       crashed,
-      'Auto-refill v1 hit a race condition: it deleted 90% of the codebase and bought no tokens.',
+      '💥 Auto-refill v1 hit a race condition: it deleted 90% of the codebase and bought no tokens.',
       catalog,
     );
   }

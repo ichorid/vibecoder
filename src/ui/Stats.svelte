@@ -1,6 +1,8 @@
 <script lang="ts">
   import type { StatViewModel } from '../game/selectors';
+  import { STAT_ICONS } from './cardIcons';
   import { formatAmount } from './format';
+  import PixelIcon from './PixelIcon.svelte';
 
   const { stats }: { stats: readonly StatViewModel[] } = $props();
 </script>
@@ -10,7 +12,7 @@
   <dl class="stats" data-testid="stats" aria-label="Progress">
     {#each stats as stat (stat.id)}
       <div class="stat">
-        <dt>{stat.label}</dt>
+        <dt><PixelIcon map={STAT_ICONS[stat.id]} scale={2} /><span>{stat.label}</span></dt>
         <dd>{formatAmount(stat.value)}</dd>
       </div>
     {/each}
@@ -35,6 +37,9 @@
     align-items: baseline;
   }
   dt {
+    display: flex;
+    align-items: center;
+    gap: 4px;
     color: var(--ink-soft);
   }
   dd {

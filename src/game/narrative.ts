@@ -45,7 +45,7 @@ export function evaluateNarrative(
         history: [...next.history, { kind: 'event', textId: event.id, activeMs: run.activeMs }],
       };
     }
-    return appendLog(next, event.text, catalog);
+    return appendLog(next, `${event.emoji} ${event.text}`, catalog);
   }
   return run;
 }

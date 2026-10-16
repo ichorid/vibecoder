@@ -71,7 +71,7 @@ export function resolveDiscoveries(run: RunState, catalog: Catalog): Transition 
     );
     if (granted > 0)
       next = { ...next, economy: { ...next.economy, tokens: next.economy.tokens + granted } };
-    next = appendLog(next, `${technology.title} unlocked.`, catalog);
+    next = appendLog(next, `🔓 ${technology.title} unlocked.`, catalog);
     facts.push({ type: 'technologyDiscovered', id: technology.id });
   }
   return { run: next, facts };

@@ -34,7 +34,7 @@ describe('cat death transaction', () => {
     expect(run.cat.health).toBe(0);
     expect(run.cat.diedAtActiveMs).toBe(60_100);
     expect(run.history.filter((e) => e.kind === 'cat')).toHaveLength(1);
-    expect(run.log.filter((l) => l.text === 'The cat is gone.')).toHaveLength(1);
+    expect(run.log.filter((l) => l.text === '🕯️ The cat is gone.')).toHaveLength(1);
     expect(facts.filter((f) => f.type === 'catDied')).toHaveLength(1);
     expect(selectHistory(run, catalog).entries.at(-1)?.title).toBe('The cat is gone.');
   });
@@ -43,7 +43,7 @@ describe('cat death transaction', () => {
     const dead = stepUntilDeath(nearDeath()).run;
     const later = steps(dead, 200, catalog);
     expect(later.history.filter((e) => e.kind === 'cat')).toHaveLength(1);
-    expect(later.log.filter((l) => l.text === 'The cat is gone.')).toHaveLength(1);
+    expect(later.log.filter((l) => l.text === '🕯️ The cat is gone.')).toHaveLength(1);
     expect(later.cat.health).toBe(0);
   });
 

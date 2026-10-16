@@ -9,6 +9,8 @@
   import UnlockAnnouncement from './UnlockAnnouncement.svelte';
   import FloatingGains from './FloatingGains.svelte';
   import Stats from './Stats.svelte';
+  import PixelIcon from './PixelIcon.svelte';
+  import { ACTION_ICONS, cardIcon, DECISION_ICON } from './cardIcons';
   import { gainText, MAX_FLOATING, type FloatingGain } from './floatingGains';
   import type { AttentionLevel } from '../game/types';
 
@@ -126,7 +128,9 @@
     {:else}
       <div class="primary-host">
         <button type="button" class="primary" data-testid="primary-action" onclick={primary}>
-          {game.primaryAction.label}
+          <span class="action-icon" aria-hidden="true"
+            ><PixelIcon map={ACTION_ICONS[game.primaryAction.id]} scale={3} /></span
+          >{game.primaryAction.label}
         </button>
         <FloatingGains {gains} onDone={(id) => (gains = gains.filter((g) => g.id !== id))} />
       </div>
@@ -144,6 +148,19 @@
                 aria-describedby="offer-{offer.id}-desc"
                 onclick={() => buy(offer.id)}
               >
+                <span class="card-icon" aria-hidden="true">
+                  {#if offer.illustrationId && illustrationUrl(offer.illustrationId)}
+                    <img
+                      class="pixelated"
+                      src={illustrationUrl(offer.illustrationId)}
+                      alt=""
+                      width="48"
+                      height="36"
+                    />
+                  {:else}
+                    <PixelIcon map={cardIcon(offer.id)} scale={3} />
+                  {/if}
+                </span>
                 <span class="offer-text">
                   <span class="offer-title">{offer.title}</span>
                   <span class="offer-desc" id="offer-{offer.id}-desc"
@@ -174,6 +191,9 @@
                 aria-describedby="choice-{offer.id}-desc"
                 onclick={() => chooseOffer(offer)}
               >
+                <span class="card-icon" aria-hidden="true"
+                  ><PixelIcon map={DECISION_ICON} scale={3} /></span
+                >
                 <span class="offer-text">
                   <span class="offer-title">{offer.title}</span>
                   <span class="offer-desc" id="choice-{offer.id}-desc">{offer.description}</span>
@@ -276,7 +296,25 @@
   .offer:disabled .price {
     opacity: 0.6;
   }
+  .card-icon {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 48px;
+    height: 36px;
+  }
+  .card-icon img {
+    width: 48px;
+    height: 36px;
+    border: 2px solid var(--border);
+  }
+  .action-icon {
+    display: inline-grid;
+    vertical-align: middle;
+    margin-right: 10px;
+  }
   .offer-text {
+    flex: 1;
     display: flex;
     flex-direction: column;
     gap: 2px;

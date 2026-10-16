@@ -288,6 +288,8 @@ export interface CatText {
 /** A short dynamically triggered message (architecture §9). Predicates read the run only. */
 export interface EventDefinition {
   readonly id: string;
+  /** Shown before the line in the terminal log. */
+  readonly emoji: string;
   readonly text: string;
   readonly when: (run: ReadonlyRun) => boolean;
   /** Fires at most once per run. */

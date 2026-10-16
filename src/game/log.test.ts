@@ -12,7 +12,7 @@ describe('event log', () => {
       { type: 'buyUpgrade', id: 'autocomplete' },
       catalog,
     );
-    expect(selectGame(run, catalog).log.at(-1)?.text).toBe('Autocomplete unlocked.');
+    expect(selectGame(run, catalog).log.at(-1)?.text).toBe('🔓 Autocomplete unlocked.');
     let long = run;
     for (let i = 0; i < 8; i += 1) long = appendLog(long, `line ${i}`, catalog);
     const shown = selectGame(long, catalog).log.map((e) => e.text);

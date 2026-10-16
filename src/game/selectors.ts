@@ -26,6 +26,8 @@ export interface UpgradeOfferViewModel {
   readonly affordable: boolean;
   /** Token packs: how many tokens this purchase adds. */
   readonly tokens?: number;
+  /** Progression cards: the illustration of the technology they discover. */
+  readonly illustrationId?: string;
 }
 
 /** A decision card on the same surface as upgrades; no price, maybe a confirmation. */
@@ -46,7 +48,7 @@ export interface EndingViewModel {
 }
 
 export interface StatViewModel {
-  readonly id: string;
+  readonly id: StatId;
   readonly label: string;
   readonly value: number;
 }
@@ -193,6 +195,12 @@ export function selectGame(run: ReadonlyRun, catalog: Catalog): GameViewModel {
         affordable:
           (upgrade.currency === 'revenue' ? run.economy.revenue : run.economy.output) >= price,
         ...(upgrade.pack === 'tokens' ? { tokens: tokenPack(run, catalog).tokens } : {}),
+        ...(upgrade.discovers
+          ? {
+              illustrationId:
+                findTechnology(catalog, upgrade.discovers)?.illustrationId ?? upgrade.discovers,
+            }
+          : {}),
       };
       return { card, order, priority: offerPriority(run, upgrade) };
     });

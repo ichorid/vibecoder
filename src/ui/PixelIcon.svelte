@@ -17,7 +17,7 @@
   focusable="false"
 >
   {#each rects as r, i (i)}
-    <rect x={r.x} y={r.y} width={r.w} height="1" fill={r.color} />
+    <rect x={r.x} y={r.y} width={r.w} height="1" style:fill={r.color} />
   {/each}
 </svg>
 
