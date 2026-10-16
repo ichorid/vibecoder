@@ -100,4 +100,20 @@ describe('review documents', () => {
   ])('rejects an invalid %s', (_label, value) => {
     expect(validateReview(value).errors.length).toBeGreaterThan(0);
   });
+
+  it('rejects an arrangement whose voices plus one care sound exceed the cap of 8', () => {
+    const wide = (drums: number) =>
+      sources({
+        presets: [
+          preset({ id: 'test-lead', polyphony: 4 }),
+          JSON.parse(
+            JSON.stringify(
+              preset({ id: 'test-drums', family: 'noise', range: undefined, polyphony: drums }),
+            ),
+          ),
+        ],
+      });
+    expect(errors(wide(3))).toBe(''); // 4 + 3 + 1 SFX = 8
+    expect(errors(wide(4))).toMatch(/test-arrangement.*voice budget/);
+  });
 });

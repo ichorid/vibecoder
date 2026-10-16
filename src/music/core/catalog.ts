@@ -44,6 +44,10 @@ export interface MusicCatalog {
 const checkEra = compileSchema<EraDocument>(eraSchema);
 const checkPreset = compileSchema<PresetDocument>(presetSchema);
 const checkArrangement = compileSchema<ArrangementDocument>(arrangementSchema);
+
+/** Global simultaneous-voice cap (sound architecture §6) and the voices reserved for SFX. */
+export const VOICE_CAP = 8;
+export const SFX_VOICES = 1;
 const checkMotif = compileSchema<MotifDocument>(motifSchema);
 
 function identity(kind: string, value: unknown, index: number): string {
@@ -111,6 +115,7 @@ export function buildCatalog(sources: MusicSources): {
   const motifs = structural('motif', sources.motifs, checkMotif, diagnostics);
 
   for (const arrangement of arrangements.values()) {
+    let voices = 0;
     for (const [role, assignment] of Object.entries(arrangement.roles)) {
       if (assignment && !presets.has(assignment.preset)) {
         error(
@@ -119,6 +124,17 @@ export function buildCatalog(sources: MusicSources): {
           `unknown preset "${assignment.preset}"`,
         );
       }
+      if (assignment && assignment.enabled !== false) {
+        voices += presets.get(assignment.preset)?.polyphony ?? 0;
+      }
+    }
+    // The enabled roles' polyphony plus one care sound effect must fit the global voice cap.
+    if (voices + SFX_VOICES > VOICE_CAP) {
+      error(
+        `arrangement ${arrangement.id}`,
+        '/roles',
+        `${voices} voices + ${SFX_VOICES} sound effect exceed the voice budget of ${VOICE_CAP}`,
+      );
     }
   }
   for (const era of eras.values()) {

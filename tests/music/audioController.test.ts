@@ -29,8 +29,30 @@ function fakeEngine() {
   return { engine, calls };
 }
 
+/** A fake audio context state the OS can change (screen lock, call, other app). */
+function fakeContext() {
+  let state = 'running';
+  const listeners = new Set<() => void>();
+  return {
+    state: () => state,
+    onChange: (listener: () => void) => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+    set(next: string) {
+      state = next;
+      for (const l of listeners) l();
+    },
+  };
+}
+
 function setup(
-  options: { unlock?: () => Promise<void>; delay?: boolean; active?: () => boolean } = {},
+  options: {
+    unlock?: () => Promise<void>;
+    delay?: boolean;
+    active?: () => boolean;
+    context?: ReturnType<typeof fakeContext>;
+  } = {},
 ) {
   const storage = memoryStorage();
   const prefs = createAudioPreferences(storage);
@@ -41,7 +63,12 @@ function setup(
   });
   const loader: AudioLoader = async () => {
     if (options.delay) await gate;
-    return { unlock: options.unlock ?? (() => Promise.resolve()), engine: fake.engine };
+    const context = options.context;
+    return {
+      unlock: options.unlock ?? (() => Promise.resolve()),
+      engine: fake.engine,
+      ...(context ? { contextState: context.state, onContextChange: context.onChange } : {}),
+    };
   };
   const states: AudioState[] = [];
   const controller = createAudioController({
@@ -129,5 +156,41 @@ describe('audio controller', () => {
     });
     await controller.setSound(true);
     expect(controller.state().status).toBe('unavailable');
+  });
+
+  it('an interrupted audio context asks for a tap; the tap resumes without a second player', async () => {
+    const context = fakeContext();
+    const t = setup({ context });
+    await t.controller.setSound(true);
+    expect(t.last()?.status).toBe('playing');
+    context.set('interrupted');
+    expect(t.last()).toMatchObject({ status: 'needsGesture', soundOn: true });
+    expect(t.last()?.message).toMatch(/tap/i);
+    context.set('suspended');
+    const resume = t.controller.setSound(true);
+    context.set('running');
+    await resume;
+    expect(t.last()?.status).toBe('playing');
+    expect(t.fake.calls.filter((c) => c === 'start')).toHaveLength(1);
+  });
+
+  it('waking with a context the browser kept suspended asks for a tap instead of claiming sound', async () => {
+    const context = fakeContext();
+    const t = setup({ context });
+    await t.controller.setSound(true);
+    t.controller.suspend();
+    context.set('suspended');
+    t.controller.wake();
+    expect(t.last()?.status).toBe('needsGesture');
+  });
+
+  it('a load that finishes after dispose never revives audio', async () => {
+    const t = setup({ delay: true });
+    const pending = t.controller.setSound(true);
+    t.controller.dispose();
+    t.release();
+    await pending;
+    expect(t.fake.calls).toContain('dispose');
+    expect(t.fake.calls).not.toContain('start');
   });
 });

@@ -138,21 +138,24 @@ export function bootGame(): Boot {
 
 /**
  * The player's "Sound on" choice is remembered, but browsers allow audio only after a gesture:
- * the first tap or key press of a visit starts it again (once).
+ * a tap or key press restarts it after a reload or an interruption (screen lock, a call). Taps
+ * on the Sound switch itself are left to the switch.
  */
 function resumeSoundOnFirstGesture(music: MusicBinding): () => void {
   let view = { soundOn: false, status: 'off' };
   const unsubscribe = music.controls.subscribe((v) => (view = v));
-  const onGesture = () => {
-    detach();
-    if (view.soundOn && view.status === 'off') void music.controls.setSound(true);
+  const onGesture = (event: Event) => {
+    const target = event.target instanceof Element ? event.target : null;
+    if (target?.closest('[role="switch"]')) return;
+    if (view.soundOn && (view.status === 'off' || view.status === 'needsGesture')) {
+      void music.controls.setSound(true);
+    }
   };
-  const detach = () => {
+  window.addEventListener('pointerdown', onGesture, true);
+  window.addEventListener('keydown', onGesture, true);
+  return () => {
     window.removeEventListener('pointerdown', onGesture, true);
     window.removeEventListener('keydown', onGesture, true);
     unsubscribe();
   };
-  window.addEventListener('pointerdown', onGesture, true);
-  window.addEventListener('keydown', onGesture, true);
-  return detach;
 }

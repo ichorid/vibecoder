@@ -129,6 +129,10 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   entry redirects to `/music-lab/` before claiming the save lock.
 - F14 (P11) npm (this version) skips esbuild's postinstall under its install-script allowlist;
   builds still work via `@esbuild/linux-x64`.
+- F15 (S08) `Tone.Offline` runs every transport callback before rendering; disposing nodes in a
+  callback erases their earlier notes. Backend releases idle voice banks only in realtime contexts.
+- F16 (S08) Opening Settings with a real click is a gesture that resumes interrupted audio; tests
+  that need to *see* the interrupted state open Settings with a programmatic `click()`.
 
 ## Progress log
 
@@ -175,3 +179,5 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   mobile DOM, settings gate). game 363, browser 58. Device items unverified. Next P11.
 - 2026-10-16: P11 done headless (strategies, validation report, measurements, clean npm ci +
   all gates, Lab path redirect). Device/human items blocked. Next: S08 (hardening), S09.
+- 2026-10-16: S08 done headless (long session bounds, voice-bank release, context interruption,
+  import limits, voice budget, audio size budgets). Listening/devices blocked. Next S09.

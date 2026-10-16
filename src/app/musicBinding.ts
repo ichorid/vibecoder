@@ -21,6 +21,8 @@ export interface GameAudio {
   unlock(): Promise<void>;
   /** Patterns in the loaded pack (0 = no approved soundtrack yet). */
   readonly patterns: number;
+  readonly contextState?: () => string;
+  readonly onContextChange?: (listener: () => void) => () => void;
 }
 
 export interface MusicBindingOptions {
@@ -117,7 +119,12 @@ export function createMusicBinding(options: MusicBindingOptions): MusicBinding {
       const audio = await options.load();
       director = audio.director;
       patterns = audio.patterns;
-      return { unlock: () => audio.unlock(), engine: engine(audio.director) };
+      return {
+        unlock: () => audio.unlock(),
+        engine: engine(audio.director),
+        ...(audio.contextState ? { contextState: audio.contextState } : {}),
+        ...(audio.onContextChange ? { onContextChange: audio.onContextChange } : {}),
+      };
     },
   });
   state = controller.state();

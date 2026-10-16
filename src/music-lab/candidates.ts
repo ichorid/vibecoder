@@ -51,6 +51,13 @@ export function importCandidateText(
     return { candidates, report };
   }
   const items = Array.isArray(parsed) ? parsed : [parsed];
+  if (items.length > LIMITS.patternsPerBatch) {
+    report.rejected.push({
+      file,
+      problems: [`a file may hold at most ${LIMITS.patternsPerBatch} patterns (${items.length})`],
+    });
+    return { candidates, report };
+  }
   items.forEach((item, index) => {
     const where = items.length > 1 ? `${file}[${index}]` : file;
     const key = keyOf(item);

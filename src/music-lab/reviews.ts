@@ -159,6 +159,13 @@ export function decodeReviewEnvelope(text: string): Result<ReviewDocument[]> {
   ) {
     return { ok: false, error: `Not a ${REVIEW_ENVELOPE_KIND} v1 document.` };
   }
+  const raw = (value as { records: unknown[] }).records;
+  if (raw.length > LIMITS.reviewsPerBatch) {
+    return {
+      ok: false,
+      error: `A review file may hold at most ${LIMITS.reviewsPerBatch} records (${raw.length}).`,
+    };
+  }
   const records: ReviewDocument[] = [];
   const problems: string[] = [];
   (value as { records: unknown[] }).records.forEach((raw, i) => {

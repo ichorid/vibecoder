@@ -22,6 +22,10 @@ export const LIMITS = {
   batchBytes: 2 * 1024 * 1024,
   eventsPerPattern: 1024,
   feedbackBytes: 8 * 1024,
+  /** Patterns in one imported file. */
+  patternsPerBatch: 200,
+  /** Review records in one imported file. */
+  reviewsPerBatch: 5000,
 } as const;
 
 const ajv = new Ajv2020({ allErrors: true, strict: true });

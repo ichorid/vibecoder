@@ -15,10 +15,12 @@ export async function loadGameAudio(seed: number): Promise<GameAudio> {
       ? await import('../music/data/pack.demo.json')
       : await import('../music/data/pack.approved.json');
   const pack = module.default as unknown as MusicPack;
-  const { backend, unlock } = loadToneBackend();
+  const { backend, unlock, contextState, onContextChange } = loadToneBackend();
   return {
     director: createDirector({ backend, library: libraryFromPack(pack), seed }),
     unlock,
+    contextState,
+    onContextChange,
     patterns: pack.manifest.length,
   };
 }

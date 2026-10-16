@@ -201,4 +201,25 @@ describe('lab reviews', () => {
     mine.lab.importReviews('{"nope":true}');
     expect(mine.state().message).toMatch(/not imported/);
   });
+
+  it('a conflicting import while a candidate plays changes neither the music nor the catalog', async () => {
+    const t = await open();
+    const demo = JSON.parse(t.lab.exportPattern('discovery-demo-a@1') ?? '{}') as Record<
+      string,
+      unknown
+    >;
+    const mine = { ...demo, id: 'mine', energy: 0.6 };
+    t.lab.importCandidates(JSON.stringify(mine), 'mine.json');
+    await t.lab.ready();
+    t.lab.select('mine@1');
+    await t.lab.play();
+    t.fake.advanceTo(0);
+    const before = t.state().entries.map((e) => `${e.key}#${e.hash}`);
+    const clash = t.lab.importCandidates(JSON.stringify({ ...mine, energy: 0.9 }), 'clash.json');
+    await t.lab.ready();
+    expect(clash.conflicts).toHaveLength(1);
+    t.fake.advanceTo(PHRASE);
+    expect(t.state().now?.key).toBe('mine@1');
+    expect(t.state().entries.map((e) => `${e.key}#${e.hash}`)).toEqual(before);
+  });
 });

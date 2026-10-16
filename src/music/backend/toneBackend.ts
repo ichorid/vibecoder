@@ -83,6 +83,31 @@ export function createToneBackend(tone: Tone, options: ToneBackendOptions = {}):
     }
   }
 
+  /** Presets the previous committed phrase used (its release tails may still sound). */
+  let previousPresets = new Set<string>();
+
+  /**
+   * At a phrase start, free the voice banks of presets that neither this phrase nor the previous
+   * one uses: their last notes ended a whole phrase ago, so their bounded tails are over. A later
+   * phrase recreates an instrument on demand.
+   */
+  function releaseUnused(plan: PhrasePlan, time: number): void {
+    const current = new Set(plan.events.map((e) => e.presetId));
+    // An offline render runs every callback before rendering any audio, so a disposal here
+    // would erase the instrument's earlier notes too; only a realtime context releases.
+    if (context.isOffline) {
+      previousPresets = current;
+      return;
+    }
+    for (const [id, voice] of instruments) {
+      if (current.has(id) || previousPresets.has(id)) continue;
+      voice.silence(time);
+      voice.dispose();
+      instruments.delete(id);
+    }
+    previousPresets = current;
+  }
+
   function disposeVoices(time: number): void {
     for (const voice of instruments.values()) {
       voice.silence(time);
@@ -116,6 +141,7 @@ export function createToneBackend(tone: Tone, options: ToneBackendOptions = {}):
           if (transport.bpm.getValueAtTime(time) !== plan.bpm) {
             transport.bpm.setValueAtTime(plan.bpm, time);
           }
+          releaseUnused(plan, time);
           onCommit?.(plan);
           draw.schedule(() => onAudible(plan), time);
         }, `${plan.startTick}i`),

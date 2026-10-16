@@ -29,6 +29,10 @@ export interface LoadedAudio {
   /** Resume/start the audio context; must be called inside a trusted gesture. */
   unlock(): Promise<void>;
   readonly engine: MusicEngine;
+  /** The audio context's state ('running', 'suspended', 'interrupted', 'closed'). */
+  readonly contextState?: () => string;
+  /** Called when the OS or browser changes the context state (screen lock, calls). */
+  readonly onContextChange?: (listener: () => void) => () => void;
 }
 
 export type AudioLoader = () => Promise<LoadedAudio>;
@@ -67,6 +71,24 @@ export function createAudioController(options: AudioControllerOptions): AudioCon
   let started = false;
   let suspended = false;
   let disposed = false;
+  let stopWatching: () => void = () => {};
+
+  const INTERRUPTED = 'Sound was interrupted. Tap the sound switch to resume it.';
+  const contextRunning = () => (loaded?.contextState?.() ?? 'running') === 'running';
+
+  /** Visibility and context state are separate inputs: a stopped context needs a gesture. */
+  function onContextChange(): void {
+    if (disposed || !soundOn || suspended) return;
+    if (status === 'playing' && !contextRunning()) {
+      status = 'needsGesture';
+      message = INTERRUPTED;
+      publish();
+    } else if (status === 'needsGesture' && message === INTERRUPTED && contextRunning()) {
+      status = 'playing';
+      message = null;
+      publish();
+    }
+  }
 
   const snapshot = (): AudioState => ({ status, soundOn, volume, message });
   const publish = () => options.onState(snapshot());
@@ -81,6 +103,7 @@ export function createAudioController(options: AudioControllerOptions): AudioCon
         }
         loaded = audio;
         audio.engine.setVolume(volume);
+        stopWatching = audio.onContextChange?.(onContextChange) ?? (() => {});
         return audio;
       },
       (error: unknown) => {
@@ -166,12 +189,19 @@ export function createAudioController(options: AudioControllerOptions): AudioCon
     wake() {
       if (!suspended) return;
       suspended = false;
-      if (started && soundOn) loaded?.engine.resume();
+      if (!started || !soundOn) return;
+      loaded?.engine.resume();
+      if (!contextRunning()) {
+        status = 'needsGesture';
+        message = INTERRUPTED;
+        publish();
+      }
     },
     engine: () => loaded?.engine ?? null,
     dispose() {
       if (disposed) return;
       disposed = true;
+      stopWatching();
       loaded?.engine.dispose();
       loaded = null;
     },

@@ -154,3 +154,46 @@ test('an audio failure is reported, the menu still closes and the game goes on',
   await expect(page.getByTestId('settings-button')).toBeFocused();
   await pressPrimary(page, 3);
 });
+
+test('an interrupted audio context asks for a tap; the next ordinary tap resumes the music', async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    const Native = window.AudioContext;
+    const w = window as unknown as { __contexts: AudioContext[] };
+    w.__contexts = [];
+    window.AudioContext = class extends Native {
+      constructor(options?: AudioContextOptions) {
+        super(options);
+        w.__contexts.push(this);
+      }
+    };
+  });
+  await countAudioStarts(page);
+  await useTestPack(page);
+  await freshGame(page);
+  const dialog = await openSettings(page);
+  await dialog.getByRole('switch', { name: 'Sound' }).click();
+  await expect(dialog.getByTestId('sound-status')).toContainText('Playing');
+  await page.keyboard.press('Escape');
+
+  // Stand-in for the OS interrupting audio (screen lock, a call): the context stops running.
+  await page.evaluate(() =>
+    Promise.all(
+      (window as unknown as { __contexts: AudioContext[] }).__contexts.map((c) => c.suspend()),
+    ),
+  );
+  // Open Settings without a pointer/key gesture (a real tap would already resume the sound).
+  await page.evaluate(() =>
+    document.querySelector<HTMLButtonElement>('[data-testid="settings-button"]')?.click(),
+  );
+  await expect(page.getByTestId('sound-status')).toContainText('interrupted');
+  await page.keyboard.press('Escape');
+
+  // Any tap resumes it; the game itself never waited for audio.
+  await pressPrimary(page, 1);
+  await page.getByTestId('settings-button').click();
+  await expect(page.getByTestId('sound-status')).toContainText('Playing');
+  const before = await starts(page);
+  await expect.poll(() => starts(page), { timeout: 5_000 }).toBeGreaterThan(before);
+});

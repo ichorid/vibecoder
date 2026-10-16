@@ -120,3 +120,14 @@ Status: **done** (headless Chromium; real phones and listening are S08/S09)
 
 Exit: `test:game` 347/347, `test:music` 159/159, `test:music-browser` 15/15, `test:browser` 43/43, `npm run check` OK, build within budgets.
 Not verified: listening, iOS/Android unlock and background behaviour. Next: S08/S09 after main P10/P11 (S08 hardening may be partly headless).
+
+## S08 — mobile audio and long-session robustness
+
+Status: **done headless**; S08.5 listening and the iOS/Android checklist are **blocked** (no listener, no phone). Report: `docs/sound_validation_report.md`.
+
+- S08.1 `tests/music/long-session.test.ts` (fake, passed at once); `tests/browser/music-long.spec.ts`: 2-min offline render bounded; **finding:** voice banks were never released during play → `toneBackend.releaseUnused` at each phrase commit (RED: 6 instruments vs ≤ 2). **Finding (journal F15):** disposal inside `Tone.Offline` silences all earlier notes (callbacks run before rendering) → release only when `!context.isOffline`; verified by a realtime render (2 → 1 instruments).
+- S08.2 controller watches the context state (`contextState`/`onContextChange` from Tone `statechange`): interruption → `needsGesture` "Sound was interrupted…", wake with a suspended context → `needsGesture`; RED 2/3 (late-load-after-dispose already held). Any tap except on the Sound switch resumes (`bootstrap.ts`). Browser: suspended real context → message → ordinary tap → playing (Settings opened programmatically so the check itself is not a gesture).
+- S08.3 `LIMITS.patternsPerBatch` 200 / `reviewsPerBatch` 5000, checked before validation (RED 2/3; unknown fields were already schema errors); conflicting import while playing keeps music and catalog.
+- S08.4 arrangement voice budget (enabled polyphony + 1 SFX ≤ 8) is a catalog error (RED 1/1); loudest legal mix < −1 dBFS; `reportSize.ts` now fails the build if the Sound-gesture audio JS > 250 KiB gzip (137 KiB) or demo JSON > 100 KiB (22 KiB).
+
+Exit: `test:music` 169/169, `test:music-browser` 18/18, `test:game` 375/375, `test:browser` 60/60, `npm run check` OK, build within all budgets.

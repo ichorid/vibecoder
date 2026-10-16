@@ -156,6 +156,34 @@ test('velocity 0 and master mute are silent; a dense legal mix does not clip', a
   expect(dense.peak).toBeLessThanOrEqual(1);
 });
 
+test('the loudest legal mix (7 music voices + a care sound) stays under the limiter threshold', async ({
+  page,
+}) => {
+  const loudest = await render(page, {
+    seconds: 1,
+    volume: 1,
+    sfxAt: [0, 0.05],
+    phrases: [
+      {
+        startTick: 0,
+        endTick: 768,
+        events: [
+          note('lead', 0, 384, 88, 1),
+          note('bass', 0, 384, 40, 1),
+          note('arp', 0, 384, 84, 1),
+          note('arp', 0, 384, 88, 1),
+          note('arp', 0, 384, 91, 1),
+          drum(0, 'kick'),
+          drum(0, 'snare'),
+        ],
+      },
+    ],
+  });
+  // -1 dBFS ≈ 0.891: below it the limiter is idle, so headroom (not limiting) keeps it clean.
+  expect(loudest.peak).toBeLessThan(0.891);
+  expect(loudest.peak).toBeGreaterThan(0.05);
+});
+
 test('two adjacent phrases sustain across the boundary without a gap', async ({ page }) => {
   // Sustained-support fixture: one long note per phrase; silence at the seam would be a bug.
   const result = await render(page, {

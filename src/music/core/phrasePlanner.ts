@@ -4,11 +4,15 @@
  * counted, never sent to a synth. A small horizon registry keeps current + next phrase only.
  */
 import type { ArrangementDocument, PresetDocument } from '../data/patterns.generated';
+import { VOICE_CAP } from './catalog';
 import { clockFor } from './timing';
 import type { NormalizedPattern } from './validation';
 
-/** Simultaneous sounding voices across all roles (music + occasional SFX share this budget). */
-export const GLOBAL_VOICE_CAP = 8;
+/**
+ * Simultaneous sounding voices across all roles (music + occasional SFX share this budget);
+ * the same cap the catalog's arrangement budget check uses.
+ */
+export const GLOBAL_VOICE_CAP = VOICE_CAP;
 
 export interface PlannedEvent {
   readonly role: string;

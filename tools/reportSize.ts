@@ -8,7 +8,14 @@ import { gzipSync } from 'node:zlib';
 
 const DIST = 'dist';
 const KiB = 1024;
-const BUDGET = { initialJsGzip: 350 * KiB, firstAssets: 1024 * KiB };
+const BUDGET = {
+  initialJsGzip: 350 * KiB,
+  firstAssets: 1024 * KiB,
+  /** Lazy audio graph added by the Sound gesture (sound architecture §11). */
+  audioJsGzip: 250 * KiB,
+  /** Demo pattern data shipped for the dev demo pack / Lab. */
+  demoJson: 100 * KiB,
+};
 
 function walk(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
@@ -75,6 +82,28 @@ visitLab('music-lab/index.html');
 const labGzip = [...labFiles].reduce((sum, f) => sum + gz(path.join(DIST, f)), 0);
 console.log(`size: game initial JS ${kib(initial)} gzip; Music Lab page JS ${kib(labGzip)} gzip`);
 
+// The audio graph the Sound gesture adds: everything reachable from the game's lazy audio
+// module that the first screen does not already load.
+const audioKey = Object.keys(manifest).find((key) =>
+  /app\/gameAudio/.test(manifest[key]?.src ?? key),
+);
+const audioFiles = new Set<string>();
+const visitAudio = (key: string) => {
+  const chunk = manifest[key];
+  if (!chunk || audioFiles.has(chunk.file) || reachable.has(key)) return;
+  audioFiles.add(chunk.file);
+  for (const next of [...(chunk.imports ?? []), ...(chunk.dynamicImports ?? [])]) visitAudio(next);
+};
+if (audioKey) visitAudio(audioKey);
+const audioGzip = [...audioFiles].reduce((sum, f) => sum + gz(path.join(DIST, f)), 0);
+const demoJson = readdirSync('music/patterns', { recursive: true })
+  .map(String)
+  .filter((f) => /-demo-.*\.json$/.test(f))
+  .reduce((sum, f) => sum + statSync(path.join('music/patterns', f)).size, 0);
+console.log(
+  `size: audio on the Sound gesture ${kib(audioGzip)} gzip (${audioFiles.size} chunks); demo pattern JSON ${kib(demoJson)}`,
+);
+
 const failures: string[] = [];
 if (labLeaks.length > 0)
   failures.push(`game entry reaches Music Lab modules: ${labLeaks.join(', ')}`);
@@ -82,6 +111,11 @@ if (!existsSync(path.join(DIST, 'music-lab/index.html')))
   failures.push('music-lab/index.html missing');
 if (initial > BUDGET.initialJsGzip)
   failures.push(`initial JS ${kib(initial)} > ${kib(BUDGET.initialJsGzip)}`);
+if (!audioKey) failures.push('lazy game audio chunk not found in the manifest');
+if (audioGzip > BUDGET.audioJsGzip)
+  failures.push(`audio JS ${kib(audioGzip)} > ${kib(BUDGET.audioJsGzip)}`);
+if (demoJson > BUDGET.demoJson)
+  failures.push(`demo JSON ${kib(demoJson)} > ${kib(BUDGET.demoJson)}`);
 if (firstAssets > BUDGET.firstAssets)
   failures.push(`first assets ${kib(firstAssets)} > ${kib(BUDGET.firstAssets)}`);
 if (failures.length > 0) {
@@ -89,5 +123,5 @@ if (failures.length > 0) {
   process.exit(1);
 }
 console.log(
-  `size: within budgets (initial JS ≤ ${kib(BUDGET.initialJsGzip)}, first assets ≤ ${kib(BUDGET.firstAssets)})`,
+  `size: within budgets (initial JS ≤ ${kib(BUDGET.initialJsGzip)}, first assets ≤ ${kib(BUDGET.firstAssets)}, audio JS ≤ ${kib(BUDGET.audioJsGzip)}, demo JSON ≤ ${kib(BUDGET.demoJson)})`,
 );

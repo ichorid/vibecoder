@@ -23,6 +23,8 @@ export interface RenderSpec {
   resumeAt?: number;
   stopAt?: number;
   volume?: number;
+  /** Care sound effects (feed) at these transport seconds. */
+  sfxAt?: number[];
 }
 
 function analyse(buffer: Tone.ToneAudioBuffer) {
@@ -71,6 +73,7 @@ async function render(spec: RenderSpec) {
       Tone.getContext().setTimeout(() => backend.resume(), spec.resumeAt);
     }
     if (spec.stopAt !== undefined) transport.scheduleOnce(() => backend.stop(), spec.stopAt);
+    for (const at of spec.sfxAt ?? []) transport.scheduleOnce(() => backend.playSfx('feed'), at);
     diagnostics = backend.diagnostics();
   }, spec.seconds);
   return { ...analyse(buffer), diagnostics };
@@ -255,6 +258,90 @@ async function sfxMix() {
   return analyse(buffer);
 }
 
+/** Two minutes of director playback with era changes; backend diagnostics sampled over time. */
+async function longRender() {
+  const { catalog } = buildCatalog({
+    eras: repository('eras'),
+    presets: repository('presets'),
+    arrangements: repository('arrangements'),
+    motifs: repository('motif'),
+    patterns: repository('patterns'),
+  });
+  const samples: { at: number; diagnostics: unknown }[] = [];
+  const buffer = await Tone.Offline(() => {
+    const backend = createToneBackend(Tone, { volume: 1 });
+    const director = createDirector({
+      backend,
+      library: createLibrary(catalog, { candidates: 'demo' }),
+      seed: 6,
+    });
+    director.request({ era: 'discovery', arrangement: 'discovery-base' });
+    director.start();
+    const context = Tone.getContext();
+    const changes = [
+      [10, 'singularity', 'singularity-base'],
+      [30, 'discovery', 'discovery-support'],
+      [55, 'singularity', 'singularity-final'],
+      [80, 'discovery', 'discovery-base'],
+    ] as const;
+    for (const [at, era, arrangement] of changes) {
+      context.setTimeout(() => director.request({ era, arrangement }), at);
+    }
+    for (const at of [20, 60, 100, 118]) {
+      context.setTimeout(() => samples.push({ at, diagnostics: backend.diagnostics() }), at);
+    }
+  }, 120);
+  return { samples, peak: analyse(buffer).peak };
+}
+
+/**
+ * Realtime (not offline) check of voice-bank release: phrase 0 uses preset A, phrases 1–3 use B.
+ * After phrase 2 starts, A was used neither by the current nor by the previous phrase.
+ */
+async function liveRelease(presets: PresetDocument[]) {
+  await Tone.start();
+  const backend = createToneBackend(Tone, { volume: 0.05 });
+  backend.loadPresets(presets);
+  const beat = 192;
+  const note = (presetId: string, at: number): PlannedEvent => ({
+    role: 'lead',
+    type: 'note',
+    presetId,
+    startTick: at,
+    endTick: at + beat / 2,
+    midi: 72,
+    sound: null,
+    velocity: 0.5,
+  });
+  ['a', 'b', 'b', 'b'].forEach((preset, i) => {
+    const start = i * beat;
+    backend.schedulePhrase(
+      {
+        key: `p${i}@1`,
+        patternId: `p${i}`,
+        revision: 1,
+        eraId: 'test',
+        arrangementId: 'test',
+        bpm: 240,
+        startTick: start,
+        endTick: start + beat,
+        events: [note(preset, start)],
+        dropped: 0,
+      },
+      () => {},
+    );
+  });
+  backend.start();
+  const wait = (ms: number) =>
+    new Promise((resolve) => Tone.getContext().setTimeout(resolve, ms / 1000));
+  await wait(400);
+  const early = backend.diagnostics();
+  await wait(900);
+  const late = backend.diagnostics();
+  backend.dispose();
+  return { early, late };
+}
+
 (window as unknown as { musicFixture: unknown }).musicFixture = {
   render,
   lifecycleCycles,
@@ -262,4 +349,6 @@ async function sfxMix() {
   evolution,
   hashParity,
   sfxMix,
+  longRender,
+  liveRelease,
 };
