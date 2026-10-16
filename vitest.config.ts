@@ -20,5 +20,7 @@ export default defineConfig({
     include: ['src/**/*.test.ts', 'tests/**/*.test.ts', 'tools/**/*.test.ts', 'art/**/*.test.ts'],
     exclude: ['src/music/**', 'tests/music/**', 'tools/music/**', 'node_modules/**'],
     environment: 'node',
+    // Whole-run scenarios take 2–4 s locally; shared CI runners need headroom over the 5 s default.
+    testTimeout: 30_000,
   },
 });
