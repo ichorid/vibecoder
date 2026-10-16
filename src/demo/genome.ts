@@ -128,6 +128,11 @@ export interface Genome {
   spinOsc: number;
   /** …plus a slow steady drift in degrees per second. */
   drift: number;
+  /**
+   * The form's clock rate (1 = normal, 0 = frozen); it scales
+   * waves, swirls, sway, drift, swarm orbits and colour flow, not the backdrop.
+   */
+  speed: number;
   /** Ball size relative to the gap between neighbouring ribs (lace 0.45 … solid tubes 2). */
   thickness: number;
   colour: Colour;
@@ -568,6 +573,8 @@ export function randomGenome(seed: number, family?: TendrilKind, archetype?: Arc
       spinAmp: r.range(40, 160),
       spinOsc: osc(r, SLOW),
       drift: r.sign() * r.range(0, 5),
+      // mostly between a third and twice the normal pace
+      speed: Math.exp(r.range(Math.log(0.4), Math.log(2))),
       // overlapping balls make solid tubes; radial forms stay finer, webs are lace
       thickness:
         kind === 'web'
@@ -603,6 +610,7 @@ export function fallbackGenome(): Genome {
     spinAmp: 90,
     spinOsc: 1,
     drift: 3,
+    speed: 1,
     thickness: 1,
     colour: { mode: 'flow', pattern: [0, 1], bands: 3, speed: 0.5, ripple: 0, pulse: 0.3 },
     palette: 0,
@@ -767,8 +775,13 @@ export const MUTATIONS = {
   backdrop: (g: Genome) => {
     g.backdrop = g.backdrop === 'bars' ? 'stars' : 'bars';
   },
+  /** Off 37 % of the time, otherwise light or heavy trails. */
   trails: (g: Genome, r: DemoRng) => {
-    g.trails = r.pick([0, 2, 3] as const);
+    g.trails = r.chance(0.374) ? 0 : r.pick([2, 3] as const);
+  },
+  /** A new speed drawn uniformly from [0, 8): frozen, slowed or several times faster. */
+  speed: (g: Genome, r: DemoRng) => {
+    g.speed = r.f() * 8;
   },
 } satisfies Record<string, (g: Genome, r: DemoRng) => void>;
 
@@ -792,6 +805,7 @@ const WEIGHTS: readonly [MutationId, number][] = [
   ['dots', 1],
   ['shape', 1.5],
   ['layout', 0.8],
+  ['speed', 2.5],
   ['ribs', 2],
   ['addRule', 1.5],
   ['dropRule', 1],

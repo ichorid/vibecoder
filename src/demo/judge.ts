@@ -35,6 +35,7 @@ const TIMES = [3, 6, 9] as const;
 /** Motion is the mask change over this many seconds. */
 const MOTION_DT = 0.4;
 const MOTION_TARGET = 0.25;
+const JITTER_DT = 0.1;
 export const MIN_CHANGE = 0.3;
 /** Children scored per new demo, out of at most this many tries. */
 const CANDIDATES = 12;
@@ -165,6 +166,8 @@ export interface Verdict {
     readonly detail: number;
     readonly grain: number;
     readonly motion: number;
+    /** Mask change over 0.1 s (frantic forms score high). */
+    readonly jitter: number;
     /** Mask change between the judged moments, 3 s apart (a mesmerising form keeps flowing). */
     readonly flow: number;
     /** Rotational symmetry (see `symmetryOf`) at the middle judged moment. */
@@ -201,6 +204,8 @@ export function judge(g: Genome, ancestors: readonly (readonly Uint8Array[])[] =
   );
   const later = maskAt(g, (TIMES[0] ?? 3) + MOTION_DT, fr);
   const motion = maskDiff(masks[0] ?? later, later);
+  // over a tenth of a second a watchable form barely changes; a frantic one changes a lot
+  const jitter = maskDiff(masks[0] ?? later, maskAt(g, (TIMES[0] ?? 3) + JITTER_DT, fr));
   const coverage = stats.reduce((sum, s) => sum + s.coverage, 0) / stats.length;
   const cells = stats.reduce((sum, s) => sum + s.cells, 0) / stats.length;
   const detail = stats.reduce((sum, s) => sum + s.detail, 0) / stats.length;
@@ -229,14 +234,15 @@ export function judge(g: Genome, ancestors: readonly (readonly Uint8Array[])[] =
     1.2 * Math.min(detail, 0.5) -
     12 * Math.max(0, grain - grainLimit) -
     6 * Math.max(0, fr.biggest - 0.22) -
-    0.4 * Math.min(1, Math.abs(Math.log(Math.max(1e-3, motion) / MOTION_TARGET))) +
+    0.4 * Math.min(1, Math.abs(Math.log(Math.max(1e-3, motion) / MOTION_TARGET))) -
+    1.2 * Math.max(0, jitter - 0.2) +
     0.6 * Math.min(flow, 0.6) +
     0.6 * novelty;
   return {
     ok,
     score,
     masks,
-    parts: { biggest: fr.biggest, coverage, cells, detail, grain, motion, flow, symmetry },
+    parts: { biggest: fr.biggest, coverage, cells, detail, grain, motion, jitter, flow, symmetry },
   };
 }
 

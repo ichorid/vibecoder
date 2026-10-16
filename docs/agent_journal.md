@@ -534,4 +534,8 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   radial starts drift away (mean symmetry 0.75 → 0.47 by demo 4); first demos unpenalised.
   Bug fix (user): replaying a demo from History no longer shows the designer (only right after
   coding one).
+- 2026-10-16: (user) speed variation: `speed` gene (the form's clock rate; first demos 0.4–2×),
+  mutation draws uniformly from [0, 8); trails mutation off 37 % of the time. The judge adds a
+  jitter penalty (mask change over 0.1 s): judge picks centre on 1.15× (p90 3.8×), variants
+  still reach ≈ 8× for players who want them.
 

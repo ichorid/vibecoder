@@ -143,7 +143,8 @@ function refRib(h: Horn, i: number, ribs: number, ctx: WaveContext): Ref {
   return xf;
 }
 
-function refExpand(g: Genome, t: number) {
+function refExpand(g: Genome, seconds: number) {
+  const t = seconds * g.speed;
   const w = WAVE_PERIODS.map((p, i) => Math.sin((2 * Math.PI * t) / p + (g.phase[i] ?? 0)));
   const out: { c: number[]; s: number }[] = [];
   const visit = (h: Horn | Ball, parent: Ref, up: number) => {
@@ -191,6 +192,17 @@ function refExpand(g: Genome, t: number) {
 }
 
 describe('fast expansion', () => {
+  it('speed runs the form on its own clock: twice the speed, the same picture in half the time', () => {
+    const inst = createInstances();
+    const g = randomGenome(77);
+    const at = (genome: Genome, t: number) => {
+      const n = expand(genome, t, inst);
+      return [...inst.x.slice(0, n), ...inst.y.slice(0, n)];
+    };
+    expect(at({ ...g, speed: 2 }, 3)).toEqual(at({ ...g, speed: 1 }, 6));
+    expect(at({ ...g, speed: 0 }, 3)).toEqual(at({ ...g, speed: 0 }, 9)); // frozen
+  });
+
   it('a tube of n ribs draws ⌈n⌉ + 1 balls; nesting multiplies', () => {
     const g = randomGenome(1);
     const tube = (ribs: number, child: Horn | Ball): Horn => ({

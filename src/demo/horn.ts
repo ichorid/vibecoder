@@ -462,7 +462,9 @@ export function poseAt(o: Float32Array, k: number, g: Genome, w: ArrayLike<numbe
 }
 
 /** Fill `out` with the genome's ribs at time t; returns the count. */
-export function expand(g: Genome, t: number, out: Instances): number {
+export function expand(g: Genome, seconds: number, out: Instances): number {
+  // the form runs on its own clock (Speed); the caller's seconds are real time
+  const t = seconds * g.speed;
   const w = wavesAt(g, t);
   const ctx: WaveContext = { w, t, phase: g.phase, up: 0 };
   prepare(g.root, ctx);
