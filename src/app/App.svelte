@@ -25,6 +25,7 @@
   import { RELEASE_COMMENTS_ATTRIBUTION } from '../content/releaseComments';
   import { atlasUrl, memorialUrls } from './assetUrls';
   import { loadDomSheet } from './domSheet';
+  import { APP_VERSION } from './version';
   import type { DomSpriteSheet, WheelSound } from '../ui/contracts';
 
   interface Props {
@@ -256,6 +257,7 @@
     cat={$api.cat}
     {sprites}
     {settingsOpen}
+    version={APP_VERSION}
     onCat={() => open('cat')}
     onHistory={() => open('history')}
     onSettings={toggleSettings}

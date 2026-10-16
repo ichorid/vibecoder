@@ -11,12 +11,22 @@
     /** The world atlas: the button shows the same animated cat as the room once it loads. */
     sprites?: DomSpriteSheet | null;
     settingsOpen: boolean;
+    /** The game version, shown small after the title. */
+    version?: string;
     onCat: () => void;
     onHistory: () => void;
     onSettings: (event: MouseEvent) => void;
   }
 
-  const { cat, sprites = null, settingsOpen, onCat, onHistory, onSettings }: Props = $props();
+  const {
+    cat,
+    sprites = null,
+    settingsOpen,
+    version = '',
+    onCat,
+    onHistory,
+    onSettings,
+  }: Props = $props();
 
   const catLabel = $derived(
     cat.alive
@@ -27,7 +37,10 @@
 
 <header class="header">
   <div class="top">
-    <h1 class="title">VIBE CODER</h1>
+    <h1 class="title">
+      VIBE CODER{#if version}
+        <span class="version" data-testid="app-version">v{version}</span>{/if}
+    </h1>
     <nav class="nav" aria-label="Views">
       <button
         type="button"
@@ -97,6 +110,16 @@
     letter-spacing: 0.06em;
     font-weight: 900;
     white-space: nowrap;
+  }
+  /* Its own line under the title: the cat button already makes the row taller, and the title
+     never has to shrink for it on a 320 px phone. */
+  .version {
+    display: block;
+    line-height: 1;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0;
+    color: var(--ink-soft);
   }
   .nav {
     display: flex;
