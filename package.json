@@ -7,11 +7,12 @@
     "dev": "vite",
     "build": "vite build",
     "check:types": "svelte-check --tsconfig tsconfig.json && tsc -p tsconfig.game.json && tsc -p tools/type-fixtures/tsconfig.positive.json",
-    "lint": "eslint src vite.config.ts",
+    "lint": "eslint src tests vite.config.ts vitest.config.ts",
     "format:check": "prettier --check .",
     "format": "prettier --write .",
     "check": "npm run check:types && npm run lint && npm run format:check && npm run test:rules",
-    "test:rules": "vitest run --config vitest.rules.config.ts"
+    "test:rules": "vitest run --config vitest.rules.config.ts",
+    "test:game": "vitest run --config vitest.config.ts"
   },
   "dependencies": {
     "pixi.js": "^8.6.6",

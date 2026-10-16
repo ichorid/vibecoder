@@ -10,7 +10,7 @@ export function assertNever(value: never): never {
 
 export function routeCommand(command: GameCommand): string {
   switch (command.type) {
-    case 'primaryAction':
+    case 'launchRockets':
       return 'ok';
     default:
       return 'leak';

@@ -28,7 +28,10 @@
     "src/**/*.ts",
     "src/**/*.svelte",
     "tools/acceptance/fixtures/svelte/**/*.svelte",
-    "vite.config.ts"
+    "vite.config.ts",
+    "tests/**/*.ts",
+    "vitest.config.ts",
+    "vitest.rules.config.ts"
   ],
   "exclude": [
     "tools/acceptance/fixtures/types/invalid-command-union.ts",

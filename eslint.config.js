@@ -16,7 +16,13 @@ const vibePluginRules = {
   'owned-scheduling': ownedScheduling,
 };
 
-const typedLintFiles = ['src/**/*.ts', 'src/**/*.svelte', 'vite.config.ts'];
+const typedLintFiles = [
+  'src/**/*.ts',
+  'src/**/*.svelte',
+  'tests/**/*.ts',
+  'vite.config.ts',
+  'vitest.config.ts',
+];
 
 export default tseslint.config(
   {

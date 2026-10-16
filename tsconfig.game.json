@@ -6,5 +6,5 @@
     "noEmit": true
   },
   "include": ["src/game/**/*.ts", "src/content/**/*.ts"],
-  "exclude": ["node_modules", "dist", "tools/acceptance/fixtures/types/**"]
+  "exclude": ["node_modules", "dist", "tools/acceptance/fixtures/types/**", "src/**/*.test.ts"]
 }

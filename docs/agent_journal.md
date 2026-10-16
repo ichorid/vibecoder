@@ -17,8 +17,15 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
 
 ## Unexpected findings
 
-- (none yet)
+- F1 The `rtk` hook rewrites `npm run lint` into a filtered command that lints the acceptance
+  fixtures and reports bogus errors. Run checks as `rtk proxy npm run check` (exit code is truth).
+- F2 P00 fixture `tools/acceptance/fixtures/types/invalid-command-union.ts` used
+  `case 'primaryAction'` as the *invalid* variant; once P01 added that real command the fixture
+  compiled cleanly. Changed the case to `'launchRockets'` (intent unchanged: invalid variant).
 
 ## Progress log
 
 - 2026-10-16: P00 verified + committed. Next: P01.
+- 2026-10-16: P01 done (RNG, createRun, runtime clock, step/commands, store, lifecycle).
+  35 game tests. Snapshot currently `{ run }`; plan: add view models in P02.2 and keep UI
+  off the raw run.
