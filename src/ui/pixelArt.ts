@@ -47,18 +47,21 @@ export const catFace: PixelMap = {
   palette: { o: '#e8892f', d: '#2a2017', p: '#f2a3a3', w: '#fbe3c4' },
 };
 
-/** The cat died: a small skull where the cat used to be. */
+/**
+ * The cat died: a small cat skull — rounded cranium, very large eye sockets, wide cheekbones
+ * tapering to a short muzzle with a nose opening and two fangs.
+ */
 export const catSkull: PixelMap = {
   rows: [
     '...kkkkkk...',
-    '..kbbbbbbk..',
-    '.kbbbbbbbbk.',
-    '.kbxxbbxxbk.',
-    '.kbxxbbxxbk.',
-    '.kbbbxxbbbk.',
-    '..kbbbbbbk..',
-    '...kbxbxk...',
-    '....kkkk....',
+    '.kkbbbbbbkk.',
+    'kbbbbbbbbbbk',
+    'kbxxxbbxxxbk',
+    'kbxxxbbxxxbk',
+    '.kbbxbbxbbk.',
+    '..kkbxxbkk..',
+    '...kbbbbk...',
+    '...kbkkbk...',
   ],
   palette: { b: '#ece6d6', x: '#2a2017', k: '#2a2017' },
 };
