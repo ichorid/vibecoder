@@ -368,7 +368,8 @@ export function tendril(r: DemoRng, kind: TendrilKind = r.pick(TENDRILS)): Horn 
     alt: r.chance(0.4),
     bulb: r.chance(0.35) ? r.range(1.2, 1.8) : null,
   };
-  setDots(r, h, r.pick([1, 1, 1, 1, 1, 1, 2, 3, 0]));
+  // mostly solid tubes; beads or a lone tip now and then
+  setDots(r, h, r.chance(0.1) ? r.pick([2, 3, 0]) : 1);
   setShapes(r, h);
   return h;
 }
@@ -520,25 +521,38 @@ export function archetypeFor(seed: number): Archetype {
 
 const RADIAL: readonly ArrangementKind[] = ['fan', 'ring', 'tower', 'whorl', 'layers'];
 
-function rootFor(r: DemoRng, archetype: Archetype, family?: TendrilKind): Horn {
+/** The innermost tube's family for a first demo, from its seed (all four equally often). */
+export function tendrilFor(seed: number): TendrilKind {
+  return demoRng(seed ^ 0x1b873593).pick(TENDRILS);
+}
+
+/**
+ * The tree of a first demo. `inner` fixes the innermost tube's family (webs keep their own
+ * strands); `family` alone means a lone tube of that family (the dev sheets).
+ */
+function rootFor(
+  r: DemoRng,
+  archetype: Archetype,
+  family?: TendrilKind,
+  inner?: TendrilKind,
+): Horn {
   if (family) return tendril(r, family);
+  const tube = () => tendril(r, inner);
   switch (archetype) {
     case 'web':
       return web(r);
     case 'solo':
-      return tendril(r);
+      return tube();
     case 'swarm':
-      return r.chance(0.6)
-        ? tendril(r)
-        : arrangement(r, tendril(r), r.pick(['tower', 'flock'] as const));
+      return r.chance(0.6) ? tube() : arrangement(r, tube(), r.pick(['tower', 'flock'] as const));
     case 'flock': {
-      const inner = tendril(r);
-      if (r.chance(0.5)) setDots(r, inner, r.pick([0, 2, 3]));
-      const flock = arrangement(r, inner, 'flock');
+      const t = tube();
+      if (r.chance(0.35)) setDots(r, t, r.pick([0, 2, 3]));
+      const flock = arrangement(r, t, 'flock');
       return r.chance(0.3) ? arrangement(r, flock, 'flock') : flock;
     }
     case 'radial': {
-      let root = arrangement(r, tendril(r), r.pick(RADIAL));
+      let root = arrangement(r, tube(), r.pick(RADIAL));
       if (r.chance(0.25)) root = arrangement(r, root, r.pick(RADIAL));
       return root;
     }
@@ -546,11 +560,16 @@ function rootFor(r: DemoRng, archetype: Archetype, family?: TendrilKind): Horn {
 }
 
 /** A first genome from a seed (house rules and budget hold; looks are the judge's business). */
-export function randomGenome(seed: number, family?: TendrilKind, archetype?: Archetype): Genome {
+export function randomGenome(
+  seed: number,
+  family?: TendrilKind,
+  archetype?: Archetype,
+  inner?: TendrilKind,
+): Genome {
   const r = demoRng(seed);
   const kind = archetype ?? archetypeFor(seed);
   for (let attempt = 0; attempt < 20; attempt++) {
-    const root = rootFor(r, kind, family);
+    const root = rootFor(r, kind, family, inner);
     const many =
       kind === 'swarm'
         ? r.int(2, 5)
@@ -564,7 +583,7 @@ export function randomGenome(seed: number, family?: TendrilKind, archetype?: Arc
       root,
       copies: family || kind === 'web' ? 1 : many,
       mirror: !family && kind !== 'web' && r.chance(0.25),
-      layout: kind === 'swarm' || (kind !== 'radial' && r.chance(0.5)) ? 'swarm' : 'radial',
+      layout: kind === 'swarm' || (kind !== 'radial' && r.chance(0.15)) ? 'swarm' : 'radial',
       swarm: r.range(1, 2.6),
       phase: WAVE_PERIODS.map(() => r.range(0, Math.PI * 2)),
       view: kind === 'web' || (kind === 'radial' && r.chance(0.45)) ? 'vortex' : 'tumble',

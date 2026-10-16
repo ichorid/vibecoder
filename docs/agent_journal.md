@@ -538,4 +538,7 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   mutation draws uniformly from [0, 8); trails mutation off 37 % of the time. The judge adds a
   jitter penalty (mask change over 0.1 s): judge picks centre on 1.15× (p90 3.8×), variants
   still reach ≈ 8× for players who want them.
+- 2026-10-16: (user) diversity restored: per-seed kind and tube family, first demo = first viable
+  draw with score ≥ 0, fewer dotted tubes and swarms, framing to the 90th-percentile extent,
+  viability 7 % / 3.5 %. `tools/demoStats.ts` reports the spread of first demos.
 

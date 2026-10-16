@@ -96,6 +96,21 @@ invisible structure placing visible parts that do not touch. Our versions:
   one of 16 angles; shapes that are not round turn along their tube on screen. Ribs and tips
   each have a shape gene (mutation `shape`, cosmetic to the judge).
 
+## Diversity of first demos (user, 2026-10-16)
+
+The mesmerising changes had cost variety (measured with `tools/demoStats.ts` on 48 first
+demos: median coverage 6 %, 27 of 48 dotted, springs everywhere). Now:
+
+- a first demo's kind **and** the family of its tubes come from its seed; the judge's viability
+  gate chooses only within them (bulky springs no longer crowd out slender tapers);
+- the first demo is the first viable draw scoring ≥ 0 (viable draws: −1.9 / 0.25 / 0.7 at
+  p10/p50/p90), not the best of several — the judge only keeps the poor ones out;
+- dotted or hidden tubes 10 % (35 % more inside flocks), swarm layout mostly for the swarm kind;
+- framing fits the 90th percentile of the rib distances, so wide swings no longer keep the form
+  small; viability needs 7 % coverage (3.5 % for scattered forms).
+
+Result: median coverage 10 %, 7 of 48 dotted, all four tube families and every kind present.
+
 ## Moving away from radial (user, 2026-10-16)
 
 A first demo may be radial, but lineages then drift away: the judge's ranking of children

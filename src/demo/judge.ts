@@ -17,6 +17,7 @@ import {
   COSMETIC,
   cloneGenome,
   archetypeFor,
+  tendrilFor,
   fallbackGenome,
   hornChain,
   mutate,
@@ -189,15 +190,15 @@ export function scattered(g: Genome): boolean {
 }
 
 /**
- * Viable = at each moment it covers 5–55 % of the screen and touches ≥ 22 of 160 cells
- * (scattered forms: ≥ 2.5 % and ≥ 14 cells).
+ * Viable = at each moment it covers 7–55 % of the screen and touches ≥ 22 of 160 cells
+ * (scattered forms: ≥ 3.5 % and ≥ 14 cells).
  */
 export function judge(g: Genome, ancestors: readonly (readonly Uint8Array[])[] = []): Verdict {
   const fr = framing(g, inst);
   const masks = TIMES.map((t) => maskAt(g, t, fr));
   const stats = masks.map(maskStats);
   const apart = scattered(g);
-  const minCoverage = apart ? 0.025 : 0.05;
+  const minCoverage = apart ? 0.035 : 0.07;
   const minCells = apart ? 14 : 22;
   const ok = stats.every(
     (s) => s.coverage >= minCoverage && s.coverage <= 0.55 && s.cells >= minCells,
@@ -274,24 +275,25 @@ export interface Judged {
   readonly verdict: Verdict;
 }
 
-/** Viable first draws the judge compares before choosing the first demo. */
-const FIRST_CHOICES = 4;
-
 /**
- * The first demo: the best-scoring of the first few viable draws from the seed (else a
- * known-good spring).
+ * The first demo is the first viable draw that clears this score (else the best of those seen).
+ * Taking the best of several made every first demo look alike — the judge's taste is one look —
+ * so the judge only keeps the poor ones out.
  */
+export const FIRST_FLOOR = 0;
+
 export function firstDemo(seed: number): Judged {
   let best: Judged | null = null;
-  let viable = 0;
-  // the kind of picture comes from the seed; the judge only compares draws of that kind
+  // the kind of picture and the family of its tubes come from the seed: the viability gate
+  // then chooses within them, so the bulky families cannot crowd out the slender ones
   const kind = archetypeFor(seed);
-  for (let attempt = 0; attempt < 30 && viable < FIRST_CHOICES; attempt++) {
-    const genome = randomGenome(subSeed(seed, attempt), undefined, kind);
+  const inner = tendrilFor(seed);
+  for (let attempt = 0; attempt < 30; attempt++) {
+    const genome = randomGenome(subSeed(seed, attempt), undefined, kind, inner);
     const verdict = judge(genome);
     if (!verdict.ok) continue;
-    viable++;
     if (!best || verdict.score > best.verdict.score) best = { genome, verdict };
+    if (verdict.score >= FIRST_FLOOR) break;
   }
   if (best) {
     dress(best.genome, seed, false);

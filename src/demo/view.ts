@@ -65,15 +65,18 @@ export function framing(g: Genome, inst: Instances): Framing {
   const cx = (lx + hx) / 2,
     cy = (ly + hy) / 2,
     cz = (lz + hz) / 2;
-  let r = 1e-6;
+  // Fit the 90th percentile of the distances, not the farthest rib: big slow swirls swing
+  // wide now and then, and fitting the extreme would keep the form small the rest of the time.
+  const distances: number[] = [];
   for (const xyz of samples) {
     for (let i = 0; i < xyz.length; i += 3) {
-      r = Math.max(
-        r,
+      distances.push(
         Math.hypot((xyz[i] ?? 0) - cx, (xyz[i + 1] ?? 0) - cy, (xyz[i + 2] ?? 0) - cz),
       );
     }
   }
+  distances.sort((a, b) => a - b);
+  const r = Math.max(1e-6, distances[Math.floor(0.9 * (distances.length - 1))] ?? 1e-6);
   // Rib size: the median gap between consecutive ribs, per unit of rib scale.
   const ratios: number[] = [];
   if (first) {
