@@ -11,7 +11,8 @@ test('settings panel: theme, sound switch, music submenu, Music Lab link, focus 
   await opener.click();
   const dialog = page.getByRole('dialog', { name: 'Settings' });
   await expect(dialog).toBeVisible();
-  await expect(dialog.getByRole('button', { name: 'Theme' })).toBeVisible();
+  await expect(dialog.getByRole('radiogroup', { name: 'Theme' })).toBeVisible();
+  await expect(dialog.getByRole('radio', { name: 'AUTO' })).toHaveAttribute('aria-checked', 'true');
   await expect(dialog.getByRole('switch', { name: 'Sound' })).toBeVisible();
   // The switch drives the real audio controller (covered by sound.spec.ts).
   await expect(dialog.getByRole('switch', { name: 'Sound' })).toBeEnabled();

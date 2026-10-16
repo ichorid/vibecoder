@@ -79,7 +79,7 @@ describe('App navigation', () => {
   it('changes theme from Settings independently of progression and saves it in the profile', async () => {
     const t = setup();
     await fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
-    await fireEvent.click(screen.getByRole('button', { name: 'Theme' }));
+    await fireEvent.click(screen.getByRole('radio', { name: 'DARK' }));
     expect(document.documentElement.dataset.theme).toBe('dark');
     expect(t.latest()?.profile.theme).toBe('dark');
     expect(t.latest()?.run.unlockedTechnologyIds).toEqual([]);

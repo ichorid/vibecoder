@@ -308,3 +308,11 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   still around."; idle-agent line: "…like the cat used to." validateContent fails a plain text
   naming the cat in technologies, events, upgrades, choices, chatter (achievement titles and
   the alive-only "cat is helping" event exempt).
+- 2026-10-16: user requests: theme preference AUTO (default, follows prefers-color-scheme live)
+  / LIGHT / DARK — profile `theme` accepts 'auto' (no schema bump; old explicit light/dark kept),
+  App resolves the shown theme; Settings is a radiogroup. Zoom-in limit is now absolute
+  (`MAX_ABSOLUTE_ZOOM` 4 CSS px per world px, or 6× the framing if larger) so a grown scene can be
+  zoomed back to the room. Upgrade cards show "≈ +X code/s · ±Y debt/s right now" from
+  `upgradeImpact` (the economy recomputed with the card owned; packs none). Measured release
+  windows on baseline (seeds 101/303): v0.1 2.3–7.2 min, v0.2 ~14.6–18.6, v1.0 ~21.7–25.7,
+  v2.0 ~28.4–32.4 (card visible 3.5 of 4 min), v3.0 from ~31.5 and never closes.

@@ -13,6 +13,7 @@ import type {
 import { isChoiceOffered } from './endings';
 import { currentPrimaryAction, findTechnology, isUpgradeOffered } from './progression';
 import { cardEffects } from './effectText';
+import { upgradeImpact } from './setup';
 import { deriveSeed } from './random';
 import { catAware } from './catAware';
 import { jackpotHazard, openReleaseWindow, releaseLabel } from './releases';
@@ -41,6 +42,8 @@ export interface UpgradeOfferViewModel {
   readonly illustrationId?: string;
   /** What buying it does to the game, in short lines (from the real effect definitions). */
   readonly effects: readonly string[];
+  /** Its effect on the economy right now (null for consumables such as token packs). */
+  readonly impact: { readonly codePerSecond: number; readonly debtPerSecond: number } | null;
 }
 
 /** A decision card on the same surface as upgrades; no price, maybe a confirmation. */
@@ -263,6 +266,7 @@ export function selectGame(run: ReadonlyRun, catalog: Catalog): GameViewModel {
         affordable:
           (upgrade.currency === 'revenue' ? run.economy.revenue : run.economy.output) >= price,
         effects: cardEffects(upgrade, catalog),
+        impact: upgradeImpact(run, upgrade, catalog),
         ...(upgrade.pack === 'tokens' ? { tokens: tokenPack(run, catalog).tokens } : {}),
         ...(upgrade.discovers
           ? {

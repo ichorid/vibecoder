@@ -211,3 +211,37 @@ export function selectSetup(run: ReadonlyRun, catalog: Catalog): SetupViewModel 
     limits,
   };
 }
+
+/** Code/s and debt/s the economy produces right now (one step, scaled to a second). */
+function rates(run: ReadonlyRun, catalog: Catalog): { code: number; debt: number } {
+  const r = deriveRates(run, catalog);
+  const f = economyFlows(run.economy, r, STEP_S, catalog.balance);
+  return {
+    code: f.useful / STEP_S + r.passiveOutputPerSecond,
+    debt: (f.debtAdded - f.debtReviewed) / STEP_S,
+  };
+}
+
+/**
+ * What buying `upgrade` would change right now: the same economy computed with it owned
+ * (a technology card: with its technology unlocked). Consumables (token packs) have none.
+ */
+export function upgradeImpact(
+  run: ReadonlyRun,
+  upgrade: UpgradeDefinition,
+  catalog: Catalog,
+): { readonly codePerSecond: number; readonly debtPerSecond: number } | null {
+  if (upgrade.pack) return null;
+  const level = upgradeLevel(run, upgrade.id);
+  const bought: ReadonlyRun = {
+    ...run,
+    upgradeLevels: { ...run.upgradeLevels, [upgrade.id]: level + 1 },
+    unlockedTechnologyIds:
+      upgrade.discovers && !run.unlockedTechnologyIds.includes(upgrade.discovers)
+        ? [...run.unlockedTechnologyIds, upgrade.discovers]
+        : run.unlockedTechnologyIds,
+  };
+  const now = rates(run, catalog);
+  const after = rates(bought, catalog);
+  return { codePerSecond: after.code - now.code, debtPerSecond: after.debt - now.debt };
+}

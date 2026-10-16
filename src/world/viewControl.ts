@@ -16,6 +16,16 @@ export interface UserView {
 export const IDENTITY_VIEW: UserView = { zoom: 1, dx: 0, dy: 0 };
 export const MIN_VIEW_ZOOM = 0.6;
 export const MAX_VIEW_ZOOM = 6;
+/**
+ * However far the scene has grown, the player can always zoom in to this many CSS px per world
+ * px — about twice the scale of the opening room — to look at the room up close again.
+ */
+export const MAX_ABSOLUTE_ZOOM = 4;
+
+/** The largest zoom factor allowed on top of `base`. */
+export function maxViewZoom(base: Camera): number {
+  return Math.max(MAX_VIEW_ZOOM, MAX_ABSOLUTE_ZOOM / base.zoom);
+}
 
 export function shownCamera(base: Camera, view: UserView): Camera {
   return {
@@ -45,7 +55,7 @@ export function zoomAt(
   const offY = screenY - viewport.height / 2;
   const worldX = before.centerX + offX / before.zoom;
   const worldY = before.centerY + offY / before.zoom;
-  const zoom = Math.min(MAX_VIEW_ZOOM, Math.max(MIN_VIEW_ZOOM, view.zoom * factor));
+  const zoom = Math.min(maxViewZoom(base), Math.max(MIN_VIEW_ZOOM, view.zoom * factor));
   const shownZoom = base.zoom * zoom;
   return {
     zoom,

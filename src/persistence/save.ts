@@ -71,7 +71,8 @@ const CARE_NOTES = [
 ] as const;
 const OUTCOMES = ['hit', 'near', 'miss'] as const;
 
-export const THEMES = ['light', 'dark'] as const;
+/** The player's preference; `auto` (the default) follows the system's light/dark setting. */
+export const THEMES = ['auto', 'light', 'dark'] as const;
 export type Theme = (typeof THEMES)[number];
 
 /** Survives a new run. */
@@ -103,7 +104,7 @@ export interface StorageLike {
 export type WriteResult = { ok: true } | { ok: false; error: string };
 
 export function createProfile(): ProfileState {
-  return { theme: 'light', endings: [] };
+  return { theme: 'auto', endings: [] };
 }
 
 export function encodeSave(save: SaveData): string {

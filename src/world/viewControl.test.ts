@@ -4,6 +4,7 @@ import {
   clampView,
   IDENTITY_VIEW,
   isAdjusted,
+  MAX_ABSOLUTE_ZOOM,
   MAX_VIEW_ZOOM,
   MIN_VIEW_ZOOM,
   panBy,
@@ -33,6 +34,12 @@ describe('player camera control', () => {
     expect(screen.y).toBeCloseTo(at.y, 6);
     expect(view.zoom).toBe(2.5);
     expect(isAdjusted(view)).toBe(true);
+  });
+
+  it('a grown scene can still be zoomed in to the original room scale and beyond', () => {
+    const far = { centerX: 0, centerY: 0, zoom: 0.05 };
+    const close = zoomAt(IDENTITY_VIEW, far, viewport, 200, 150, 1e6);
+    expect(shownCamera(far, close).zoom).toBeCloseTo(MAX_ABSOLUTE_ZOOM, 9);
   });
 
   it('caps zoom in both directions', () => {

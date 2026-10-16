@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { catalog } from '../content/catalog';
 import { createRun } from './createRun';
 import { stepRun } from './simulation';
-import { selectSetup } from './setup';
+import { selectSetup, upgradeImpact } from './setup';
 import type { RunState } from './types';
 import type { TechnologyId } from './ids';
 
@@ -79,5 +79,20 @@ describe('setup view', () => {
     expect(selectSetup(at('autocomplete'), catalog).economy.pressEffect).toBe('+2 code');
     expect(selectSetup(at('manager-agent'), catalog).economy.pressEffect).toBe('−2 debt');
     expect(selectSetup(at('autonomous-company'), catalog).economy.pressEffect).toMatch(/^nothing/);
+  });
+
+  it('each card shows its effect on the economy right now', () => {
+    // 3 agents, 2 compute, plenty of management: one more compute slot puts the idle agent
+    // to work. (With a single manager the gain would be zero: coordination would halve.)
+    const run = at('manager-agent');
+    const card = (id: string) => catalog.upgrades.find((u) => u.id === id);
+    const compute = card('compute-slot');
+    const reviewer = card('review-capacity');
+    if (!compute || !reviewer) throw new Error('missing cards');
+    expect(upgradeImpact(run, compute, catalog)?.codePerSecond).toBeGreaterThan(1);
+    expect(upgradeImpact(run, reviewer, catalog)?.debtPerSecond).toBeCloseTo(-0.5, 6);
+    const pack = card('token-supply');
+    if (!pack) throw new Error('no pack');
+    expect(upgradeImpact(run, pack, catalog)).toBeNull();
   });
 });

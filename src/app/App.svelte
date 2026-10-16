@@ -6,6 +6,7 @@
     type AudioControls,
     type PresentationClock,
     type Theme,
+    type ThemePreference,
     type UiGameApi,
     type ViewId,
   } from '../ui/contracts';
@@ -54,7 +55,12 @@
 
   // Depend on the theme alone: reading `$api` here would re-run (and re-fetch the atlas, and
   // hand every DOM sprite a new sheet) on every game snapshot.
-  const theme = $derived($api.profile.theme);
+  const preference = $derived($api.profile.theme);
+  /** The system's colour scheme, followed live while the preference is `auto`. */
+  let systemDark = $state(false);
+  const theme = $derived<Theme>(
+    preference === 'auto' ? (systemDark ? 'dark' : 'light') : preference,
+  );
   $effect(() => {
     const themeToLoad = theme;
     let current = true;
@@ -151,7 +157,7 @@
     settingsOpen = !settingsOpen;
   }
 
-  function setTheme(theme: Theme) {
+  function setTheme(theme: ThemePreference) {
     api.dispatch({ type: 'setTheme', theme });
   }
 
@@ -174,6 +180,12 @@
     };
     onMotion();
     motion?.addEventListener('change', onMotion);
+    const scheme = window.matchMedia?.('(prefers-color-scheme: dark)');
+    const onScheme = () => {
+      systemDark = scheme?.matches ?? false;
+    };
+    onScheme();
+    scheme?.addEventListener('change', onScheme);
     // Phones: the upgrade cards move into a popup so the world is not squeezed.
     const small = window.matchMedia?.(SMALL_SCREEN);
     const onSmall = () => {
@@ -185,6 +197,7 @@
       window.removeEventListener('popstate', onPop);
       motion?.removeEventListener('change', onMotion);
       small?.removeEventListener('change', onSmall);
+      scheme?.removeEventListener('change', onScheme);
     };
   });
 
@@ -205,7 +218,7 @@
   <main class="main">
     {#if settingsOpen}
       <SettingsMenu
-        theme={$api.profile.theme}
+        theme={preference}
         {audio}
         musicLabHref={`${import.meta.env.BASE_URL}music-lab/`}
         credits={[RELEASE_COMMENTS_ATTRIBUTION]}
@@ -248,7 +261,7 @@
       >
         {#snippet world()}
           <WorldCanvas
-            world={{ ...$api.world, theme: $api.profile.theme, reducedMotion }}
+            world={{ ...$api.world, theme, reducedMotion }}
             active={view === 'game'}
             description={describeScene($api.world.technologyIds, $api.world.cat.alive)}
             {atlasUrl}

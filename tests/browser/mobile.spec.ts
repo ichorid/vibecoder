@@ -97,7 +97,7 @@ test('dark theme keeps the health and mood bars distinguishable from their track
 }) => {
   await loadSave(page, saveText(progressedRun(2)));
   await page.getByTestId('settings-button').click();
-  await page.getByRole('button', { name: 'Theme' }).click();
+  await page.getByRole('radio', { name: 'DARK' }).click();
   await page.keyboard.press('Escape');
   const ratios = await page.evaluate(() => {
     const luminance = (rgb: string) => {

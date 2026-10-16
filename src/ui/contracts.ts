@@ -11,14 +11,17 @@ import type {
 } from '../game/selectors';
 import type { GameCommand } from '../game/types';
 
+/** The colours actually shown. */
 export type Theme = 'light' | 'dark';
+/** What the player chose in Settings; `auto` follows the system. */
+export type ThemePreference = 'auto' | Theme;
 export type SaveStatus = 'ok' | 'failed' | 'disabled';
 export type ViewId = 'game' | 'history' | 'cat' | 'setup';
 
 /** Commands handled by app composition rather than the simulation. */
 export type AppCommand =
   | { type: 'retrySave' }
-  | { type: 'setTheme'; theme: Theme }
+  | { type: 'setTheme'; theme: ThemePreference }
   | { type: 'restart' }
   /** The world's graphics context was lost / is back: pause and resume the simulation. */
   | { type: 'graphicsPause' }
@@ -41,7 +44,7 @@ export interface UiSnapshot {
   readonly setup: SetupViewModel;
   readonly cat: CatViewModel;
   readonly world: WorldViewModel;
-  readonly profile: { readonly theme: Theme };
+  readonly profile: { readonly theme: ThemePreference };
   readonly save: { readonly status: SaveStatus };
 }
 

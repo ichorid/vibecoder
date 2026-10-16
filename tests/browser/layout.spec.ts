@@ -107,7 +107,7 @@ test('keyboard reaches navigation and actions; theme does not change progress', 
 
   await page.getByTestId('primary-action').press('Enter');
   await page.getByTestId('settings-button').click();
-  await page.getByRole('button', { name: 'Theme' }).click();
+  await page.getByRole('radio', { name: 'DARK' }).click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   await expect(page.getByRole('button', { name: 'WRITE CODE' })).toBeVisible();
   await expect(page.getByRole('list', { name: 'Upgrades' })).toHaveCount(0);

@@ -45,7 +45,7 @@ test('theme switch rebuilds the same scene with the room and cat present', async
   await expect.poll(() => built(page)).toHaveLength(4);
   await expect(canvas(page)).not.toHaveAttribute('data-cat-lod', 'hidden');
   await page.getByTestId('settings-button').click();
-  await page.getByRole('button', { name: 'Theme' }).click();
+  await page.getByRole('radio', { name: 'DARK' }).click();
   await expect(canvas(page)).toHaveAttribute('data-theme', 'dark');
   await expect.poll(() => built(page)).toHaveLength(4);
   await expect(canvas(page)).not.toHaveAttribute('data-cat-lod', 'hidden');

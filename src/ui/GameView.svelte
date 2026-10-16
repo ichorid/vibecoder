@@ -122,6 +122,13 @@
     controls?.querySelector<HTMLButtonElement>('.offer, .primary')?.focus();
   }
 
+  /** "+12", "−0.4": a signed, compact number for the impact line. */
+  function signed(value: number): string {
+    const size = Math.abs(value);
+    const text = size >= 10 ? formatAmount(size) : String(Number(size.toFixed(size < 1 ? 2 : 1)));
+    return `${value < 0 ? '−' : '+'}${text}`;
+  }
+
   function restart() {
     confirmingRestart = false;
     dispatch({ type: 'restart' });
@@ -170,6 +177,17 @@
                   {/if}{offer.description}</span
                 >
                 {@render effectLine(offer.effects)}
+                {#if offer.impact && (Math.abs(offer.impact.codePerSecond) >= 0.05 || Math.abs(offer.impact.debtPerSecond) >= 0.05)}
+                  <span class="offer-impact" data-testid="offer-impact"
+                    >≈ {#if Math.abs(offer.impact.codePerSecond) >= 0.05}{signed(
+                        offer.impact.codePerSecond,
+                      )} code/s{/if}{#if Math.abs(offer.impact.codePerSecond) >= 0.05 && Math.abs(offer.impact.debtPerSecond) >= 0.05}
+                      ·
+                    {/if}{#if Math.abs(offer.impact.debtPerSecond) >= 0.05}{signed(
+                        offer.impact.debtPerSecond,
+                      )} debt/s{/if} right now</span
+                  >
+                {/if}
               </span>
               <span class="price"
                 >{#if offer.currency === 'revenue'}${:else}<span
@@ -558,6 +576,11 @@
   .offer-desc {
     font-size: 14px;
     color: var(--ink-soft);
+  }
+  .offer-impact {
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--ink);
   }
   /* What the card does to the game, generated from its real effects. */
   .offer-effects {

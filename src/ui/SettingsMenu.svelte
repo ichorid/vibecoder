@@ -1,14 +1,14 @@
 <script lang="ts">
   import AudioControlsPanel from './AudioControls.svelte';
-  import type { AudioControls, Theme } from './contracts';
+  import type { AudioControls, ThemePreference } from './contracts';
 
   interface Props {
-    theme: Theme;
+    theme: ThemePreference;
     audio: AudioControls;
     musicLabHref: string;
     /** Attribution lines for third-party content (shown under Credits). */
     credits?: readonly string[];
-    onTheme: (theme: Theme) => void;
+    onTheme: (theme: ThemePreference) => void;
     onClose: () => void;
   }
 
@@ -52,15 +52,18 @@
     </div>
     <div class="row">
       <span id="theme-label">Theme</span>
-      <button
-        type="button"
-        class="toggle"
-        aria-labelledby="theme-label"
-        aria-pressed={theme === 'dark'}
-        onclick={() => onTheme(theme === 'dark' ? 'light' : 'dark')}
-      >
-        {theme === 'dark' ? 'DARK' : 'LIGHT'}
-      </button>
+      <!-- Auto (the default) follows the system's light/dark setting. -->
+      <div class="segmented" role="radiogroup" aria-labelledby="theme-label">
+        {#each [['auto', 'AUTO'], ['light', 'LIGHT'], ['dark', 'DARK']] as const as [value, label] (value)}
+          <button
+            type="button"
+            role="radio"
+            aria-checked={theme === value}
+            class:on={theme === value}
+            onclick={() => onTheme(value)}>{label}</button
+          >
+        {/each}
+      </div>
     </div>
     <div class="row">
       <span id="sound-label">Sound</span>
@@ -113,6 +116,27 @@
 </div>
 
 <style>
+  .segmented {
+    display: inline-flex;
+    border: 3px solid var(--border);
+  }
+  .segmented button {
+    min-height: 40px;
+    padding: 0 8px;
+    border: 0;
+    border-left: 2px solid var(--border);
+    background: var(--panel-strong);
+    font-size: 12px;
+    font-weight: 900;
+    cursor: pointer;
+  }
+  .segmented button:first-child {
+    border-left: 0;
+  }
+  .segmented button.on {
+    background: var(--accent);
+    color: var(--accent-ink);
+  }
   .settings {
     position: absolute;
     top: 4px;
