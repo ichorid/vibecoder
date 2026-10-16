@@ -208,7 +208,10 @@ function statValue(run: ReadonlyRun, id: StatId, catalog: Catalog): number {
   }
 }
 
-/** At most three current statistics, chosen by the latest technology that sets them. */
+/**
+ * The current statistics, chosen by the latest technology that sets them: three at most early
+ * on; the late company piles up to six numbers on the player (two rows).
+ */
 function headerStats(run: ReadonlyRun, catalog: Catalog): StatViewModel[] {
   let ids: readonly StatId[] = ['output'];
   for (const id of run.unlockedTechnologyIds) {
@@ -216,7 +219,7 @@ function headerStats(run: ReadonlyRun, catalog: Catalog): StatViewModel[] {
     if (stats) ids = stats;
   }
   return ids
-    .slice(0, 3)
+    .slice(0, 6)
     .map((id) => ({ id, label: catalog.statLabels[id], value: statValue(run, id, catalog) }));
 }
 

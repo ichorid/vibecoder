@@ -78,7 +78,7 @@
   <div class="bar">
     <button type="button" class="return" onclick={onReturn}>← BACK TO CODE</button>
     <h2 id="cat-title">
-      CAT{#if cat.fate === 'dead'}&nbsp;(Dead){:else if cat.fate === 'stray'}&nbsp;(Missing){/if}
+      CAT{#if cat.fate === 'dead'}&nbsp;(died&nbsp;of&nbsp;starvation){:else if cat.fate === 'stray'}&nbsp;(Missing){/if}
     </h2>
   </div>
   {#if cat.alive}

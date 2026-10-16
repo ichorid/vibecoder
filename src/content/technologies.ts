@@ -271,7 +271,7 @@ export const technologies = [
       { kind: 'uncheckedFractionMultiplier', amount: 0.2 },
       { kind: 'automates', responsibility: 'supervising' },
     ],
-    headerStats: ['output', 'debt', 'automation'],
+    headerStats: ['output', 'tokens', 'debt', 'automation'],
   },
   {
     id: 'workflow-optimization',
@@ -327,7 +327,7 @@ export const technologies = [
     illustrationId: 'tech-product-management',
     worldAdditionId: 'world-product-management',
     effects: [{ kind: 'monetization', amount: 0.02 }],
-    headerStats: ['revenue', 'output', 'automation'],
+    headerStats: ['output', 'tokens', 'debt', 'revenue', 'automation'],
   },
   {
     id: 'marketing',
@@ -350,7 +350,7 @@ export const technologies = [
       { kind: 'operatingCostPerAgent', amount: 1 },
       { kind: 'monetizationMultiplier', amount: 1.25 },
     ],
-    headerStats: ['revenue', 'margin', 'automation'],
+    headerStats: ['output', 'tokens', 'debt', 'revenue', 'margin', 'automation'],
   },
   {
     id: 'executive-agents',

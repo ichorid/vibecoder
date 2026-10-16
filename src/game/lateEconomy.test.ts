@@ -38,10 +38,22 @@ describe('infrastructure (13–17)', () => {
     expect(after.reviewPerSecond).toBe(before.reviewPerSecond);
   });
 
-  it('never shows more than three header statistics', () => {
+  it('the panel fills up as the company grows: three at most early, all six from finance', () => {
     for (const id of TECHNOLOGY_IDS) {
-      expect(selectGame(through(id), catalog).stats.length).toBeLessThanOrEqual(3);
+      const count = selectGame(through(id), catalog).stats.length;
+      expect(count).toBeLessThanOrEqual(6);
+      if (TECHNOLOGY_IDS.indexOf(id) < TECHNOLOGY_IDS.indexOf('evaluations')) {
+        expect(count).toBeLessThanOrEqual(3);
+      }
     }
+    expect(selectGame(through('finance'), catalog).stats.map((s) => s.id)).toEqual([
+      'output',
+      'tokens',
+      'debt',
+      'revenue',
+      'margin',
+      'automation',
+    ]);
   });
 });
 

@@ -11,6 +11,8 @@
   }
 
   const { stats, onOpen }: Props = $props();
+  /** Up to three in a row; more numbers wrap into a second row (two rows at most). */
+  const columns = $derived(stats.length <= 3 ? stats.length : Math.ceil(stats.length / 2));
 </script>
 
 <!-- Kept beside the primary action so the player sees what a press changes without looking up. -->
@@ -20,7 +22,7 @@
     class="stats"
     data-testid="stats"
     aria-label="Progress"
-    style:grid-template-columns="repeat({stats.length}, minmax(0, 1fr))"
+    style:grid-template-columns="repeat({columns}, minmax(0, 1fr))"
   >
     {#each stats as stat (stat.id)}
       <div class="stat">

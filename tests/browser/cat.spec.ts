@@ -48,7 +48,7 @@ test('a dead cat stays dead: gray bars, memorial with two photos, no care', asyn
   await expect(page.getByRole('list', { name: 'Recent events' })).toContainText('The cat is gone.');
 
   await page.getByTestId('cat-button').click();
-  await expect(page.getByRole('heading', { name: /^CAT\s\(Dead\)$/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /^CAT\s\(died\sof\sstarvation\)$/ })).toBeVisible();
   const memorial = page.getByTestId('memorial');
   await expect(memorial).toBeVisible();
   await expect(page.getByTestId('memorial-candle')).toBeVisible();
