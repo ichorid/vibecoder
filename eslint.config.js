@@ -8,12 +8,14 @@ import layerImports from './tools/eslint-rules/layer-imports.js';
 import noAmbientGameTime from './tools/eslint-rules/no-ambient-game-time.js';
 import noRawContentInUi from './tools/eslint-rules/no-raw-content-in-ui.js';
 import ownedScheduling from './tools/eslint-rules/owned-scheduling.js';
+import audioBoundaries from './tools/eslint-rules/audio-boundaries.js';
 
 const vibePluginRules = {
   'layer-imports': layerImports,
   'no-ambient-game-time': noAmbientGameTime,
   'no-raw-content-in-ui': noRawContentInUi,
   'owned-scheduling': ownedScheduling,
+  'audio-boundaries': audioBoundaries,
 };
 
 const typedLintFiles = [
@@ -94,6 +96,7 @@ export default tseslint.config(
       'vibe/no-ambient-game-time': 'error',
       'vibe/no-raw-content-in-ui': 'error',
       'vibe/owned-scheduling': 'error',
+      'vibe/audio-boundaries': 'error',
     },
   },
   ...svelte.configs['flat/recommended'],

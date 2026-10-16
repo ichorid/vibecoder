@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "dissonant-arp",
+  "revision": 1,
+  "family": "arp",
+  "level": 0.25,
+  "envelope": {
+    "attack": 0.002,
+    "decay": 0.1,
+    "sustain": 0.3,
+    "release": 0.12
+  },
+  "polyphony": 2,
+  "range": {
+    "low": "C4",
+    "high": "C7"
+  },
+  "detuneCents": 18,
+  "pulseWidth": 0.2
+}

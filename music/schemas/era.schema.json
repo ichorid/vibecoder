@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "vibe-coder/era.schema.json",
+  "title": "EraDocument",
+  "description": "A musical era: defaults and the role \u2192 preset arrangement it starts with.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "revision",
+    "title",
+    "mood",
+    "clockGroup",
+    "defaults",
+    "key",
+    "defaultArrangement",
+    "emptyBankPolicy"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{0,63}$"
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 60
+    },
+    "mood": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "clockGroup": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{0,63}$"
+    },
+    "defaults": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bpm", "bars", "stepsPerBar", "timeSignature"],
+      "properties": {
+        "bpm": {
+          "type": "number",
+          "minimum": 40,
+          "maximum": 240
+        },
+        "bars": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16
+        },
+        "stepsPerBar": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 48
+        },
+        "timeSignature": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["numerator", "denominator"],
+          "properties": {
+            "numerator": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 16
+            },
+            "denominator": {
+              "enum": [2, 4, 8, 16]
+            }
+          }
+        }
+      }
+    },
+    "key": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tonic", "modes"],
+      "properties": {
+        "tonic": {
+          "type": "string",
+          "pattern": "^[A-G](#|b)?$"
+        },
+        "modes": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4,
+          "items": {
+            "type": "string",
+            "maxLength": 32
+          }
+        }
+      }
+    },
+    "defaultArrangement": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{0,63}$"
+    },
+    "emptyBankPolicy": {
+      "enum": ["keep-current", "silence"]
+    },
+    "demoFallbackEra": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{0,63}$"
+    }
+  }
+}

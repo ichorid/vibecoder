@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "drone-triangle",
+  "revision": 1,
+  "family": "triangle",
+  "level": 0.6,
+  "envelope": {
+    "attack": 0.2,
+    "decay": 0.5,
+    "sustain": 0.9,
+    "release": 1.2
+  },
+  "polyphony": 1,
+  "range": {
+    "low": "C1",
+    "high": "C4"
+  },
+  "detuneCents": 6
+}

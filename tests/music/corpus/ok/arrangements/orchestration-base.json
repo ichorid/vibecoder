@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "orchestration-base",
+  "revision": 1,
+  "description": "Arpeggios join with parallel agents.",
+  "roles": {
+    "lead": {
+      "preset": "square-pulse"
+    },
+    "bass": {
+      "preset": "soft-triangle"
+    },
+    "arp": {
+      "preset": "chirp-arp"
+    },
+    "percussion": {
+      "preset": "noise-kit"
+    }
+  }
+}

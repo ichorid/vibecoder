@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "orchestration-manager",
+  "revision": 1,
+  "description": "The manager adds a rhythmic layer.",
+  "roles": {
+    "lead": {
+      "preset": "square-pulse"
+    },
+    "bass": {
+      "preset": "soft-triangle"
+    },
+    "arp": {
+      "preset": "chirp-arp"
+    },
+    "percussion": {
+      "preset": "mechanical-kit",
+      "level": 0.8
+    }
+  }
+}

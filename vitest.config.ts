@@ -18,6 +18,7 @@ export default defineConfig({
   },
   test: {
     include: ['src/**/*.test.ts', 'tests/**/*.test.ts', 'tools/**/*.test.ts', 'art/**/*.test.ts'],
+    exclude: ['src/music/**', 'tests/music/**', 'tools/music/**', 'node_modules/**'],
     environment: 'node',
   },
 });

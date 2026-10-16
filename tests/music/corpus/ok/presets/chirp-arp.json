@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "chirp-arp",
+  "revision": 1,
+  "family": "arp",
+  "level": 0.3,
+  "envelope": {
+    "attack": 0.002,
+    "decay": 0.06,
+    "sustain": 0.2,
+    "release": 0.05
+  },
+  "polyphony": 2,
+  "range": {
+    "low": "C4",
+    "high": "C7"
+  },
+  "pulseWidth": 0.125
+}

@@ -1,0 +1,258 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "vibe-coder/pattern.schema.json",
+  "title": "PatternDocument",
+  "description": "One four-bar (by default) chiptune pattern. Steps are grid positions, never milliseconds.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "revision",
+    "eraId",
+    "bars",
+    "key",
+    "harmony",
+    "energy",
+    "tracks",
+    "boundary",
+    "motifRef",
+    "license",
+    "demo"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "id": {
+      "$ref": "#/$defs/id"
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "eraId": {
+      "$ref": "#/$defs/id"
+    },
+    "bars": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 16
+    },
+    "stepsPerBar": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 48
+    },
+    "timeSignature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["numerator", "denominator"],
+      "properties": {
+        "numerator": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16
+        },
+        "denominator": {
+          "enum": [2, 4, 8, 16]
+        }
+      }
+    },
+    "bpm": {
+      "type": "number",
+      "minimum": 40,
+      "maximum": 240
+    },
+    "key": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tonic", "mode"],
+      "properties": {
+        "tonic": {
+          "type": "string",
+          "pattern": "^[A-G](#|b)?$"
+        },
+        "mode": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32
+        }
+      }
+    },
+    "harmony": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "items": {
+        "$ref": "#/$defs/harmonySpan"
+      }
+    },
+    "energy": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "tracks": {
+      "type": "object",
+      "minProperties": 1,
+      "maxProperties": 8,
+      "propertyNames": {
+        "$ref": "#/$defs/id"
+      },
+      "additionalProperties": {
+        "type": "array",
+        "maxItems": 1024,
+        "items": {
+          "$ref": "#/$defs/event"
+        }
+      }
+    },
+    "boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["entryGroup", "exitGroup"],
+      "properties": {
+        "entryGroup": {
+          "$ref": "#/$defs/id"
+        },
+        "exitGroup": {
+          "$ref": "#/$defs/id"
+        }
+      }
+    },
+    "motifRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "revision"],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "license": {
+      "enum": ["CC0-1.0", "CC-BY-4.0"]
+    },
+    "attribution": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 300
+    },
+    "demo": {
+      "type": "boolean"
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "composer": {
+          "type": "string",
+          "maxLength": 200
+        }
+      }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{0,63}$"
+    },
+    "step": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 767
+    },
+    "length": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 768
+    },
+    "velocity": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "harmonySpan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["step", "length", "chord"],
+      "properties": {
+        "step": {
+          "$ref": "#/$defs/step"
+        },
+        "length": {
+          "$ref": "#/$defs/length"
+        },
+        "chord": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 16
+        }
+      }
+    },
+    "noteEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "step", "length", "pitch"],
+      "properties": {
+        "type": {
+          "const": "note"
+        },
+        "step": {
+          "$ref": "#/$defs/step"
+        },
+        "length": {
+          "$ref": "#/$defs/length"
+        },
+        "pitch": {
+          "type": "string",
+          "pattern": "^[A-G](#|b)?-?[0-9]$"
+        },
+        "velocity": {
+          "$ref": "#/$defs/velocity"
+        }
+      }
+    },
+    "drumEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "step", "length", "sound"],
+      "properties": {
+        "type": {
+          "const": "drum"
+        },
+        "step": {
+          "$ref": "#/$defs/step"
+        },
+        "length": {
+          "$ref": "#/$defs/length"
+        },
+        "sound": {
+          "enum": ["kick", "snare", "hat"]
+        },
+        "velocity": {
+          "$ref": "#/$defs/velocity"
+        }
+      }
+    },
+    "event": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/noteEvent"
+        },
+        {
+          "$ref": "#/$defs/drumEvent"
+        }
+      ]
+    }
+  }
+}

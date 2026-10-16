@@ -10,18 +10,25 @@
     "lint": "eslint src tests tools/*.ts tools/art art vite.config.ts vitest.config.ts playwright.config.ts",
     "format:check": "prettier --check .",
     "format": "prettier --write .",
-    "check": "npm run check:types && npm run lint && npm run format:check && npm run test:rules && npm run check:content && npm run check:release-content",
+    "check": "npm run check:types && npm run lint && npm run format:check && npm run test:rules && npm run check:content && npm run check:release-content && npm run music:check-types && npm run music:validate",
     "test:rules": "vitest run --config vitest.rules.config.ts",
     "test:game": "vitest run --config vitest.config.ts",
     "check:content": "vite-node tools/checkContent.ts && vite-node tools/art/export.ts -- --check",
     "test:browser": "playwright test",
     "art:export": "vite-node tools/art/export.ts",
     "art:check": "vite-node tools/art/export.ts -- --check",
-    "check:release-content": "vite-node tools/checkReleaseContent.ts"
+    "check:release-content": "vite-node tools/checkReleaseContent.ts",
+    "test:music": "vitest run --config vitest.music.config.ts",
+    "music:types": "vite-node tools/music/generateTypes.ts",
+    "music:check-types": "vite-node tools/music/generateTypes.ts -- --check && tsc -p tsconfig.music.json",
+    "music:validate": "vite-node tools/music/validate.ts"
   },
   "dependencies": {
+    "ajv": "^8.17.1",
     "pixi.js": "^8.6.6",
-    "svelte": "^5.19.0"
+    "svelte": "^5.19.0",
+    "tonal": "^6.4.2",
+    "tone": "^15.1.22"
   },
   "devDependencies": {
     "@eslint/js": "^9.18.0",
@@ -36,6 +43,7 @@
     "eslint-plugin-svelte": "^2.46.1",
     "globals": "^15.14.0",
     "jsdom": "^26.1.0",
+    "json-schema-to-typescript": "^15.0.4",
     "prettier": "^3.4.2",
     "prettier-plugin-svelte": "^3.3.3",
     "svelte-check": "^4.1.1",

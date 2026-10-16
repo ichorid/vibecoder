@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "cold-pulse",
+  "revision": 1,
+  "family": "pulse",
+  "level": 0.38,
+  "envelope": {
+    "attack": 0.03,
+    "decay": 0.3,
+    "sustain": 0.4,
+    "release": 0.6
+  },
+  "polyphony": 1,
+  "range": {
+    "low": "C3",
+    "high": "C7"
+  },
+  "pulseWidth": 0.1,
+  "filterHz": 2400,
+  "detuneCents": -8
+}

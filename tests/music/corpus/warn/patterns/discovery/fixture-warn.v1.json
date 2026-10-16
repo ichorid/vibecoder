@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "id": "fixture-warn",
+  "revision": 1,
+  "eraId": "discovery",
+  "bars": 4,
+  "key": {
+    "tonic": "C",
+    "mode": "major"
+  },
+  "harmony": [
+    {
+      "step": 0,
+      "length": 64,
+      "chord": "C"
+    }
+  ],
+  "energy": 0.5,
+  "tracks": {
+    "lead": [
+      {
+        "type": "note",
+        "step": 0,
+        "length": 4,
+        "pitch": "E5"
+      },
+      {
+        "type": "note",
+        "step": 4,
+        "length": 4,
+        "pitch": "F#5"
+      },
+      {
+        "type": "note",
+        "step": 8,
+        "length": 4,
+        "pitch": "G5"
+      }
+    ]
+  },
+  "boundary": {
+    "entryGroup": "tonic",
+    "exitGroup": "tonic"
+  },
+  "motifRef": {
+    "id": "demo-main",
+    "revision": 1
+  },
+  "license": "CC0-1.0",
+  "demo": false
+}

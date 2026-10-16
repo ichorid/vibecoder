@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "vibe-coder/review.schema.json",
+  "title": "ReviewDocument",
+  "description": "A human decision about one exact pattern version (id + revision + content hash).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "patternId", "revision", "contentHash", "status"],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "patternId": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{0,63}$"
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "contentHash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "status": {
+      "enum": ["unreviewed", "approved", "revise", "rejected"]
+    },
+    "rating": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 5
+    },
+    "feedback": {
+      "type": "string",
+      "maxLength": 8192
+    },
+    "updatedAt": {
+      "type": "string",
+      "maxLength": 40
+    }
+  }
+}

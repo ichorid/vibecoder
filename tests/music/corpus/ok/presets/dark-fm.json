@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "dark-fm",
+  "revision": 1,
+  "family": "pulse",
+  "level": 0.35,
+  "envelope": {
+    "attack": 0.01,
+    "decay": 0.25,
+    "sustain": 0.5,
+    "release": 0.3
+  },
+  "polyphony": 1,
+  "range": {
+    "low": "C3",
+    "high": "C6"
+  },
+  "fm": 3,
+  "distortion": 0.2
+}

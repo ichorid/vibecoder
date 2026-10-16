@@ -49,6 +49,18 @@ const rule = {
 
     return {
       CallExpression(node) {
+        // `window.setTimeout(...)` / `globalThis.setInterval(...)` are the same browser timers.
+        if (
+          node.callee.type === 'MemberExpression' &&
+          node.callee.object.type === 'Identifier' &&
+          ['window', 'globalThis', 'self'].includes(node.callee.object.name) &&
+          node.callee.property.type === 'Identifier' &&
+          ['setTimeout', 'setInterval'].includes(node.callee.property.name)
+        ) {
+          if (!gameplayOwner && !presentationOwner)
+            context.report({ node, messageId: 'foreignTimer' });
+          return;
+        }
         if (node.callee.type !== 'Identifier') return;
         const name = node.callee.name;
         if (name !== 'setInterval' && name !== 'setTimeout') return;

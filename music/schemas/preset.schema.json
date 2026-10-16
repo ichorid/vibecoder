@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "vibe-coder/preset.schema.json",
+  "title": "PresetDocument",
+  "description": "A bounded instrument preset of one of the four synth families. Never raw Tone options.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "id", "revision", "family", "level", "envelope", "polyphony"],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{0,63}$"
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "family": {
+      "enum": ["pulse", "triangle", "arp", "noise"]
+    },
+    "level": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "envelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["attack", "decay", "sustain", "release"],
+      "properties": {
+        "attack": {
+          "type": "number",
+          "minimum": 0.001,
+          "maximum": 1
+        },
+        "decay": {
+          "type": "number",
+          "minimum": 0.001,
+          "maximum": 2
+        },
+        "sustain": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "release": {
+          "type": "number",
+          "minimum": 0.005,
+          "maximum": 2
+        }
+      }
+    },
+    "range": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["low", "high"],
+      "properties": {
+        "low": {
+          "type": "string",
+          "pattern": "^[A-G](#|b)?-?[0-9]$"
+        },
+        "high": {
+          "type": "string",
+          "pattern": "^[A-G](#|b)?-?[0-9]$"
+        }
+      }
+    },
+    "polyphony": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 4
+    },
+    "pulseWidth": {
+      "type": "number",
+      "minimum": 0.05,
+      "maximum": 0.95
+    },
+    "detuneCents": {
+      "type": "number",
+      "minimum": -50,
+      "maximum": 50
+    },
+    "filterHz": {
+      "type": "number",
+      "minimum": 100,
+      "maximum": 12000
+    },
+    "distortion": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 0.6
+    },
+    "fm": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 8
+    }
+  }
+}

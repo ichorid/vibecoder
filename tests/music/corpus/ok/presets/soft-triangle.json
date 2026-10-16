@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "soft-triangle",
+  "revision": 1,
+  "family": "triangle",
+  "level": 0.7,
+  "envelope": {
+    "attack": 0.005,
+    "decay": 0.2,
+    "sustain": 0.8,
+    "release": 0.08
+  },
+  "polyphony": 1,
+  "range": {
+    "low": "C2",
+    "high": "C4"
+  }
+}

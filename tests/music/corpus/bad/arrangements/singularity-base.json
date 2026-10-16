@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "singularity-base",
+  "revision": 1,
+  "description": "Sparse, cold: fewer voices.",
+  "roles": {
+    "lead": {
+      "preset": "cold-pulse"
+    },
+    "bass": {
+      "preset": "drone-triangle"
+    },
+    "arp": {
+      "preset": "chirp-arp",
+      "enabled": false
+    },
+    "percussion": {
+      "preset": "whisper-kit",
+      "level": 0.5
+    }
+  }
+}

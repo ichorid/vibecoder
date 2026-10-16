@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "noise-kit",
+  "revision": 1,
+  "family": "noise",
+  "level": 0.5,
+  "envelope": {
+    "attack": 0.001,
+    "decay": 0.08,
+    "sustain": 0.0,
+    "release": 0.05
+  },
+  "polyphony": 3
+}

@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "id": "discovery-support",
+  "revision": 1,
+  "description": "Lead with a light bass support (later manual-era milestones).",
+  "roles": {
+    "lead": {
+      "preset": "bright-pulse"
+    },
+    "bass": {
+      "preset": "soft-triangle",
+      "level": 0.6
+    },
+    "arp": {
+      "preset": "chirp-arp",
+      "enabled": false
+    },
+    "percussion": {
+      "preset": "noise-kit",
+      "level": 0.6
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "self-improvement-base",
+  "revision": 1,
+  "description": "Darker timbres and control texture.",
+  "roles": {
+    "lead": {
+      "preset": "dark-fm"
+    },
+    "bass": {
+      "preset": "drone-triangle"
+    },
+    "arp": {
+      "preset": "dissonant-arp"
+    },
+    "percussion": {
+      "preset": "mechanical-kit"
+    }
+  }
+}

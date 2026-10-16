@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "id": "discovery-base",
+  "revision": 1,
+  "description": "Lead with light percussion; the room and a cursor.",
+  "roles": {
+    "lead": {
+      "preset": "bright-pulse"
+    },
+    "bass": {
+      "preset": "soft-triangle",
+      "enabled": false
+    },
+    "arp": {
+      "preset": "chirp-arp",
+      "enabled": false
+    },
+    "percussion": {
+      "preset": "noise-kit",
+      "level": 0.6
+    }
+  }
+}

@@ -48,6 +48,10 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   choices 30, repeatables 50+); max two choices while a progression card shows. Choices have
   windows (see content_catalog "Endings"). `restart` is an app command (createGame `newRun`).
   P09.6 extension endings skipped for now (optional per plan).
+- D16 (S00) Music: data in `music/` (schemas, eras, presets, arrangements, motif, patterns);
+  pure core `src/music/core/` (Ajv + Tonal, no DOM); generated types
+  `src/music/data/patterns.generated.ts` (`npm run music:types`). Music tests run with
+  `npm run test:music` (excluded from `test:game`). Progress log: `docs/sound_implementation_progress.md`.
 - D5 (P02) App-level commands (`retrySave`, `setTheme`) go through the same public
   `dispatch` as game commands, so UI still sees only `{subscribe, dispatch}`.
 
@@ -103,3 +107,5 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
 - 2026-10-16: P09 done (achievements, resolver, 10 endings with command-driven routes, ending
   panel, restart, profile discoveries). 330 unit + 30 browser. Next: sound plan S00→S07, then
   P10 (P10.6 needs S04+S07).
+- 2026-10-16: S00 done (schemas, catalog/semantic validation, music:validate CLI, audio lints).
+  Next S01 (timing, shuffle-bag, phrase planner).
