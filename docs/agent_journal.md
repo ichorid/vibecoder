@@ -302,3 +302,9 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   → funded work × coordination × quality × efficiency = code/s, debt in/out, money; what holds
   production back; stacked upgrades with level and total effect; every technology with its
   thumbnail and effect line. `src/game/setup.ts` (`selectSetup`), `src/ui/SetupView.svelte`.
+- 2026-10-16: user rule extended: any text naming the cat has a version for its absence
+  (`CatAwareText` now also on technology descriptions and event texts; `catAware` moved to
+  src/game/catAware.ts). Local servers: "…would have had opinions about it, if the fella was
+  still around."; idle-agent line: "…like the cat used to." validateContent fails a plain text
+  naming the cat in technologies, events, upgrades, choices, chatter (achievement titles and
+  the alive-only "cat is helping" event exempt).

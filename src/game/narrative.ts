@@ -5,6 +5,7 @@
  */
 import type { Catalog } from './catalog';
 import { appendLog } from './log';
+import { catAware } from './catAware';
 import type { GameFact, RunState } from './types';
 
 const PRIORITY_FACTS = new Set<GameFact['type']>(['technologyDiscovered', 'catDied', 'catLeft']);
@@ -50,7 +51,7 @@ export function evaluateNarrative(
         history: [...next.history, { kind: 'event', textId: event.id, activeMs: run.activeMs }],
       };
     }
-    return appendLog(next, `${event.emoji} ${event.text}`, catalog);
+    return appendLog(next, `${event.emoji} ${catAware(event.text, run.cat.alive)}`, catalog);
   }
   return run;
 }

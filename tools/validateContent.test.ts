@@ -121,4 +121,11 @@ describe('validateContent', () => {
     };
     expect(messages(bundle({ chatter: twice }))).toMatch(/used twice/);
   });
+
+  it('rejects a text that names the cat but has no version for when it is gone', () => {
+    const [first, ...rest] = catalog.technologies;
+    if (!first) throw new Error('no technology');
+    const technologies = [{ ...first, description: 'The cat approves.' }, ...rest];
+    expect(messages(bundle({ technologies }))).toMatch(/mentions the cat/);
+  });
 });

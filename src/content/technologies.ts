@@ -214,7 +214,11 @@ export const technologies = [
     id: 'local-servers',
     prerequisites: ['token-optimization'],
     title: 'Local Servers',
-    description: 'A rack in the spare room hums all night. The cat has opinions about it.',
+    description: {
+      alive: 'A rack in the spare room hums all night. The cat has opinions about it.',
+      absent:
+        'A rack in the spare room hums all night. The cat would have had opinions about it, if the fella was still around.',
+    },
     illustrationId: 'tech-local-servers',
     worldAdditionId: 'world-local-servers',
     effects: [

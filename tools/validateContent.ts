@@ -125,6 +125,7 @@ export function validateContent({
 
   checkReleases(catalog, issues);
   checkChatter(catalog, issues);
+  checkCatTexts(catalog, issues);
   return issues;
 }
 
@@ -203,4 +204,38 @@ function checkChatter(catalog: Catalog, issues: ContentIssue[]): void {
   }
   for (const line of duplicates(all))
     issues.push({ message: `chatter line used twice: "${line}"` });
+}
+
+const MENTIONS_CAT = /\bcat\b|\bcat['’]s\b/i;
+
+/**
+ * "If there is no cat, there is no cat": a text that can show while the cat is gone and names
+ * it must be cat-aware ({ alive, absent }). Achievement titles are history and may name it.
+ */
+function checkCatTexts(catalog: Catalog, issues: ContentIssue[]): void {
+  const plain: [string, string][] = [
+    ...catalog.technologies.flatMap((t): [string, string][] =>
+      typeof t.description === 'string' ? [[`technology "${t.id}"`, t.description]] : [],
+    ),
+    ...catalog.events.flatMap((e): [string, string][] =>
+      typeof e.text === 'string' ? [[`event "${e.id}"`, e.text]] : [],
+    ),
+    ...catalog.upgrades.flatMap((u): [string, string][] => [
+      [`upgrade "${u.id}"`, `${u.title} ${u.description}`],
+    ]),
+    ...Object.entries(catalog.chatter).flatMap(([id, lines]): [string, string][] =>
+      (lines ?? []).map((line): [string, string] => [`chatter "${id}"`, line]),
+    ),
+    ...catalog.choices.flatMap((c): [string, string][] =>
+      typeof c.description === 'string'
+        ? [[`choice "${c.id}"`, `${c.title} ${c.description}`]]
+        : [],
+    ),
+  ];
+  for (const [owner, text] of plain) {
+    const onlyWhileAlive = owner === 'event "cat-helping"';
+    if (MENTIONS_CAT.test(text) && !onlyWhileAlive) {
+      issues.push({ message: `${owner}: mentions the cat without a version for when it is gone` });
+    }
+  }
 }

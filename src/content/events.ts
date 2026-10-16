@@ -37,7 +37,11 @@ export const events: readonly EventDefinition[] = [
   {
     id: 'no-tasks',
     emoji: '💤',
-    text: 'The agent finished everything you asked. It is staring at the cursor, like the cat.',
+    text: {
+      alive: 'The agent finished everything you asked. It is staring at the cursor, like the cat.',
+      absent:
+        'The agent finished everything you asked. It is staring at the cursor, like the cat used to.',
+    },
     cooldownMs: 150_000,
     when: (run) =>
       has(run, 'terminal-agent') && !has(run, 'persistent-instructions') && run.economy.tasks < 0.5,

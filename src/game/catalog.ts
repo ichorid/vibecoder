@@ -281,7 +281,8 @@ export interface TechnologyDefinition {
   readonly id: TechnologyId;
   readonly prerequisites: readonly TechnologyId[];
   readonly title: string;
-  readonly description: string;
+  /** Shown in the discovery; a cat-aware text has a version for when the cat is gone. */
+  readonly description: CatAwareText;
   readonly illustrationId: string;
   readonly worldAdditionId: string;
   readonly primaryAction?: PrimaryActionId;
@@ -308,7 +309,8 @@ export interface EventDefinition {
   readonly id: string;
   /** Shown before the line in the terminal log. */
   readonly emoji: string;
-  readonly text: string;
+  /** A cat-aware text has a version for when the cat is gone (dead or a stray). */
+  readonly text: CatAwareText;
   readonly when: (run: ReadonlyRun) => boolean;
   /** Fires at most once per run. */
   readonly once?: boolean;

@@ -4,7 +4,8 @@
  * The draw uses only `rng.release`, so an outcome depends on the seed and on how many releases
  * were shipped — not on when, and not on a reload.
  */
-import type { CatAwareText, Catalog, ReleaseWindowDefinition } from './catalog';
+import type { Catalog, ReleaseWindowDefinition } from './catalog';
+import { catAware } from './catAware';
 import { endRun } from './endings';
 import { appendLog } from './log';
 import { nextFloat, nextInt } from './random';
@@ -55,11 +56,6 @@ export function openReleaseWindow(
   return (
     catalog.releases.windows.find((w) => releaseWindowState(run, w, catalog) === 'open') ?? null
   );
-}
-
-/** Resolve cat-aware text by whether the cat was there. */
-export function catAware(text: CatAwareText, catAlive: boolean): string {
-  return typeof text === 'string' ? text : catAlive ? text.alive : text.absent;
 }
 
 /** The wheel label a release record landed on. */

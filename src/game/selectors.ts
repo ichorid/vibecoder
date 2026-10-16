@@ -14,7 +14,8 @@ import { isChoiceOffered } from './endings';
 import { currentPrimaryAction, findTechnology, isUpgradeOffered } from './progression';
 import { cardEffects } from './effectText';
 import { deriveSeed } from './random';
-import { catAware, jackpotHazard, openReleaseWindow, releaseLabel } from './releases';
+import { catAware } from './catAware';
+import { jackpotHazard, openReleaseWindow, releaseLabel } from './releases';
 import type {
   AttentionLevel,
   CareNote,
@@ -346,7 +347,7 @@ export function selectGame(run: ReadonlyRun, catalog: Catalog): GameViewModel {
       ? {
           id: pending.id,
           title: pending.title,
-          description: pending.description,
+          description: catAware(pending.description, run.cat.alive),
           illustrationId: pending.illustrationId,
         }
       : null,
@@ -427,7 +428,7 @@ export function selectHistory(
           const event = catalog.events.find((e) => e.id === entry.textId);
           return {
             kind: 'event',
-            title: event?.text ?? entry.textId,
+            title: event ? catAware(event.text, run.cat.alive) : entry.textId,
             activeMs: entry.activeMs,
             icon: { kind: 'emoji', text: event?.emoji ?? '•' },
           };
