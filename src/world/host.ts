@@ -23,6 +23,10 @@ export interface RendererPort {
   onContext?(listener: (event: 'lost' | 'restored') => void): () => void;
   /** Taps on the world cat, the cat bowl and the poster; returns an unsubscribe function. */
   onTap?(listener: (tap: WorldTap) => void): () => void;
+  /** The player zoomed or panned away from the automatic framing (true) or back (false). */
+  onView?(listener: (adjusted: boolean) => void): () => void;
+  /** Fit the whole scene again (drops the player's zoom and pan). */
+  resetView?(): void;
 }
 
 export type RendererFactory = (parent: HTMLElement) => Promise<RendererPort>;
@@ -33,6 +37,7 @@ export type WorldStatus = 'ok' | 'lost' | 'failed';
 export interface WorldHostOptions {
   readonly onStatus?: (status: WorldStatus) => void;
   readonly onTap?: (tap: WorldTap) => void;
+  readonly onView?: (adjusted: boolean) => void;
 }
 
 export interface WorldHost {
@@ -44,6 +49,8 @@ export interface WorldHost {
   failed(): boolean;
   /** After a loss: rebuild the renderer now (also used after a failed rebuild). */
   retry(): void;
+  /** Fit the whole scene again after the player zoomed or panned. */
+  resetView(): void;
   readonly ready: Promise<void>;
   /** Resolves when the current recovery attempt finished (tests and UI). */
   recovered(): Promise<void>;
@@ -104,9 +111,14 @@ export function createWorldHost(
       created.onTap?.((tap) => {
         if (!disposed) options.onTap?.(tap);
       }) ?? (() => {});
+    const offView =
+      created.onView?.((adjusted) => {
+        if (!disposed) options.onView?.(adjusted);
+      }) ?? (() => {});
     unsubscribe = () => {
       offContext();
       offTap();
+      offView();
     };
     if (size) created.resize(size.width, size.height);
     if (latest) created.update(latest);
@@ -162,6 +174,7 @@ export function createWorldHost(
       if (renderer && !disposed) renderer.update(world);
     },
     retry: () => rebuild(),
+    resetView: () => renderer?.resetView?.(),
     dispose() {
       if (disposed) return;
       disposed = true;

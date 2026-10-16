@@ -287,3 +287,11 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   is one line with compact chips (code icon + affordable count, decision icon + count; full text
   in aria-label). Guards in mobile.spec: no element cut by an edge at 320/360 px (Pixi's
   off-screen a11y hook ignored), stable heights while numbers change.
+- 2026-10-16: user requests: the world can be zoomed (wheel, pinch), panned (drag) and fitted
+  again (double tap or the FIT button) — `src/world/viewControl.ts` (pure, tested) is a zoom
+  factor + pan applied on top of the automatic hugging camera, clamped to the scene; a
+  discovery resets it; a drag never counts as a tap on the cat/bowl/poster; canvas
+  `data-view` fit|adjusted. Cards explain their effect on the game: `src/game/effectText.ts`
+  turns the real effect definitions (a technology card: the technology's effects + new action)
+  into a "▸ …" line; choices say "ends the run" etc.; releases show the retire chance.
+  "Review capacity" renamed "Hire a code reviewer" (−0.5 debt/s).

@@ -130,6 +130,11 @@
 </script>
 
 <section class="game-view" aria-label="Game">
+  {#snippet effectLine(effects: readonly string[])}
+    {#if effects.length > 0}
+      <span class="offer-effects" data-testid="offer-effects">▸ {effects.join(' · ')}</span>
+    {/if}
+  {/snippet}
   {#snippet offerList()}
     <ul class="offers" aria-label="Upgrades">
       {#each game.offers as offer (offer.id)}
@@ -161,6 +166,7 @@
                   >{#if offer.tokens}<strong>+{formatAmount(offer.tokens)} tokens.</strong>
                   {/if}{offer.description}</span
                 >
+                {@render effectLine(offer.effects)}
               </span>
               <span class="price"
                 >{#if offer.currency === 'revenue'}${:else}<span
@@ -185,6 +191,7 @@
               <span class="offer-text">
                 <span class="offer-title">{offer.title}</span>
                 <span class="offer-desc" id="release-{offer.window}-desc">{offer.description}</span>
+                {@render effectLine(offer.effects)}
               </span>
               <span class="price ship"
                 ><span class="amount"
@@ -219,6 +226,7 @@
               <span class="offer-text">
                 <span class="offer-title">{offer.title}</span>
                 <span class="offer-desc" id="choice-{offer.id}-desc">{offer.description}</span>
+                {@render effectLine(offer.effects)}
               </span>
               <span class="price choose">DECIDE</span>
             </button>
@@ -547,6 +555,12 @@
   .offer-desc {
     font-size: 14px;
     color: var(--ink-soft);
+  }
+  /* What the card does to the game, generated from its real effects. */
+  .offer-effects {
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--accent-strong);
   }
   .price {
     flex: none;

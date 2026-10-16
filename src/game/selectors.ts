@@ -12,6 +12,7 @@ import type {
 } from './ids';
 import { isChoiceOffered } from './endings';
 import { currentPrimaryAction, findTechnology, isUpgradeOffered } from './progression';
+import { cardEffects } from './effectText';
 import { deriveSeed } from './random';
 import { catAware, jackpotHazard, openReleaseWindow, releaseLabel } from './releases';
 import type {
@@ -37,6 +38,8 @@ export interface UpgradeOfferViewModel {
   readonly tokens?: number;
   /** Progression cards: the illustration of the technology they discover. */
   readonly illustrationId?: string;
+  /** What buying it does to the game, in short lines (from the real effect definitions). */
+  readonly effects: readonly string[];
 }
 
 /** A decision card on the same surface as upgrades; no price, maybe a confirmation. */
@@ -46,6 +49,8 @@ export interface ChoiceOfferViewModel {
   readonly title: string;
   readonly description: string;
   readonly confirm: string | null;
+  /** What choosing it does to the game. */
+  readonly effects: readonly string[];
 }
 
 /** The open launch window: ship a release for code; no confirmation, the wheel shows the odds. */
@@ -58,6 +63,7 @@ export interface ReleaseOfferViewModel {
   readonly description: string;
   readonly price: number;
   readonly affordable: boolean;
+  readonly effects: readonly string[];
 }
 
 export type OfferViewModel = UpgradeOfferViewModel | ChoiceOfferViewModel | ReleaseOfferViewModel;
@@ -255,6 +261,7 @@ export function selectGame(run: ReadonlyRun, catalog: Catalog): GameViewModel {
         currency: upgrade.currency,
         affordable:
           (upgrade.currency === 'revenue' ? run.economy.revenue : run.economy.output) >= price,
+        effects: cardEffects(upgrade, catalog),
         ...(upgrade.pack === 'tokens' ? { tokens: tokenPack(run, catalog).tokens } : {}),
         ...(upgrade.discovers
           ? {
@@ -275,6 +282,13 @@ export function selectGame(run: ReadonlyRun, catalog: Catalog): GameViewModel {
         description:
           typeof choice.description === 'string' ? choice.description : choice.description(run),
         confirm: choice.confirm ?? null,
+        effects: choice.ends
+          ? ['ends the run']
+          : choice.overhead
+            ? ['adds operating costs above revenue']
+            : choice.id === 'keep-manual'
+              ? ['no more automation offers', 'action → WRITE CODE']
+              : [],
       };
       return { card, order: 1000 + order, priority: CHOICE_PRIORITY };
     });
@@ -293,6 +307,10 @@ export function selectGame(run: ReadonlyRun, catalog: Catalog): GameViewModel {
             description: window.description,
             price: window.price,
             affordable: run.economy.output >= window.price,
+            effects: [
+              'no economy effect',
+              `${Number((jackpotHazard(catalog.releases.windows, catalog.releases.windows.indexOf(window)) * 100).toFixed(2))}% chance to retire`,
+            ],
           } satisfies ReleaseOfferViewModel as OfferViewModel,
           order: 2000,
           priority: CHOICE_PRIORITY,

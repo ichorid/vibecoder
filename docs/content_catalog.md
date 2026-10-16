@@ -113,7 +113,7 @@ All priced in output, base × growth^level (2 unless noted), max 8 levels.
 | --- | --- | --- | --- |
 | compute-slot | terminal-agent | +1 compute | 150 |
 | additional-agent | parallel-agents | +1 agent | 120 |
-| review-capacity | reviewer | +0.5 debt/s review | 200 |
+| review-capacity ("Hire a code reviewer") | reviewer | −0.5 debt/s | 200 |
 
 Recovery cards (token supply when tokens are nearly empty) outrank optional repeatables; the
 current progression card is always first; at most three cards.

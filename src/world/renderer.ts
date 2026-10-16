@@ -37,6 +37,15 @@ import type { RendererPort, WorldProjection, WorldTap } from './host';
 import { catLod, clusterLod, projectedSize, type CatLod, type ClusterLod } from './lod';
 import { planScene } from './scenePlan';
 import { hopPosition, planCatPath, type PathStep } from './catPath';
+import {
+  clampView,
+  IDENTITY_VIEW,
+  isAdjusted,
+  panBy,
+  shownCamera,
+  zoomAt,
+  type UserView,
+} from './viewControl';
 
 export interface RendererOptions {
   /** URL of the atlas JSON for a theme; the PNG sits next to it. */
@@ -235,6 +244,7 @@ export async function createPixiRenderer(
   // ---- Taps on world objects: reported to the app, which turns them into game commands. ----
   const tapListeners = new Set<(tap: WorldTap) => void>();
   const emitTap = (target: WorldTap['target'], global: { x: number; y: number }) => {
+    if (dragged) return;
     for (const listener of tapListeners) listener({ target, x: global.x, y: global.y });
   };
   /** World-space rectangles (room coordinates) padded for a finger. */
@@ -283,6 +293,7 @@ export async function createPixiRenderer(
       catSprite.eventMode = 'static';
       catSprite.cursor = 'pointer';
       catSprite.on('pointertap', (event) => {
+        if (dragged) return;
         tapPose = (tapPose + 1) % TAP_POSES.length;
         catOverride = { pose: TAP_POSES[tapPose] ?? 'pet', until: now + 1600 };
         if (!(catPath[0]?.kind === 'jump' && hopProgress > 0)) catTarget = null;
@@ -299,7 +310,7 @@ export async function createPixiRenderer(
 
   function updateCat(deltaMs: number): void {
     const cat = projection?.cat;
-    const px = projectedSize(18, camera.zoom);
+    const px = projectedSize(18, shown().zoom);
     const finalFraming = [...clusters.values()].some((c) => c.addition.final === true);
     catLevel = catLod(px, cat?.alive ?? false, finalFraming, catLevel);
     catDot.visible = catLevel === 'cluster' || catLevel === 'pixel';
@@ -387,7 +398,7 @@ export async function createPixiRenderer(
     setCatTag(`cat-${round}${pose}`);
     catSprite?.position.set(catPosition.x, catPosition.y);
     if (catDot.visible) {
-      const size = (catLevel === 'cluster' ? 3 : 1) / camera.zoom;
+      const size = (catLevel === 'cluster' ? 3 : 1) / shown().zoom;
       catDot
         .clear()
         .rect(catPosition.x - size / 2, catPosition.y - size, size, size)
@@ -421,25 +432,103 @@ export async function createPixiRenderer(
 
   function applyCamera(): void {
     const { width, height } = viewport();
-    root.scale.set(camera.zoom);
-    root.position.set(
-      width / 2 - camera.centerX * camera.zoom,
-      height / 2 - camera.centerY * camera.zoom,
-    );
+    const cam = shown();
+    root.scale.set(cam.zoom);
+    root.position.set(width / 2 - cam.centerX * cam.zoom, height / 2 - cam.centerY * cam.zoom);
   }
+
+  // ---- Player camera: pinch / wheel zoom, drag to pan, double tap to fit again. ----
+  let view: UserView = IDENTITY_VIEW;
+  const viewListeners = new Set<(adjusted: boolean) => void>();
+  /** What the player sees: the automatic framing with their zoom and pan on top. */
+  function shown(): Camera {
+    return shownCamera(camera, view);
+  }
+  function sceneRect() {
+    return hugBounds([...clusters.values()].map((c) => c.bounds));
+  }
+  function setView(next: UserView): void {
+    const was = isAdjusted(view);
+    view = clampView(next, camera, sceneRect());
+    if (isAdjusted(view) !== was) for (const listener of viewListeners) listener(!was);
+    applyCamera();
+  }
+  const pointers = new Map<number, { x: number; y: number }>();
+  let downAt: { x: number; y: number } | null = null;
+  /** True from the moment a press turns into a drag or pinch until the next press: no tap. */
+  let dragged = false;
+  let lastTap = { at: -Infinity, x: 0, y: 0 };
+  const local = (event: PointerEvent | WheelEvent) => {
+    const r = app.canvas.getBoundingClientRect();
+    return { x: event.clientX - r.left, y: event.clientY - r.top };
+  };
+  const spread = () => {
+    const [a, b] = [...pointers.values()];
+    if (!a || !b) return null;
+    return { d: Math.hypot(a.x - b.x, a.y - b.y), x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+  };
+  app.canvas.style.touchAction = 'none';
+  app.canvas.addEventListener('pointerdown', (event) => {
+    const p = local(event);
+    pointers.set(event.pointerId, p);
+    if (pointers.size === 1) {
+      downAt = p;
+      dragged = false;
+    } else dragged = true;
+  });
+  app.canvas.addEventListener('pointermove', (event) => {
+    const previous = pointers.get(event.pointerId);
+    if (!previous) return;
+    const before = spread();
+    const p = local(event);
+    pointers.set(event.pointerId, p);
+    if (pointers.size >= 2) {
+      const after = spread();
+      if (before && after && before.d > 0) {
+        const zoomed = zoomAt(view, camera, viewport(), after.x, after.y, after.d / before.d);
+        setView(panBy(zoomed, camera, after.x - before.x, after.y - before.y));
+      }
+      return;
+    }
+    if (!dragged && downAt && Math.hypot(p.x - downAt.x, p.y - downAt.y) < 6) return;
+    dragged = true;
+    setView(panBy(view, camera, p.x - previous.x, p.y - previous.y));
+  });
+  const release = (event: PointerEvent) => {
+    if (!pointers.delete(event.pointerId) || pointers.size > 0) return;
+    const p = local(event);
+    // Double tap (two quick taps close together) fits the scene again.
+    if (!dragged) {
+      if (now - lastTap.at < 320 && Math.hypot(p.x - lastTap.x, p.y - lastTap.y) < 30) {
+        setView(IDENTITY_VIEW);
+        lastTap = { at: -Infinity, x: 0, y: 0 };
+      } else lastTap = { at: now, ...p };
+    }
+  };
+  app.canvas.addEventListener('pointerup', release);
+  app.canvas.addEventListener('pointercancel', release);
+  app.canvas.addEventListener(
+    'wheel',
+    (event) => {
+      event.preventDefault();
+      const p = local(event);
+      setView(zoomAt(view, camera, viewport(), p.x, p.y, Math.exp(-event.deltaY * 0.0015)));
+    },
+    { passive: false },
+  );
 
   function updateClusters(): void {
     hitLayer.visible = clusters.get(ROOM_ADDITION.id)?.detail.visible ?? false;
     for (const cluster of clusters.values()) {
-      const size = projectedSize(Math.max(cluster.bounds.w, cluster.bounds.h), camera.zoom);
+      const size = projectedSize(Math.max(cluster.bounds.w, cluster.bounds.h), shown().zoom);
       cluster.lod = clusterLod(size, cluster.lod);
       cluster.detail.visible = cluster.lod === 'detail';
       if (cluster.compact) {
         cluster.compact.visible = cluster.lod === 'compact';
-        cluster.compact.scale.set(Math.max(0.01, 12 / (8 * camera.zoom)));
+        cluster.compact.scale.set(Math.max(0.01, 12 / (8 * shown().zoom)));
       }
       cluster.dot.visible = cluster.lod === 'dots';
-      cluster.dot.scale.set(2 / camera.zoom);
+      cluster.dot.scale.set(2 / shown().zoom);
       if (cluster.revealStart !== null) {
         const t = Math.min(1, (now - cluster.revealStart) / REVEAL_MS);
         const group = cluster.detail.parent;
@@ -495,6 +584,8 @@ export async function createPixiRenderer(
     const firstFraming = envelopeIds.length === 0 && clusters.size <= plan.build.length + 1;
     const changed = plan.envelopeIds.join() !== envelopeIds.join();
     envelopeIds = plan.envelopeIds;
+    // A discovery reframes the scene for everyone: the player's own zoom and pan reset with it.
+    if (changed && isAdjusted(view)) setView(IDENTITY_VIEW);
     if (changed) {
       if (plan.reveal && !projection.reducedMotion && !firstFraming) {
         transition = { from: camera, startedAt: now };
@@ -510,7 +601,8 @@ export async function createPixiRenderer(
     const data = app.canvas.dataset;
     data.built = [...clusters.keys()].join(',');
     data.catLod = catLevel ?? 'none';
-    data.zoom = camera.zoom.toFixed(3);
+    data.zoom = shown().zoom.toFixed(3);
+    data.view = isAdjusted(view) ? 'adjusted' : 'fit';
     data.theme = theme;
     data.transition = transition ? 'running' : 'idle';
     data.ticker = app.ticker.started ? 'running' : 'stopped';
@@ -549,7 +641,7 @@ export async function createPixiRenderer(
         signal.from.x + (signal.to.x - signal.from.x) * signal.phase,
         signal.from.y + (signal.to.y - signal.from.y) * signal.phase,
       );
-      signal.sprite.visible = camera.zoom * signal.sprite.scale.x > 0.6;
+      signal.sprite.visible = shown().zoom * signal.sprite.scale.x > 0.6;
     }
     if (transition) {
       const t = (now - transition.startedAt) / CAMERA_TRANSITION_MS;
@@ -606,6 +698,13 @@ export async function createPixiRenderer(
       updateCat(0);
       publishState();
       app.render();
+    },
+    resetView() {
+      setView(IDENTITY_VIEW);
+    },
+    onView(listener) {
+      viewListeners.add(listener);
+      return () => viewListeners.delete(listener);
     },
     onTap(listener) {
       tapListeners.add(listener);

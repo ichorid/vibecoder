@@ -208,8 +208,8 @@ export const upgrades = [
   ),
   {
     id: 'review-capacity',
-    title: 'Review capacity',
-    description: '+0.5 debt reviewed per second. Someone has to read all this.',
+    title: 'Hire a code reviewer',
+    description: 'Pays down technical debt every second. Someone has to read all this.',
     currency: 'output',
     basePrice: 200,
     priceGrowth: 2,

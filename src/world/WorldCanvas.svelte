@@ -58,9 +58,12 @@
   const lazyPixi: RendererFactory = async (parent) =>
     (await import('./renderer')).createPixiRenderer(parent, { atlasUrl });
 
+  /** The player zoomed or panned: offer to fit the scene again. */
+  let adjusted = $state(false);
   const host = createWorldHost((parent) => (createRenderer ?? lazyPixi)(parent), {
     onStatus: (status) => onStatus?.(status),
     onTap: (tap) => onTap(tap),
+    onView: (next) => (adjusted = next),
   });
   $effect(() => {
     onRetryReady?.(() => host.retry());
@@ -92,12 +95,34 @@
 <div class="world-canvas" bind:this={element}>
   <p class="visually-hidden">{description}</p>
   <FloatingGains gains={floats} onDone={(id) => (floats = floats.filter((f) => f.id !== id))} />
+  {#if adjusted}
+    <button
+      type="button"
+      class="fit"
+      data-testid="world-fit"
+      aria-label="Fit the whole scene"
+      onclick={() => host.resetView()}>⤢ FIT</button
+    >
+  {/if}
 </div>
 
 <style>
   .world-canvas {
     position: absolute;
     inset: 0;
+  }
+  .fit {
+    position: absolute;
+    right: 8px;
+    top: 8px;
+    z-index: 3;
+    min-height: 36px;
+    padding: 0 10px;
+    border: 3px solid var(--border);
+    background: var(--panel-strong);
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    cursor: pointer;
   }
   .world-canvas :global(canvas) {
     display: block;
