@@ -29,3 +29,16 @@ test('the stats panel opens the setup with the economy, stacked upgrades and tec
   await page.goBack();
   await expect(page.getByTestId('primary-action')).toBeVisible();
 });
+
+test('the stats line in the upgrades popup opens the setup, and back returns to the popup', async ({
+  page,
+}) => {
+  await loadSave(page, saveText(progressedRun(9)));
+  await page.getByTestId('offers-toggle').click();
+  const sheet = page.getByTestId('offers-sheet');
+  await sheet.getByTestId('open-setup').click();
+  await expect(page.getByTestId('setup-view')).toBeVisible();
+  await page.getByRole('button', { name: '← BACK TO CODE' }).click();
+  await expect(sheet).toBeVisible();
+  await expect(page.getByTestId('setup-view')).toHaveCount(0);
+});

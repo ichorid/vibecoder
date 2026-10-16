@@ -352,3 +352,20 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   try every ending. AppCommands `saveCheckpoint`/`loadCheckpoint`; snapshot `checkpoint`. The
   cards popup closes when a run ends. NOTE: another Claude session was working in this repo at
   the same time (running tools/tune.ts, creating tools/_econ_tmp.ts); I left its files alone.
+- 2026-10-16: economy redesign (docs/economy_redesign.md) E0 — harness: tests/helpers/metrics.ts
+  `measureRun(seed, {cps, cpsAfter, buyer, care, experience})` (acts, walls, cadence, binding
+  shares, 2+ optional cards, hidden-binding seconds, q<0.9 / coord<0.95 shares 16–31 min, peak
+  debt, PM→company, disaster seconds, freeze delay); tools/tune.ts flags; scenario policies
+  `tapAt`, `greedyCapacityBuyer`, `seerBuyer`, `progressionOnlyBuyer`. BASELINE (before any
+  change, seeds 1/7/42/101/2024, PLAY care):
+  | config | company | acts (6) | walls | cadence | 2+cards | hidden | q<.9 | coord<.95 | peak debt | PM→co |
+  | 3 cps→1/3s | 28.2–28.6 | 0.3/5.6/12.1/19.0/24.4/28.6 | 0.6/1.2/1.7/1.3/0.9 | 62 s | 0 % | 857–1058 s | 0 % | 0–24 % | 50 | 2.3 |
+  | 1 cps→1/5s | 30.9–31.3 | 0.8/7.3/14.0/20.9/26.5/31.3 | | 66 s | 0 % | 876–1096 s | 0 % | 0–22 % | 52 | 2.6 |
+  | 10 cps→10 | 20.6–20.7 | 0.1/1.4/4.9/11.2/16.5/20.7 | | 45 s | 0 % | | 0 % | 0–62 % | 64 | 2.2 |
+  | greedy 3 cps | 40.4–40.9 (slower!) | | 4.4/7.6 walls | 72 s | 0 % | 709 s | 25 % | 27 % | 253 | 2.2 |
+  | seer 3 cps | 31.6 | | | 69 s | 0 % | 1298 s | 4 % | 0 % | 32 | 2.6 |
+  | saver (progression only) | 35.0 | | | 76 s | 0 % | 1498 s | 41 % | 0 % | 297 | 2.6 |
+  | idle (3 cps→1/min) | 48.5–48.9 | | | 111 s | 0 % | | 66 % | 55 % | 110 | 2.5 |
+  | 3 cps, experience 0.5 | 18.7 | | | 39 s | 0 % | | 0 % | 69 % | 43 | 1.4 |
+  Disaster cost 2–54 s (varies with seed). Freeze-features offered the same step as Evaluations.
+  Also: the stats line in the upgrades popup opens Setup; back returns to the popup.

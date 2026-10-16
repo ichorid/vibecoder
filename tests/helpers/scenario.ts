@@ -180,3 +180,72 @@ export function savingForReleases(buyer: Policy): Policy {
     return commands.filter((c) => c.type !== 'buyUpgrade' || c.id === 'token-supply');
   };
 }
+
+/**
+ * Press the main button at `before` presses per second until the Terminal Agent exists, then
+ * at `after` per second (e.g. 3 then 1/3: realistic mobile tapping, docs/economy_redesign.md §7).
+ */
+export function tapAt(before: number, after: number = before): Policy {
+  let done = 0;
+  let phaseStart = 0;
+  let agentPhase = false;
+  return (context) => {
+    const agents = (context.run.unlockedTechnologyIds as readonly string[]).includes(
+      'terminal-agent',
+    );
+    if (agents && !agentPhase) {
+      agentPhase = true;
+      phaseStart = context.run.activeMs;
+      done = 0;
+    }
+    const rate = agentPhase ? after : before;
+    const due = Math.floor(((context.run.activeMs - phaseStart) * rate) / 1000);
+    const presses: GameCommand[] = [];
+    while (done < due) {
+      presses.push({ type: 'primaryAction' });
+      done += 1;
+    }
+    return presses;
+  };
+}
+
+const CAPACITY = new Set(['compute-slot', 'additional-agent', 'review-capacity']);
+
+/** Progression first; then buy every affordable capacity card at once (no balancing). */
+export const greedyCapacityBuyer: Policy = (context) => {
+  const base = baselineBuyer(context);
+  if (base.length > 0) return base;
+  const card = selectGame(context.run, context.catalog).offers.find(
+    (o) => o.kind === 'upgrade' && o.affordable && CAPACITY.has(o.id),
+  );
+  return card?.kind === 'upgrade' ? [{ type: 'buyUpgrade', id: card.id }] : [];
+};
+
+/** Progression and token packs only: never buys capacity. */
+export const progressionOnlyBuyer: Policy = (context) =>
+  baselineBuyer(context).filter((c) => c.type !== 'buyUpgrade' || !CAPACITY.has(c.id));
+
+/**
+ * The "seer": progression first, then the capacity card that relieves the binding constraint
+ * (compute when agents idle, review when debt hurts, an agent when agents bind) — it knows the
+ * hidden couplings the player cannot see.
+ */
+export const seerBuyer: Policy = (context) => {
+  const base = baselineBuyer(context).filter((c) => c.type !== 'buyUpgrade' || !CAPACITY.has(c.id));
+  if (base.length > 0) return base;
+  const { run, catalog } = context;
+  const rates = deriveRates(run, catalog);
+  const want =
+    rates.compute < rates.agents
+      ? 'compute-slot'
+      : run.economy.debt > 20
+        ? 'review-capacity'
+        : rates.managed >= rates.agents
+          ? 'additional-agent'
+          : null;
+  if (!want) return [];
+  const card = selectGame(run, catalog).offers.find(
+    (o) => o.kind === 'upgrade' && o.id === want && o.affordable,
+  );
+  return card ? [{ type: 'buyUpgrade', id: want }] : [];
+};

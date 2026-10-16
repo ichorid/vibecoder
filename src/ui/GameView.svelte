@@ -406,7 +406,7 @@
         >
         <h2>UPGRADES</h2>
       </div>
-      <Stats stats={game.stats} />
+      <Stats stats={game.stats} onOpen={onSetup} />
       {@render offerList()}
     </div>
   {/if}

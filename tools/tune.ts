@@ -1,54 +1,66 @@
 /**
- * Dev utility for balance tuning (not a test): run the baseline strategy from createRun and
- * print each discovery time with the economy state at that moment.
- * Usage: npx vite-node tools/tune.ts -- [seed] [minutes] [target]
+ * Dev utility for balance tuning (not a test): measure runs against the economy contract
+ * (docs/economy_redesign.md §4) and print a per-window table plus the summary metrics.
+ * Usage: npx vite-node tools/tune.ts -- [--seed 101] [--cps 3] [--cps-after 0.333]
+ *        [--buyer baseline|greedy|seer|saver] [--care play|none] [--experience 0] [--minutes 60]
+ *        [--seeds 1,7,42,101,2024]   (summary only, one line per seed)
  */
-import { catalog } from '../src/content/catalog';
-import { applyCommand } from '../src/game/commands';
-import { createRun } from '../src/game/createRun';
-import { coordinationEfficiency, deriveRates, qualityEfficiency } from '../src/game/economy';
-import { stepRun } from '../src/game/simulation';
-import {
-  acknowledgeReveals,
-  baselineBuyer,
-  baselineCare,
-  baselinePrimary,
-  type Policy,
-} from '../tests/helpers/scenario';
+import { measureRun, type Buyer, type RunMetrics } from '../tests/helpers/metrics';
 
-const [seedArg = '101', minutesArg = '40', target = ''] = process.argv
-  .slice(2)
-  .filter((a) => a !== '--');
-let run = createRun(Number(seedArg), 'tune');
-const policies: Policy[] = [baselinePrimary, baselineBuyer, acknowledgeReveals, ...baselineCare];
-const seen = new Set<string>();
-let lastOutput = 0;
-let lastAt = 0;
-const fmt = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1)}k` : n.toFixed(1));
-while (run.activeMs < Number(minutesArg) * 60_000) {
-  for (const policy of policies) {
-    for (const command of policy({ run, catalog }))
-      run = applyCommand(run, command, run.activeMs, catalog).run;
-  }
-  run = stepRun(run, 100, catalog).run;
-  for (const id of run.unlockedTechnologyIds) {
-    if (seen.has(id)) continue;
-    seen.add(id);
-    const r = deriveRates(run, catalog);
-    const active = Math.min(r.agents, r.compute);
-    const rate =
-      (run.stats.lifetimeOutput - lastOutput) / Math.max(1, (run.activeMs - lastAt) / 1000);
-    console.log(
-      `${(run.activeMs / 60_000).toFixed(2).padStart(6)}m ${id.padEnd(26)} out/s≈${fmt(rate).padStart(7)} ` +
-        `agents ${active}/${r.agents} tok ${fmt(run.economy.tokens)} sup ${r.tokenSupplyPerSecond} ` +
-        `debt ${fmt(run.economy.debt)} q ${qualityEfficiency(run.economy.debt).toFixed(2)} ` +
-        `coord ${coordinationEfficiency(r.managed, active).toFixed(2)} lv ${JSON.stringify(run.upgradeLevels).replace(/"/g, '').slice(0, 120)}`,
-    );
-    lastOutput = run.stats.lifetimeOutput;
-    lastAt = run.activeMs;
-  }
-  if (target && seen.has(target)) break;
+const args = process.argv.slice(2).filter((a) => a !== '--');
+const flag = (name: string, fallback: string) => {
+  const i = args.indexOf(`--${name}`);
+  return i >= 0 && args[i + 1] !== undefined ? (args[i + 1] as string) : fallback;
+};
+const options = {
+  cps: Number(flag('cps', '3')),
+  cpsAfter: Number(flag('cps-after', String(1 / 3))),
+  buyer: flag('buyer', 'baseline') as Buyer,
+  care: flag('care', 'play') as 'play' | 'none',
+  experience: Number(flag('experience', '0')),
+  limitMin: Number(flag('minutes', '60')),
+};
+const pct = (x: number) => `${Math.round(x * 100)}%`.padStart(4);
+const num = (x: number | null) => (x === null ? '  –  ' : x.toFixed(1).padStart(5));
+const fmt = (n: number) =>
+  n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1000 ? `${(n / 1000).toFixed(1)}k` : n.toFixed(0);
+
+function summary(seed: number, m: RunMetrics): string {
+  return [
+    `seed ${String(seed).padStart(4)}`,
+    `company ${num(m.companyMin)}`,
+    `acts ${m.acts.map(num).join(' ')}`,
+    `walls ${m.wallsMin.map(num).join(' ')}`,
+    `cadence ${m.cadenceSec.toFixed(0)}s`,
+    `2+cards ${pct(m.twoOffersShare)}`,
+    `hidden ${m.hiddenBindingSec.toFixed(0)}s`,
+    `q<.9 ${pct(m.qualityLowShare)}`,
+    `coord<.95 ${pct(m.coordLowShare)}`,
+    `debt≤${m.peakDebt.toFixed(0)}`,
+    `PM→co ${num(m.pmToCompanyMin)}`,
+    `disaster ${m.disasterSec.map((s) => `${s.toFixed(0)}s`).join(',') || '–'}`,
+    `freeze+${m.freezeDelaySec === null ? '–' : `${m.freezeDelaySec.toFixed(0)}s`}`,
+    `cat ${m.run.cat.alive ? 'alive' : 'gone'}`,
+  ].join(' | ');
 }
-console.log(
-  `end ${(run.activeMs / 60_000).toFixed(1)}m cat ${run.cat.alive ? 'alive' : 'dead'} output ${fmt(run.economy.output)}`,
-);
+
+const seedsArg = flag('seeds', '');
+if (seedsArg) {
+  console.log(
+    `cps ${options.cps}→${options.cpsAfter.toFixed(2)} buyer ${options.buyer} care ${options.care} xp ${options.experience}`,
+  );
+  for (const seed of seedsArg.split(',').map(Number))
+    console.log(summary(seed, measureRun(seed, options)));
+} else {
+  const seed = Number(flag('seed', '101'));
+  const m = measureRun(seed, options);
+  console.log(
+    '   min  technology                 agents compute tasks tokens  q<.9 crd<.95 2+crd manual   bank    rev   cost',
+  );
+  for (const w of m.windows) {
+    console.log(
+      `${w.startMin.toFixed(2).padStart(6)} ${w.tech.padEnd(26)} ${pct(w.binding.agents)}   ${pct(w.binding.compute)}  ${pct(w.binding.tasks)}  ${pct(w.binding.tokens)}  ${pct(w.qualityLow)}   ${pct(w.coordLow)}  ${pct(w.twoOffers)}  ${pct(w.manualShare)} ${fmt(w.bank).padStart(6)} ${fmt(w.revenue).padStart(6)} ${fmt(w.cost).padStart(6)}`,
+    );
+  }
+  console.log(summary(seed, m));
+}
