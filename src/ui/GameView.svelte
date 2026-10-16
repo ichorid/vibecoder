@@ -7,6 +7,9 @@
   import CatOverlay from './CatOverlay.svelte';
   import EndingPanel from './EndingPanel.svelte';
   import UnlockAnnouncement from './UnlockAnnouncement.svelte';
+  import FloatingGains from './FloatingGains.svelte';
+  import { MAX_FLOATING, type FloatingGain } from './floatingGains';
+  import type { PrimaryGainViewModel } from '../game/selectors';
   import type { AttentionLevel } from '../game/types';
 
   interface Props {
@@ -30,8 +33,36 @@
   }: Props = $props();
   let controls: HTMLElement | undefined = $state();
 
-  function primary() {
-    dispatch({ type: 'primaryAction' });
+  /** Short text for the floating number: what this press really added. */
+  function gainText(gain: PrimaryGainViewModel): string {
+    switch (gain.unit) {
+      case 'code':
+        return `+${formatAmount(gain.amount)}`;
+      case 'managed':
+        return `+${formatAmount(gain.amount)} managed`;
+      case 'debt':
+        return `−${formatAmount(gain.amount)} debt`;
+      case 'efficiency':
+        return `+${Math.round(gain.amount * 100)}% speed`;
+    }
+  }
+
+  let gains = $state<FloatingGain[]>([]);
+  let nextGainId = 0;
+
+  function primary(event: MouseEvent) {
+    // The gain of *this* press is read before dispatching; nothing floats if it adds nothing.
+    const gain = game.primaryAction.gain;
+    if (dispatch({ type: 'primaryAction' }) !== 'applied' || !gain) return;
+    const target = event.currentTarget as HTMLElement;
+    const rect = target.getBoundingClientRect();
+    const fromPointer = event.detail > 0 && rect.width > 0;
+    const x = fromPointer ? (event.clientX - rect.left) / rect.width : 0.5;
+    nextGainId += 1;
+    gains = [
+      ...gains.slice(-(MAX_FLOATING - 1)),
+      { id: nextGainId, text: gainText(gain), x: Math.min(0.9, Math.max(0.1, x)) },
+    ];
   }
 
   async function buy(id: UpgradeId) {
@@ -114,9 +145,12 @@
         </button>
       {/if}
     {:else}
-      <button type="button" class="primary" data-testid="primary-action" onclick={primary}>
-        {game.primaryAction.label}
-      </button>
+      <div class="primary-host">
+        <button type="button" class="primary" data-testid="primary-action" onclick={primary}>
+          {game.primaryAction.label}
+        </button>
+        <FloatingGains {gains} onDone={(id) => (gains = gains.filter((g) => g.id !== id))} />
+      </div>
     {/if}
     {#if game.offers.length > 0 && !game.ending}
       <ul class="offers" aria-label="Upgrades">
@@ -198,6 +232,11 @@
     flex-direction: column;
     gap: 8px;
     padding: 10px 10px max(10px, env(safe-area-inset-bottom));
+  }
+  .primary-host {
+    position: relative;
+    display: flex;
+    flex-direction: column;
   }
   .primary {
     min-height: 56px;

@@ -47,6 +47,22 @@ describe('Game controls', () => {
     expect(t.latest()?.run.economy.output).toBe(1);
   });
 
+  it('floats the real gain of each accepted press up from the button', async () => {
+    const t = setup();
+    await t.write(3);
+    const floats = [...document.querySelectorAll('[data-testid="floating-gain"]')];
+    expect(floats.map((f) => f.textContent?.trim())).toEqual(['+1', '+1', '+1']);
+    expect(floats.every((f) => f.getAttribute('aria-hidden') === 'true')).toBe(true);
+  });
+
+  it('keeps at most eight floating numbers at a time', async () => {
+    const t = setup();
+    await t.write(12);
+    expect(document.querySelectorAll('[data-testid="floating-gain"]').length).toBeLessThanOrEqual(
+      8,
+    );
+  });
+
   it('shows a disabled price that cannot spend output', async () => {
     const t = setup();
     await t.write(6);

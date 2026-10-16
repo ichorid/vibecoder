@@ -1,7 +1,7 @@
 import { catConditions, visibleAttention, type CatConditions } from './cat';
 import type { ReadonlyPlay } from './catPlaySession';
 import type { CatPresentation, Catalog, StatId, UpgradeDefinition } from './catalog';
-import { automationFraction, upgradeLevel, upgradePrice } from './economy';
+import { automationFraction, deriveRates, upgradeLevel, upgradePrice } from './economy';
 import type { ChoiceId, EndingId, PrimaryActionId, TechnologyId, UpgradeId } from './ids';
 import { isChoiceOffered } from './endings';
 import { currentPrimaryAction, findTechnology, isUpgradeOffered } from './progression';
@@ -55,8 +55,18 @@ export interface LogLineViewModel {
   readonly activeMs: number;
 }
 
+/** What one press of the primary action yields right now (null: it would add nothing). */
+export interface PrimaryGainViewModel {
+  readonly amount: number;
+  readonly unit: 'code' | 'managed' | 'debt' | 'efficiency';
+}
+
 export interface GameViewModel {
-  readonly primaryAction: { readonly id: PrimaryActionId; readonly label: string };
+  readonly primaryAction: {
+    readonly id: PrimaryActionId;
+    readonly label: string;
+    readonly gain: PrimaryGainViewModel | null;
+  };
   readonly stats: readonly StatViewModel[];
   readonly offers: readonly OfferViewModel[];
   readonly announcement: AnnouncementViewModel | null;
@@ -129,6 +139,35 @@ function headerStats(run: ReadonlyRun, catalog: Catalog): StatViewModel[] {
     .map((id) => ({ id, label: catalog.statLabels[id], value: statValue(run, id, catalog) }));
 }
 
+/** Mirrors `primaryAction` in commands.ts: the same rates, caps and charge budget. */
+function primaryGain(
+  run: ReadonlyRun,
+  catalog: Catalog,
+  action: PrimaryActionId,
+): PrimaryGainViewModel | null {
+  if (run.economy.actionCharges < 1) return null;
+  const coordination = catalog.balance.coordination;
+  switch (action) {
+    case 'writeCode':
+    case 'prompt':
+      return { amount: deriveRates(run, catalog).manualOutput, unit: 'code' };
+    case 'delegate':
+      return run.economy.delegation < coordination.delegationCap
+        ? { amount: 1, unit: 'managed' }
+        : null;
+    case 'supervise': {
+      const removed = Math.min(run.economy.debt, coordination.supervisePerPress);
+      return removed > 0 ? { amount: removed, unit: 'debt' } : null;
+    }
+    case 'optimize':
+      return run.economy.optimization < catalog.balance.optimizeCap
+        ? { amount: catalog.balance.optimizeStep, unit: 'efficiency' }
+        : null;
+    case 'observe':
+      return null;
+  }
+}
+
 /** Only what the current Game view may show: current offers, never future definitions. */
 export function selectGame(run: ReadonlyRun, catalog: Catalog): GameViewModel {
   const action = currentPrimaryAction(run, catalog);
@@ -172,7 +211,11 @@ export function selectGame(run: ReadonlyRun, catalog: Catalog): GameViewModel {
   const pendingId = run.pendingUnlockIds[0];
   const pending = pendingId === undefined ? undefined : findTechnology(catalog, pendingId);
   return {
-    primaryAction: { id: action, label: catalog.primaryActionLabels[action] },
+    primaryAction: {
+      id: action,
+      label: catalog.primaryActionLabels[action],
+      gain: primaryGain(run, catalog, action),
+    },
     stats: headerStats(run, catalog),
     offers,
     announcement: pending

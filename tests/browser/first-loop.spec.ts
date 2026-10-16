@@ -35,3 +35,15 @@ test('first loop: write, buy, announce, visit Cat, next offer, reload', async ({
   await page.getByRole('button', { name: 'HISTORY' }).click();
   await expect(page.getByRole('list').first()).toContainText('Autocomplete');
 });
+
+test('each accepted press floats its real gain up from the button', async ({ page }) => {
+  await page.goto('/');
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  const button = page.getByTestId('primary-action');
+  await button.click();
+  const float = page.getByTestId('floating-gain').first();
+  await expect(float).toHaveText('+1');
+  // It removes itself when its animation ends.
+  await expect(page.getByTestId('floating-gain')).toHaveCount(0, { timeout: 3000 });
+});
