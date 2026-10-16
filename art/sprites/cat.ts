@@ -3,7 +3,7 @@
  * the overfed variant widens walking poses, curls lying ones into a ball and redraws sitting ones
  * (see drawRoundSitting), so every animation exists in both sizes.
  */
-import { createCanvas, type PixelCanvas } from '../lib/canvas';
+import { createCanvas, type Color, type PixelCanvas } from '../lib/canvas';
 import { ellipse, outline, stroke, triangle } from '../lib/shapes';
 import type { Palette } from '../palette';
 
@@ -23,11 +23,20 @@ interface Pose {
 }
 
 const GROUND = 16;
+/** The sitting cat's head radius; its ears are the reference shape for every pose. */
+const SITTING_HEAD_R = 3.2;
+
+/** Two pricked-up ears on a head centred at (cx, cy) with radius r. */
+function ears(c: PixelCanvas, cx: number, cy: number, r: number, fur: Color): void {
+  const earTop = cy - r - 2;
+  triangle(c, [cx - r, cy - r + 1], [cx - r + 2, cy - r], [cx - r + 0.5, earTop], fur);
+  triangle(c, [cx + r - 2, cy - r], [cx + r, cy - r + 1], [cx + r - 0.5, earTop], fur);
+}
 
 function sitting(overrides: Partial<Pose> = {}): Pose {
   return {
     body: { cx: 10, cy: 11.5, rx: 4.5, ry: 4 },
-    head: { cx: 14, cy: 6, r: 3.2 },
+    head: { cx: 14, cy: 6, r: SITTING_HEAD_R },
     eyes: 'open',
     tail: [
       [6, 15],
@@ -222,9 +231,14 @@ function drawCat(pose: Pose, pal: Palette, round: boolean, sick: boolean): Pixel
   c.disc(Math.round(cx), Math.round(cy), Math.round(r), fur);
   // Where the resting head meets the big belly, a fur seam keeps the face readable.
   if (roundLying) c.rect(Math.round(cx - r), Math.round(cy - 1), 1, 3, pal.catDark);
-  const earTop = pose.earsDown ? cy - r + 1 : cy - r - 2;
-  triangle(c, [cx - r, cy - r + 1], [cx - r + 2, cy - r], [cx - r + 0.5, earTop], fur);
-  triangle(c, [cx + r - 2, cy - r], [cx + r, cy - r + 1], [cx + r - 0.5, earTop], fur);
+  if (pose.earsDown) {
+    triangle(c, [cx - r, cy - r + 1], [cx - r + 2, cy - r], [cx - r + 0.5, cy - r + 1], fur);
+    triangle(c, [cx + r - 2, cy - r], [cx + r, cy - r + 1], [cx + r - 0.5, cy - r + 1], fur);
+  } else {
+    // Every pricked-up ear is the sitting cat's, on the drawn (rounded) head: fractional head
+    // positions and radii would otherwise rasterise into spikes or upright stubs.
+    ears(c, Math.round(cx), Math.round(cy), SITTING_HEAD_R, fur);
+  }
   c.rect(Math.round(cx), Math.round(cy + 1), 2, 1, pal.catWhite);
   const ex = Math.round(cx - 1);
   const ey = Math.round(cy - 0.5);
@@ -322,9 +336,7 @@ function drawRoundSitting(pose: Pose, pal: Palette, sick: boolean): PixelCanvas 
   c.disc(Math.round(cx), Math.round(cy), Math.round(r), fur);
   // Neck seam: the head sits on the body instead of melting into it.
   c.rect(Math.round(cx - r), Math.round(cy + r - 1), Math.round(r), 1, pal.catDark);
-  const earTop = cy - r - 2;
-  triangle(c, [cx - r, cy - r + 1], [cx - r + 2, cy - r], [cx - r + 0.5, earTop], fur);
-  triangle(c, [cx + r - 2, cy - r], [cx + r, cy - r + 1], [cx + r - 0.5, earTop], fur);
+  ears(c, cx, cy, r, fur);
   c.rect(Math.round(cx), Math.round(cy + 1), 2, 1, pal.catWhite);
   const ex = Math.round(cx - 1);
   const ey = Math.round(cy - 0.5);
