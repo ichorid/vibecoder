@@ -51,10 +51,13 @@
   /** DOM sprites share the world atlas; inline fallbacks show until it loads. */
   let sprites = $state<DomSpriteSheet | null>(null);
 
+  // Depend on the theme alone: reading `$api` here would re-run (and re-fetch the atlas, and
+  // hand every DOM sprite a new sheet) on every game snapshot.
+  const theme = $derived($api.profile.theme);
   $effect(() => {
-    const theme = $api.profile.theme;
+    const themeToLoad = theme;
     let current = true;
-    void loadDomSheet(theme).then((sheet) => {
+    void loadDomSheet(themeToLoad).then((sheet) => {
       if (current && sheet) sprites = sheet;
     });
     return () => {
@@ -185,7 +188,7 @@
   });
 
   $effect(() => {
-    document.documentElement.dataset.theme = $api.profile.theme;
+    document.documentElement.dataset.theme = theme;
   });
 </script>
 

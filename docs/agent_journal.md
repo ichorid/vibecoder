@@ -254,3 +254,9 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   (closes on a discovery or a ship). Browser specs use `openUpgrades`/`closeUpgrades`. The
   camera now hugs the built clusters' bounds + 8 % (`hugBounds`) instead of the authored
   portrait envelopes, except the final framing.
+- 2026-10-16: F17 (user report: "progressively slower, especially on non-main screens", a
+  stream of sprites-light.json 304s). Cause: App.svelte's DOM-sheet `$effect` read `$api`
+  (the whole store), so it re-ran on every snapshot: ~11 atlas fetches/s and a fresh sheet
+  object re-rendering every DOM sprite (header, Cat view, intrusions). Fix: depend on a
+  `$derived` theme, cache `loadDomSheet` per theme. Probe (3 min cycling views): 2027 → 4
+  atlas requests; heap/nodes flat either way on desktop. Guard: tests/browser/atlas-loads.spec.ts.

@@ -3,7 +3,21 @@ import { domAnimation, validateAtlas, type AtlasData } from '../content/atlas';
 import type { DomSpriteSheet } from '../ui/contracts';
 import { atlasUrl } from './assetUrls';
 
-export async function loadDomSheet(theme: 'light' | 'dark'): Promise<DomSpriteSheet | null> {
+/** One load per theme for the page's lifetime; a failed load may be retried. */
+const cache = new Map<'light' | 'dark', Promise<DomSpriteSheet | null>>();
+
+export function loadDomSheet(theme: 'light' | 'dark'): Promise<DomSpriteSheet | null> {
+  const known = cache.get(theme);
+  if (known) return known;
+  const loading = fetchDomSheet(theme).then((sheet) => {
+    if (!sheet) cache.delete(theme);
+    return sheet;
+  });
+  cache.set(theme, loading);
+  return loading;
+}
+
+async function fetchDomSheet(theme: 'light' | 'dark'): Promise<DomSpriteSheet | null> {
   try {
     const url = atlasUrl(theme);
     const response = await fetch(url);
