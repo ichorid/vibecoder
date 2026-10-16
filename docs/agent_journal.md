@@ -202,3 +202,8 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   Queued: icons on counters/cards/primary button, log emoji, fat attention-cat variants, cat
   jump on/off table, card description font, screen top/bottom borders + log bottom padding,
   full-screen tech announcement, Cat-view cat tap = PET + meow.
+- 2026-10-16: icons, layout, Cat-view tap, fat sitting cat committed. World cat now jumps onto
+  and off the desk (`src/world/catPath.ts`: walk along the level, clamp to the surface edge,
+  then a 450 ms arc in the 'play' pose; `WorldAddition.catSurfaces`). A cat in mid-air lands
+  before taps/mood changes take effect. Queued: low-health cat goes quiet + stray ending,
+  then docs/feature_ship_it.md.

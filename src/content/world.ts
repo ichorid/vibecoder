@@ -38,6 +38,12 @@ export interface WorldAddition {
   /** Compact LOD icon tag and where the cat may wander once this exists. */
   readonly lodSprite: string;
   readonly catSpots: readonly Point[];
+  /** Raised surfaces the cat jumps onto instead of walking through the air (feet y, x range). */
+  readonly catSurfaces?: readonly {
+    readonly y: number;
+    readonly minX: number;
+    readonly maxX: number;
+  }[];
   /** Short phrase for the canvas's accessible scene description. */
   readonly description: string;
   /** The last framing: the room and cat are visually gone at this scale. */
@@ -351,6 +357,8 @@ export const ROOM_ADDITION: WorldAddition = {
   ],
   links: [],
   lodSprite: 'lod-terminal',
+  // The desk top (desk at x −38, 104 wide, top surface at y 10), inset so paws stay on it.
+  catSurfaces: [{ y: 10, minX: -34, maxX: 62 }],
   // Feet positions: next to the keyboard on the desk, by the bowl, on the rug, by the chair.
   catSpots: [
     { x: 30, y: 10 },

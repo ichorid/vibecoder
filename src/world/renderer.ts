@@ -24,6 +24,7 @@ import { CAMERA_TRANSITION_MS, fitEnvelope, interpolateCamera, type Camera } fro
 import type { RendererPort, WorldProjection, WorldTap } from './host';
 import { catLod, clusterLod, projectedSize, type CatLod, type ClusterLod } from './lod';
 import { planScene } from './scenePlan';
+import { hopPosition, planCatPath, type PathStep } from './catPath';
 
 export interface RendererOptions {
   /** URL of the atlas JSON for a theme; the PNG sits next to it. */
@@ -254,6 +255,11 @@ export async function createPixiRenderer(
   const catPosition = { x: 30, y: 10 };
   let catTarget: { x: number; y: number } | null = null;
   let catRestUntil = 0;
+  /** The planned walk/jump steps toward `catTarget` (replanned when the target changes). */
+  let catPath: PathStep[] = [];
+  let plannedFor: { x: number; y: number } | null = null;
+  let hopProgress = 0;
+  const HOP_MS = 450;
 
   function setCatTag(tag: string): void {
     if (tag === catTag && catSprite) return;
@@ -267,7 +273,7 @@ export async function createPixiRenderer(
       catSprite.on('pointertap', (event) => {
         tapPose = (tapPose + 1) % TAP_POSES.length;
         catOverride = { pose: TAP_POSES[tapPose] ?? 'pet', until: now + 1600 };
-        catTarget = null;
+        if (!(catPath[0]?.kind === 'jump' && hopProgress > 0)) catTarget = null;
         catRestUntil = now + 2500;
         emitTap('cat', event.global);
       });
@@ -298,7 +304,11 @@ export async function createPixiRenderer(
     let pose = 'idle';
     const tapped = catOverride && now < catOverride.until ? catOverride.pose : null;
     if (!tapped) catOverride = null;
-    if (tapped && cat.presentation !== 'sick' && cat.presentation !== 'critical') {
+    // A cat in mid-air lands first; taps and mood changes apply after the jump.
+    const midJump = catPath[0]?.kind === 'jump' && hopProgress > 0;
+    if (midJump) {
+      // Keep the current target and path.
+    } else if (tapped && cat.presentation !== 'sick' && cat.presentation !== 'critical') {
       pose = tapped;
       catTarget = null;
     } else if (cat.presentation === 'sick' || cat.presentation === 'critical') {
@@ -313,23 +323,51 @@ export async function createPixiRenderer(
       const spots = catSpots();
       catTarget = spots[Math.floor(random() * spots.length)] ?? null;
     }
+    if (!catTarget) plannedFor = null;
     if (catTarget) {
-      const dx = catTarget.x - catPosition.x;
-      const dy = catTarget.y - catPosition.y;
-      const distance = Math.hypot(dx, dy);
-      const step = (14 * deltaMs) / 1000;
-      if (distance <= step) {
+      if (plannedFor !== catTarget) {
+        const surfaces = [...clusters.values()].flatMap((c) => [...(c.addition.catSurfaces ?? [])]);
+        catPath = planCatPath(catPosition, catTarget, surfaces);
+        plannedFor = catTarget;
+        hopProgress = 0;
+      }
+      const stepPlan = catPath[0];
+      if (!stepPlan) {
         catPosition.x = catTarget.x;
         catPosition.y = catTarget.y;
         if (cat.presentation === 'normal') {
           catTarget = null;
           catRestUntil = now + 3000 + random() * 6000;
         }
+      } else if (stepPlan.kind === 'jump') {
+        // Onto or off the desk: an arc in the stretched pose, never a walk through the air.
+        hopProgress += deltaMs / HOP_MS;
+        const at = hopPosition(stepPlan.from, stepPlan.to, hopProgress);
+        catPosition.x = at.x;
+        catPosition.y = at.y;
+        pose = 'play';
+        if (catSprite && stepPlan.to.x !== stepPlan.from.x) {
+          catSprite.scale.x = stepPlan.to.x < stepPlan.from.x ? -1 : 1;
+        }
+        if (hopProgress >= 1) {
+          catPath = catPath.slice(1);
+          hopProgress = 0;
+        }
       } else {
-        catPosition.x += (dx / distance) * step;
-        catPosition.y += (dy / distance) * step;
+        const dx = stepPlan.to.x - catPosition.x;
+        const dy = stepPlan.to.y - catPosition.y;
+        const distance = Math.hypot(dx, dy);
+        const step = (14 * deltaMs) / 1000;
+        if (distance <= step) {
+          catPosition.x = stepPlan.to.x;
+          catPosition.y = stepPlan.to.y;
+          catPath = catPath.slice(1);
+        } else {
+          catPosition.x += (dx / distance) * step;
+          catPosition.y += (dy / distance) * step;
+        }
         pose = 'walk';
-        if (catSprite) catSprite.scale.x = dx < 0 ? -1 : 1;
+        if (catSprite && Math.abs(dx) > 0.01) catSprite.scale.x = dx < 0 ? -1 : 1;
       }
     } else if (cat.presentation === 'normal' && now < catRestUntil && catRestUntil - now > 4000) {
       pose = 'sleep';
