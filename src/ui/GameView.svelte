@@ -9,8 +9,7 @@
   import UnlockAnnouncement from './UnlockAnnouncement.svelte';
   import FloatingGains from './FloatingGains.svelte';
   import Stats from './Stats.svelte';
-  import { MAX_FLOATING, type FloatingGain } from './floatingGains';
-  import type { PrimaryGainViewModel } from '../game/selectors';
+  import { gainText, MAX_FLOATING, type FloatingGain } from './floatingGains';
   import type { AttentionLevel } from '../game/types';
 
   interface Props {
@@ -34,20 +33,6 @@
   }: Props = $props();
   let controls: HTMLElement | undefined = $state();
 
-  /** Short text for the floating number: what this press really added. */
-  function gainText(gain: PrimaryGainViewModel): string {
-    switch (gain.unit) {
-      case 'code':
-        return `+${formatAmount(gain.amount)}`;
-      case 'managed':
-        return `+${formatAmount(gain.amount)} managed`;
-      case 'debt':
-        return `−${formatAmount(gain.amount)} debt`;
-      case 'efficiency':
-        return `+${Math.round(gain.amount * 100)}% speed`;
-    }
-  }
-
   let gains = $state<FloatingGain[]>([]);
   let nextGainId = 0;
 
@@ -62,7 +47,7 @@
     nextGainId += 1;
     gains = [
       ...gains.slice(-(MAX_FLOATING - 1)),
-      { id: nextGainId, text: gainText(gain), x: Math.min(0.9, Math.max(0.1, x)) },
+      { id: nextGainId, text: gainText(gain, formatAmount), x: Math.min(0.9, Math.max(0.1, x)) },
     ];
   }
 

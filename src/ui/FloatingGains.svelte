@@ -17,6 +17,7 @@
       data-testid="floating-gain"
       aria-hidden="true"
       style:left="{gain.x * 100}%"
+      style:top={gain.y === undefined ? undefined : `${gain.y * 100}%`}
       onanimationend={() => onDone(gain.id)}>{gain.text}</span
     >
   {/each}

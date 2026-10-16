@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createWorldHost, type RendererPort, type WorldProjection } from './host';
+import { createWorldHost, type RendererPort, type WorldProjection, type WorldTap } from './host';
 
 function fakeRenderer() {
   const calls: string[] = [];
@@ -136,6 +136,32 @@ describe('world host lifecycle', () => {
     await host.recovered();
     expect(statuses).toEqual(['lost', 'failed', 'ok']);
     expect(first.listeners()).toBe(0);
+  });
+});
+
+describe('world taps', () => {
+  it('forwards taps on the cat, the bowl and the poster with their position', async () => {
+    const bus: { emit: ((tap: WorldTap) => void) | null } = { emit: null };
+    const taps: string[] = [];
+    const host = createWorldHost(
+      () =>
+        Promise.resolve({
+          ...fakeRenderer().port,
+          onTap(listener: (tap: WorldTap) => void) {
+            bus.emit = listener;
+            return () => (bus.emit = null);
+          },
+        }),
+      { onTap: (tap) => taps.push(`${tap.target}@${tap.x},${tap.y}`) },
+    );
+    host.mount({} as HTMLElement);
+    await host.ready;
+    bus.emit?.({ target: 'poster', x: 10, y: 20 });
+    bus.emit?.({ target: 'bowl', x: 1, y: 2 });
+    const stale = bus.emit;
+    host.dispose();
+    stale?.({ target: 'cat', x: 3, y: 4 });
+    expect(taps).toEqual(['poster@10,20', 'bowl@1,2']);
   });
 });
 

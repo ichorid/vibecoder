@@ -7,6 +7,13 @@ export interface WorldProjection extends WorldViewModel {
   readonly reducedMotion: boolean;
 }
 
+/** A tap on an interactive world object; x/y in CSS pixels relative to the world canvas. */
+export interface WorldTap {
+  readonly target: 'cat' | 'bowl' | 'poster';
+  readonly x: number;
+  readonly y: number;
+}
+
 export interface RendererPort {
   resize(width: number, height: number): void;
   setActive(active: boolean): void;
@@ -14,6 +21,8 @@ export interface RendererPort {
   destroy(): void;
   /** Graphics context lost/restored (WebGL); returns an unsubscribe function. */
   onContext?(listener: (event: 'lost' | 'restored') => void): () => void;
+  /** Taps on the world cat, the cat bowl and the poster; returns an unsubscribe function. */
+  onTap?(listener: (tap: WorldTap) => void): () => void;
 }
 
 export type RendererFactory = (parent: HTMLElement) => Promise<RendererPort>;
@@ -23,6 +32,7 @@ export type WorldStatus = 'ok' | 'lost' | 'failed';
 
 export interface WorldHostOptions {
   readonly onStatus?: (status: WorldStatus) => void;
+  readonly onTap?: (tap: WorldTap) => void;
 }
 
 export interface WorldHost {
@@ -85,11 +95,19 @@ export function createWorldHost(
 
   function attach(created: RendererPort): void {
     renderer = created;
-    unsubscribe =
+    const offContext =
       created.onContext?.((event) => {
         if (event === 'lost') status('lost');
         else rebuild();
       }) ?? (() => {});
+    const offTap =
+      created.onTap?.((tap) => {
+        if (!disposed) options.onTap?.(tap);
+      }) ?? (() => {});
+    unsubscribe = () => {
+      offContext();
+      offTap();
+    };
     if (size) created.resize(size.width, size.height);
     if (latest) created.update(latest);
     applyActive();

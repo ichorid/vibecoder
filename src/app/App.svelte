@@ -13,7 +13,10 @@
   import Header from '../ui/Header.svelte';
   import HistoryView from '../ui/HistoryView.svelte';
   import SettingsMenu from '../ui/SettingsMenu.svelte';
-  import type { RendererFactory, WorldStatus } from '../world/host';
+  import type { RendererFactory, WorldStatus, WorldTap } from '../world/host';
+  import type { UiSnapshot } from '../ui/contracts';
+  import { gainText } from '../ui/floatingGains';
+  import { formatAmount } from '../ui/format';
   import WorldCanvas from '../world/WorldCanvas.svelte';
   import { describeScene } from '../content/world';
   import { atlasUrl, memorialUrls } from './assetUrls';
@@ -61,6 +64,41 @@
     worldStatus = status;
     api.dispatch({ type: status === 'ok' ? 'graphicsResume' : 'graphicsPause' });
   }
+  /** The snapshot right now (the store publishes synchronously after every command). */
+  function current(): UiSnapshot {
+    let snapshot: UiSnapshot | undefined;
+    api.subscribe((s) => (snapshot = s))();
+    if (!snapshot) throw new Error('game store has no snapshot');
+    return snapshot;
+  }
+
+  const FEED_TEXT: Record<string, string> = {
+    nom: 'fed',
+    notHungry: 'fed',
+    tooMuch: 'too much!',
+    spherical: 'spherical!',
+  };
+
+  /**
+   * Taps on world objects are ordinary commands: the poster is a primary press, the bowl is FEED,
+   * the cat is PET (its cooldown applies; a tap during it is only a meow).
+   */
+  function onWorldTap(tap: WorldTap): string | null {
+    switch (tap.target) {
+      case 'poster': {
+        const gain = current().game.primaryAction.gain;
+        if (api.dispatch({ type: 'primaryAction' }) !== 'applied' || !gain) return null;
+        return gainText(gain, formatAmount);
+      }
+      case 'bowl': {
+        if (api.dispatch({ type: 'feedCat' }) !== 'applied') return null;
+        return FEED_TEXT[current().cat.careNote ?? 'nom'] ?? 'fed';
+      }
+      case 'cat':
+        return api.dispatch({ type: 'petCat' }) === 'applied' ? 'purr' : 'meow';
+    }
+  }
+
   let settingsOpen = $state(false);
   let settingsButton: HTMLElement | null = null;
 
@@ -142,6 +180,7 @@
 <div class="app" data-view={view}>
   <Header
     cat={$api.cat}
+    {sprites}
     {settingsOpen}
     onCat={() => open('cat')}
     onHistory={() => open('history')}
@@ -195,6 +234,7 @@
             {...createRenderer ? { createRenderer } : {}}
             onStatus={onWorldStatus}
             onRetryReady={(retry: () => void) => (retryWorld = retry)}
+            {onWorldTap}
           />
         {/snippet}
       </GameView>

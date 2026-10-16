@@ -10,6 +10,8 @@ import {
   Assets,
   Container,
   Graphics,
+  Point,
+  Rectangle,
   Sprite,
   Spritesheet,
   TextureSource,
@@ -19,7 +21,7 @@ import {
 import { toPixiSheet, type AtlasData } from '../content/atlas';
 import { ROOM_ADDITION, sceneEnvelope, worldAdditions, type WorldAddition } from '../content/world';
 import { CAMERA_TRANSITION_MS, fitEnvelope, interpolateCamera, type Camera } from './camera';
-import type { RendererPort, WorldProjection } from './host';
+import type { RendererPort, WorldProjection, WorldTap } from './host';
 import { catLod, clusterLod, projectedSize, type CatLod, type ClusterLod } from './lod';
 import { planScene } from './scenePlan';
 
@@ -105,7 +107,9 @@ export async function createPixiRenderer(
   const clusterLayer = new Container();
   const signalLayer = new Container();
   const catLayer = new Container();
-  root.addChild(links, clusterLayer, signalLayer, catLayer);
+  // Tap targets on the room (poster, cat bowl) sit under the cat, so the cat wins a shared tap.
+  const hitLayer = new Container();
+  root.addChild(links, clusterLayer, signalLayer, hitLayer, catLayer);
   app.stage.addChild(root);
 
   const sheets = new Map<WorldProjection['theme'], Promise<LoadedSheet>>();
@@ -215,6 +219,32 @@ export async function createPixiRenderer(
     }
   }
 
+  // ---- Taps on world objects: reported to the app, which turns them into game commands. ----
+  const tapListeners = new Set<(tap: WorldTap) => void>();
+  const emitTap = (target: WorldTap['target'], global: { x: number; y: number }) => {
+    for (const listener of tapListeners) listener({ target, x: global.x, y: global.y });
+  };
+  /** World-space rectangles (room coordinates) padded for a finger. */
+  const ROOM_TARGETS = {
+    poster: { x: -75, y: -53, w: 32, h: 40 },
+    bowl: { x: 44, y: 38, w: 26, h: 20 },
+  } as const;
+  for (const [target, r] of Object.entries(ROOM_TARGETS) as [
+    'poster' | 'bowl',
+    { x: number; y: number; w: number; h: number },
+  ][]) {
+    const area = new Container();
+    area.hitArea = new Rectangle(r.x, r.y, r.w, r.h);
+    area.eventMode = 'static';
+    area.cursor = 'pointer';
+    area.on('pointertap', (event) => emitTap(target, event.global));
+    hitLayer.addChild(area);
+  }
+  /** Tapping the cat plays through these poses, one per tap, each for a moment. */
+  const TAP_POSES = ['pet', 'play', 'attention', 'idle'] as const;
+  let tapPose = -1;
+  let catOverride: { pose: string; until: number } | null = null;
+
   // ---- The world cat (cosmetic movement; its alive/dead fact comes from the projection). ----
   let catSprite: AnimatedSprite | null = null;
   const catDot = new Graphics();
@@ -232,6 +262,15 @@ export async function createPixiRenderer(
     catSprite = makeSprite(tag);
     if (catSprite) {
       catSprite.anchor.set(0.5, 1);
+      catSprite.eventMode = 'static';
+      catSprite.cursor = 'pointer';
+      catSprite.on('pointertap', (event) => {
+        tapPose = (tapPose + 1) % TAP_POSES.length;
+        catOverride = { pose: TAP_POSES[tapPose] ?? 'pet', until: now + 1600 };
+        catTarget = null;
+        catRestUntil = now + 2500;
+        emitTap('cat', event.global);
+      });
       catLayer.addChild(catSprite);
     }
   }
@@ -257,7 +296,12 @@ export async function createPixiRenderer(
     const round = cat.round ? 'round-' : '';
     const room = ROOM_ADDITION.catSpots;
     let pose = 'idle';
-    if (cat.presentation === 'sick' || cat.presentation === 'critical') {
+    const tapped = catOverride && now < catOverride.until ? catOverride.pose : null;
+    if (!tapped) catOverride = null;
+    if (tapped && cat.presentation !== 'sick' && cat.presentation !== 'critical') {
+      pose = tapped;
+      catTarget = null;
+    } else if (cat.presentation === 'sick' || cat.presentation === 'critical') {
       pose = cat.presentation === 'sick' ? 'sick' : 'sleep';
       catTarget = null;
     } else if (cat.presentation === 'attentionSeeking' || cat.presentation === 'lonely') {
@@ -320,6 +364,7 @@ export async function createPixiRenderer(
   }
 
   function updateClusters(): void {
+    hitLayer.visible = clusters.get(ROOM_ADDITION.id)?.detail.visible ?? false;
     for (const cluster of clusters.values()) {
       const size = projectedSize(Math.max(cluster.bounds.w, cluster.bounds.h), camera.zoom);
       cluster.lod = clusterLod(size, cluster.lod);
@@ -383,6 +428,16 @@ export async function createPixiRenderer(
     let sprites = 0;
     for (const cluster of clusters.values()) sprites += cluster.detail.children.length;
     data.sprites = String(sprites);
+    // Screen centres of the tap targets (CSS px on the canvas), empty when not tappable.
+    const at = (x: number, y: number) => {
+      const p = root.toGlobal(new Point(x, y));
+      return `${Math.round(p.x)},${Math.round(p.y)}`;
+    };
+    const roomVisible = hitLayer.visible;
+    data.hitPoster = roomVisible ? at(-59, -33) : '';
+    data.hitBowl = roomVisible ? at(57, 50) : '';
+    data.hitCat =
+      catSprite?.visible && catLevel === 'sprite' ? at(catPosition.x, catPosition.y - 5) : '';
   }
 
   const tick = (ticker: Ticker) => {
@@ -460,6 +515,10 @@ export async function createPixiRenderer(
       updateCat(0);
       publishState();
       app.render();
+    },
+    onTap(listener) {
+      tapListeners.add(listener);
+      return () => tapListeners.delete(listener);
     },
     onContext(listener) {
       // preventDefault lets the browser restore the context; the host then rebuilds.

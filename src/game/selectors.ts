@@ -5,7 +5,13 @@ import { automationFraction, deriveRates, upgradeLevel, upgradePrice } from './e
 import type { ChoiceId, EndingId, PrimaryActionId, TechnologyId, UpgradeId } from './ids';
 import { isChoiceOffered } from './endings';
 import { currentPrimaryAction, findTechnology, isUpgradeOffered } from './progression';
-import type { AttentionLevel, DeepReadonly, DiscoveredEnding, ReadonlyRun } from './types';
+import type {
+  AttentionLevel,
+  CareNote,
+  DeepReadonly,
+  DiscoveredEnding,
+  ReadonlyRun,
+} from './types';
 
 /** Maximum number of current upgrade/choice cards shown in Game. */
 export const MAX_OFFERS = 3;
@@ -308,6 +314,8 @@ export interface CatViewModel {
   readonly overfedText: string | null;
   /** Message about the last accepted care action, while still relevant. */
   readonly careMessage: string | null;
+  /** Which care note that message belongs to (e.g. to label a tap on the bowl). */
+  readonly careNote: CareNote | null;
   /** Current PLAY session (timeline data; UI derives phase/position with the shared functions). */
   readonly play: ReadonlyPlay | null;
   readonly playAttempts: number;
@@ -346,6 +354,7 @@ export function selectCat(run: ReadonlyRun, catalog: Catalog): CatViewModel {
     conditionText: catalog.catText.conditions[presentation],
     overfedText: conditions.overfed && run.cat.alive ? catalog.catText.overfed : null,
     careMessage: careFresh ? catalog.catText.care[care.note] : null,
+    careNote: careFresh ? care.note : null,
     play: run.cat.alive ? run.catPlay : null,
     attention: {
       level:

@@ -1,18 +1,22 @@
 <script lang="ts">
   import type { CatViewModel } from '../game/selectors';
+  import AtlasSprite from './AtlasSprite.svelte';
+  import type { DomSpriteSheet } from './contracts';
   import PixelIcon from './PixelIcon.svelte';
   import { catFace, catFaceGone } from './pixelArt';
   import { describeLevel } from './format';
 
   interface Props {
     cat: CatViewModel;
+    /** The world atlas: the button shows the same animated cat as the room once it loads. */
+    sprites?: DomSpriteSheet | null;
     settingsOpen: boolean;
     onCat: () => void;
     onHistory: () => void;
     onSettings: (event: MouseEvent) => void;
   }
 
-  const { cat, settingsOpen, onCat, onHistory, onSettings }: Props = $props();
+  const { cat, sprites = null, settingsOpen, onCat, onHistory, onSettings }: Props = $props();
 
   const catLabel = $derived(
     cat.alive
@@ -34,7 +38,15 @@
         onclick={onCat}
       >
         <span class="cat-icon" data-testid="cat-icon">
-          <PixelIcon map={cat.alive ? catFace : catFaceGone} scale={3} />
+          {#if cat.alive && sprites}
+            <AtlasSprite
+              sheet={sprites}
+              tag={cat.overfed ? 'cat-round-idle' : 'cat-idle'}
+              scale={2}
+            />
+          {:else}
+            <PixelIcon map={cat.alive ? catFace : catFaceGone} scale={3} />
+          {/if}
         </span>
         <span class="bars" aria-hidden="true">
           <span class="bar health" data-testid="health-bar">
