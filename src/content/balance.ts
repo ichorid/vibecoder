@@ -105,6 +105,8 @@ export const balance = {
   logMemoryLimit: 50,
   logVisibleLines: 5,
   chatter: { minGapMs: 30_000, maxGapMs: 60_000, newestCount: 3, newestWeight: 3 },
+  // Running at a loss borrows up to 3 minutes of costs, at 0.2 % interest per second.
+  money: { creditSeconds: 180, interestPerSecond: 0.002 },
   tokens: {
     perCodeBase: 6,
     packSeconds: 60,

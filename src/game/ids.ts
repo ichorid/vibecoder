@@ -111,6 +111,7 @@ export const CHOICE_IDS = [
   'small-saas',
   'self-acquisition',
   'expand-anyway',
+  'cancel-expansion',
   'close-company',
   'keep-approval',
   'remove-oversight',

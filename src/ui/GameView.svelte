@@ -314,6 +314,25 @@
       </div>
     {/if}
     <Stats stats={game.stats} onOpen={onSetup} />
+    {#if game.credit && !game.ending}
+      {@const credit = game.credit}
+      <!-- Running on borrowed money: how much is owed, and how long until the bank stops. -->
+      <div class="credit" data-testid="credit" role="status">
+        <span class="credit-text"
+          >🏦 CREDIT ${formatAmount(credit.owed)} / ${formatAmount(
+            credit.limit,
+          )}{#if credit.secondsLeft !== null}
+            · ~{Math.ceil(credit.secondsLeft)} s left{:else}
+            · recovering{/if}</span
+        >
+        <span class="credit-bar" aria-hidden="true"
+          ><span
+            class="credit-fill"
+            style:width="{Math.min(100, (credit.owed / Math.max(1, credit.limit)) * 100)}%"
+          ></span></span
+        >
+      </div>
+    {/if}
     {#if game.offers.length > 0 && !game.ending}
       {#if compactOffers}
         <!-- Small screens: the cards live in a popup so the world keeps its room. -->
@@ -445,6 +464,27 @@
   .primary:active {
     transform: translateY(2px);
     box-shadow: 0 2px 0 var(--accent-strong);
+  }
+  .credit {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 4px 8px;
+    border: 2px solid #c0392b;
+    background: color-mix(in srgb, #e8483c 14%, var(--panel));
+    font-size: 12px;
+    font-weight: 900;
+  }
+  .credit-bar {
+    position: relative;
+    height: 6px;
+    border: 1px solid var(--border);
+    background: var(--bar-track);
+  }
+  .credit-fill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    background: #e8483c;
   }
   .offers-toggle {
     display: flex;

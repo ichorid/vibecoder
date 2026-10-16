@@ -8,6 +8,7 @@
  */
 import type { ChoiceDefinition, EndingDefinition } from '../game/catalog';
 import type { ReadonlyRun } from '../game/types';
+import { balance } from './balance';
 
 const has = (run: ReadonlyRun, id: string) =>
   (run.unlockedTechnologyIds as readonly string[]).includes(id);
@@ -28,6 +29,14 @@ export const choices: readonly ChoiceDefinition[] = [
     confirm: 'This ends the run.',
     available: (run) => chose(run, 'expand-anyway') && run.stats.negativeMarginMs >= SUSTAINED_MS,
     ends: 'fully-automated-bankruptcy',
+  },
+  {
+    id: 'cancel-expansion',
+    title: 'Pull out of every market',
+    description:
+      'Cancel the expansion. The extra costs stop; what you owe the bank stays until you earn it back.',
+    available: (run) => chose(run, 'expand-anyway') && !chose(run, 'cancel-expansion'),
+    cancels: 'expand-anyway',
   },
   {
     id: 'remove-oversight',
@@ -286,6 +295,14 @@ export const endings: readonly EndingDefinition[] = [
   {
     id: 'fully-automated-bankruptcy',
     title: 'Fully Automated Bankruptcy',
+    // The credit line is used up: the creditors close the company, chosen or not.
+    automatic: {
+      priority: 50,
+      when: (run) =>
+        run.economy.revenue < 0 &&
+        run.economy.revenue <=
+          -Math.max(0, run.economy.costPerSecond) * balance.money.creditSeconds + 1,
+    },
     text: {
       alive: [
         'The company expanded until every market was covered and every account was empty.',

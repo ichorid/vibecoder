@@ -325,3 +325,12 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
 - 2026-10-16: D27 done; the dead cat's icon is a candle (header + History); OBSERVE presses
   float "+1 existential dread" / "+1 boredom" (cosmetic); Setup's money section explains
   revenue = useful code/s × $ per code (base × multipliers) and costs = agents × $/s + overhead.
+- 2026-10-16: D28 (user chose) Credit line + automatic bankruptcy: when costs exceed revenue the
+  bank balance may go negative down to `money.creditSeconds` (180) × current costs, at
+  `interestPerSecond` 0.2 %; agents keep working on credit (src/game/economy.ts `economyFlows`).
+  Reaching the limit triggers Fully Automated Bankruptcy automatically (priority 50); the
+  close-company choice stays. New choice "Pull out of every market" (`cancel-expansion`,
+  `ChoiceDefinition.cancels`) drops the expansion overhead. 🏦 log lines at 0/50/90 %; a credit
+  countdown under the stats; Setup explains it. Save: `economy.revenue` may be negative.
+  Also: a new run clears stale world clusters (renderer reconcile); the dead-cat title puts the
+  fate on a second line; memorial photos 10 % smaller.

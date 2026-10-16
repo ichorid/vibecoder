@@ -174,7 +174,11 @@ function decodeNumbers<K extends string>(
   path: string,
 ): Record<K, number> {
   const result = {} as Record<K, number>;
-  for (const field of fields) result[field] = num(raw[field], `${path}.${field}`, nonNegative);
+  for (const field of fields) {
+    // The bank may be in the red (a credit line), never anything else.
+    const range = field === 'revenue' ? { min: -1e18 } : nonNegative;
+    result[field] = num(raw[field], `${path}.${field}`, range);
+  }
   return result;
 }
 

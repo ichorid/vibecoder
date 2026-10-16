@@ -1,5 +1,5 @@
 import type { BalanceDefinition, Catalog, Effect, UpgradeDefinition } from './catalog';
-import { RESPONSIBILITY_IDS, type ResponsibilityId } from './ids';
+import { RESPONSIBILITY_IDS, type ChoiceId, type ResponsibilityId } from './ids';
 import type { EconomyState, ReadonlyRun } from './types';
 
 /** Keep repeated 100 ms fractional increments from drifting below exact prices. */
@@ -67,6 +67,22 @@ export function activeEffects(run: ReadonlyRun, catalog: Catalog): Effect[] {
     for (let i = 0; i < level; i += 1) effects.push(...upgrade.effectsPerLevel);
   }
   return effects;
+}
+
+/** Fixed overheads committed by choices, minus those a later choice cancelled. */
+function fixedOverhead(run: ReadonlyRun, catalog: Catalog): number {
+  const cancelled = new Set<ChoiceId>(
+    catalog.choices.flatMap((c) => (c.cancels && run.choices[c.id] ? [c.cancels] : [])),
+  );
+  return Object.entries(run.choices).reduce(
+    (sum, [id, c]) => sum + (cancelled.has(id as ChoiceId) ? 0 : (c?.overhead ?? 0)),
+    0,
+  );
+}
+
+/** The most the bank lends at these costs (credit line while running at a loss). */
+export function creditLimit(costPerSecond: number, balance: BalanceDefinition): number {
+  return Math.max(0, costPerSecond) * balance.money.creditSeconds;
 }
 
 /** Rates are recomputed from definitions on demand, never stored as stacked multipliers. */
@@ -193,10 +209,7 @@ export function deriveRates(run: ReadonlyRun, catalog: Catalog): DerivedRates {
     efficiency,
     monetization: monetization * monetizationMultiplier,
     operatingCostPerAgent,
-    fixedOverheadPerSecond: Object.values(run.choices).reduce(
-      (sum, c) => sum + (c?.overhead ?? 0),
-      0,
-    ),
+    fixedOverheadPerSecond: fixedOverhead(run, catalog),
     automated,
     tokensPerCode: balance.tokens.perCodeBase * (1 + tokenRateBonus + run.economy.tokenReviewBonus),
     autoRefill,
@@ -279,6 +292,10 @@ export interface EconomyFlows {
   readonly useful: number;
   readonly earned: number;
   readonly spent: number;
+  /** How far into the red the bank lets the money go at these costs. */
+  readonly creditLimit: number;
+  /** Interest on the money owed this step. */
+  readonly interest: number;
 }
 
 export function economyFlows(
@@ -288,11 +305,13 @@ export function economyFlows(
   balance: BalanceDefinition,
 ): EconomyFlows {
   const runnable = Math.min(rates.agents, rates.compute);
-  // Operating costs: unfunded capacity idles instead of driving revenue negative.
+  // Operating costs are paid from the bank, then from the credit line; beyond it, unfunded
+  // capacity idles.
   const costRate = runnable * rates.operatingCostPerAgent + rates.fixedOverheadPerSecond;
+  const credit = creditLimit(costRate, balance);
   const affordable =
     costRate > 0
-      ? Math.min(1, (economy.revenue + economy.revenuePerSecond * dt) / (costRate * dt))
+      ? Math.min(1, (economy.revenue + economy.revenuePerSecond * dt + credit) / (costRate * dt))
       : 1;
   const activeAgents = runnable * Math.max(0, affordable);
   const supplied = economy.tokens + rates.tokenSupplyPerSecond * dt;
@@ -332,6 +351,8 @@ export function economyFlows(
     useful,
     earned: useful * rates.monetization,
     spent: costRate * Math.max(0, affordable) * dt,
+    creditLimit: credit,
+    interest: Math.max(0, -economy.revenue) * balance.money.interestPerSecond * dt,
   };
 }
 
@@ -376,7 +397,7 @@ export function stepEconomy(
         0,
         roundAmount(economy.optimization - balance.optimizeDecayPerSecond * dt),
       ),
-      revenue: roundAmount(Math.max(0, economy.revenue + earned - spent)),
+      revenue: roundAmount(Math.max(-f.creditLimit, economy.revenue + earned - spent - f.interest)),
       revenuePerSecond: roundAmount(earned / dt),
       // Costs owed, even when only part could be paid: the margin shows the real loss.
       costPerSecond: roundAmount(costRate),

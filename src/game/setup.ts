@@ -6,6 +6,7 @@
 import type { Catalog, Effect, UpgradeDefinition } from './catalog';
 import { activeEffects, deriveRates, economyFlows, upgradeLevel } from './economy';
 import { cardEffects, effectText } from './effectText';
+import { creditState, type CreditState } from './money';
 import type { PrimaryActionId, TechnologyId, UpgradeId } from './ids';
 import { currentPrimaryAction } from './progression';
 import type { ReadonlyRun } from './types';
@@ -75,6 +76,9 @@ export interface SetupViewModel {
       readonly costPerAgent: number;
       /** Fixed costs from decisions (e.g. expanding into every market). */
       readonly overheadPerSecond: number;
+      /** Borrowed money while costs exceed revenue (null in the black). */
+      readonly credit: CreditState | null;
+      readonly interestPerSecond: number;
       readonly revenuePerSecond: number;
       readonly costPerSecond: number;
       readonly marginPerSecond: number;
@@ -146,6 +150,8 @@ export function selectSetup(run: ReadonlyRun, catalog: Catalog): SetupViewModel 
           runningAgents: f.runnable,
           costPerAgent: rates.operatingCostPerAgent,
           overheadPerSecond: rates.fixedOverheadPerSecond,
+          credit: creditState(run, catalog),
+          interestPerSecond: catalog.balance.money.interestPerSecond,
           revenuePerSecond: perSecond(f.earned),
           costPerSecond: f.costRate,
           marginPerSecond: perSecond(f.earned) - f.costRate,

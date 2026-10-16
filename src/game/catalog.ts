@@ -127,6 +127,14 @@ export interface BalanceDefinition {
   readonly logVisibleLines: number;
   readonly tokens: TokenBalance;
   readonly chatter: ChatterBalance;
+  readonly money: MoneyBalance;
+}
+
+/** When costs exceed revenue the bank lends: down to this many seconds of costs, with interest. */
+export interface MoneyBalance {
+  readonly creditSeconds: number;
+  /** Interest per second on the money owed (fraction). */
+  readonly interestPerSecond: number;
 }
 
 /** Console chatter pace: a line every min–max active ms; the newest few techs talk more. */
@@ -337,6 +345,8 @@ export interface ChoiceDefinition {
   readonly confirm?: string;
   readonly available: (run: ReadonlyRun) => boolean;
   readonly ends?: EndingId;
+  /** Choosing this one undoes another choice's fixed overhead (pulling out of an expansion). */
+  readonly cancels?: ChoiceId;
   /** Fixed extra operating cost per second this commitment adds (loss-making expansion). */
   readonly overhead?: (run: ReadonlyRun) => number;
 }

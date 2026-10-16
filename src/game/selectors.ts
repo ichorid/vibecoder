@@ -13,6 +13,7 @@ import type {
 import { isChoiceOffered } from './endings';
 import { currentPrimaryAction, findTechnology, isUpgradeOffered } from './progression';
 import { cardEffects } from './effectText';
+import { creditState, type CreditState } from './money';
 import { upgradeImpact } from './setup';
 import { deriveSeed } from './random';
 import { catAware } from './catAware';
@@ -143,6 +144,8 @@ export interface GameViewModel {
   readonly ending: EndingViewModel | null;
   /** The most recently shipped release, for the wheel right after shipping (null: none). */
   readonly lastRelease: ReleaseWheelViewModel | null;
+  /** Running on the bank's credit (null while the bank is in the black). */
+  readonly credit: CreditState | null;
 }
 
 /** What a History line shows in front of its title. */
@@ -293,10 +296,12 @@ export function selectGame(run: ReadonlyRun, catalog: Catalog): GameViewModel {
         effects: choice.ends
           ? ['ends the run']
           : choice.overhead
-            ? ['adds operating costs above revenue']
-            : choice.id === 'keep-manual'
-              ? ['no more automation offers', 'action → WRITE CODE']
-              : [],
+            ? ['adds operating costs above revenue', 'the bank lends until the credit runs out']
+            : choice.cancels
+              ? ['stops the extra costs']
+              : choice.id === 'keep-manual'
+                ? ['no more automation offers', 'action → WRITE CODE']
+                : [],
       };
       return { card, order: 1000 + order, priority: CHOICE_PRIORITY };
     });
@@ -361,6 +366,7 @@ export function selectGame(run: ReadonlyRun, catalog: Catalog): GameViewModel {
     log: run.log.slice(-catalog.balance.logVisibleLines),
     ending: selectEnding(run, catalog),
     lastRelease: selectRelease(run, catalog, run.releases.length - 1),
+    credit: creditState(run, catalog),
   };
 }
 

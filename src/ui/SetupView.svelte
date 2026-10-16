@@ -167,6 +167,20 @@
           cannot pay, agents sit idle.</span
         >
       </li>
+      {#if e.money.credit}
+        <li>
+          <span class="what">{@render ico(icons.costIcon)}Borrowed</span>
+          <span class="value">${n(e.money.credit.owed)} / ${n(e.money.credit.limit)}</span>
+          <span class="note"
+            >The bank lends up to {Math.round(
+              e.money.credit.limit / Math.max(1, e.money.costPerSecond),
+            )} s of costs, at {(e.money.interestPerSecond * 100).toFixed(1)}% interest per second.
+            {#if e.money.credit.secondsLeft !== null}At this rate it stops in about {Math.ceil(
+                e.money.credit.secondsLeft,
+              )} s — then the creditors close the company.{:else}You are paying it back.{/if}</span
+          >
+        </li>
+      {/if}
       <li class="total">
         <span class="what">{@render ico(STAT_ICONS.margin)}Margin</span>
         <span class="value">${n(e.money.marginPerSecond)}/s</span>

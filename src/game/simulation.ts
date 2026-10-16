@@ -1,4 +1,5 @@
 import { evaluateChatter } from './chatter';
+import { creditNotices } from './money';
 import { releaseNotices } from './releases';
 import { updateAttention, updateCat } from './cat';
 import { advanceSession, sessionOf, withSession } from './catPlaySession';
@@ -60,8 +61,9 @@ export function stepRun(run: RunState, stepMs: number, catalog: Catalog): Transi
   const automatic = resolveAutomaticEnding(next, catalog);
   next = automatic.run;
   facts.push(...automatic.facts);
-  // Launch windows that opened or closed get their one log line each.
+  // A release that became available, and the credit line's milestones, get one line each.
   next = releaseNotices(next, catalog);
+  next = creditNotices(next, catalog);
   // Narrative events (quiet when something important happened this step).
   const linesBefore = next.log.length;
   next = evaluateNarrative(next, catalog, facts);
