@@ -17,6 +17,11 @@ export function loadToneAudio(createEngine: EngineFactory): LoadedAudio {
   };
 }
 
+/** The raw backend for the Music Lab, which composes its own director over it. */
+export function loadToneBackend(): { backend: MusicBackendPort; unlock: () => Promise<void> } {
+  return { backend: createToneBackend(Tone), unlock: () => Tone.start() };
+}
+
 export function contextState(): string {
   return Tone.getContext().state;
 }

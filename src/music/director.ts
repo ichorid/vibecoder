@@ -18,6 +18,8 @@ export interface MusicRequest {
   readonly arrangement: string;
   /** Lab audition: always play this exact version (loops on each boundary). */
   readonly pin?: string;
+  /** Lab audition only: plays the phrase at this BPM; never changes the source file. */
+  readonly tempoOverride?: number;
 }
 
 /**
@@ -66,6 +68,9 @@ export interface DirectorOptions {
 
 export interface MusicDirector extends MusicEngine {
   request(request: MusicRequest): void;
+  /** Replace the playable library (Lab mode switch); applies on the next replaceable boundary. */
+  setLibrary(library: MusicLibrary): void;
+
   /** The only reset: clears the clock, the bags and the scheduled phrase. */
   stop(): void;
   snapshot(): DirectorSnapshot;
@@ -82,7 +87,8 @@ interface Scheduled {
 const SILENT_KEY = 'silence@0';
 
 export function createDirector(options: DirectorOptions): MusicDirector {
-  const { backend, library } = options;
+  const { backend } = options;
+  let library = options.library;
   backend.loadPresets([...library.presets.values()]);
   let requested: MusicRequest = { era: 'discovery', arrangement: 'discovery-base' };
   /** Audible now (UI). */
@@ -211,10 +217,12 @@ export function createDirector(options: DirectorOptions): MusicDirector {
     const arrangement =
       library.arrangements.get(requested.arrangement) ??
       (era ? library.arrangements.get(era.defaultArrangement) : undefined);
-    const plan =
+    const compiled =
       pattern && arrangement
         ? compilePhrase(pattern, arrangement, library.presets, startTick, backend.ppq)
         : silentPlan(startTick);
+    const plan =
+      pattern && requested.tempoOverride ? { ...compiled, bpm: requested.tempoOverride } : compiled;
     const info: PhraseInfo = {
       key: plan.key,
       // Keep-current continues the playing era; a demo fallback stays labelled as requested.
@@ -230,6 +238,15 @@ export function createDirector(options: DirectorOptions): MusicDirector {
       (committed) => onCommit(committed, info),
     );
     next = { handle, plan, info, bagsBefore };
+  }
+
+  /** Replace the scheduled next phrase while it is not committed; otherwise wait a phrase. */
+  function replan(): void {
+    if (!started || !next) return;
+    if (backend.isCommitted(next.handle)) return;
+    backend.cancelPhrase(next.handle);
+    bags = new Map(next.bagsBefore);
+    schedule(next.plan.startTick);
   }
 
   /** Audio clock: the phrase is locked in, so plan the one after it. */
@@ -250,11 +267,13 @@ export function createDirector(options: DirectorOptions): MusicDirector {
   return {
     request(change) {
       requested = change;
-      if (!started || !next) return;
-      if (backend.isCommitted(next.handle)) return;
-      backend.cancelPhrase(next.handle);
-      bags = new Map(next.bagsBefore);
-      schedule(next.plan.startTick);
+      replan();
+    },
+    setLibrary(next) {
+      library = next;
+      backend.loadPresets([...next.presets.values()]);
+      bags = new Map();
+      replan();
     },
     snapshot: () => ({
       requested,

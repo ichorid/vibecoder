@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:music-lab": "vite --open /music-lab/",
     "build": "vite build && vite-node tools/reportSize.ts",
     "check:types": "svelte-check --tsconfig tsconfig.json && tsc -p tsconfig.game.json && tsc -p tools/type-fixtures/tsconfig.positive.json",
     "lint": "eslint src tests tools/*.ts tools/art tools/music art vite.config.ts vitest.config.ts playwright.config.ts",

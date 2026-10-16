@@ -193,6 +193,37 @@ describe('music director', () => {
   });
 });
 
+describe('music director: one engine for every Lab mode', () => {
+  it('swaps the library on the next boundary without a second player', () => {
+    const t = setup();
+    t.director.start();
+    t.fake.advanceTo(10);
+    const only = library({ patterns: [pattern({ id: 'only-one' })] });
+    t.director.setLibrary(only);
+    t.fake.advanceTo(PHRASE);
+    t.fake.advanceTo(2 * PHRASE);
+    expect(t.heard.slice(1).map((h) => h.key)).toEqual(['only-one@1', 'only-one@1']);
+    expect(t.fake.entries().length).toBeLessThanOrEqual(2);
+  });
+
+  it('an audition tempo override changes only the planned BPM, and is reported', () => {
+    const t = setup();
+    t.director.request({
+      era: 'discovery',
+      arrangement: 'test-arrangement',
+      pin: 'disc-a@1',
+      tempoOverride: 90,
+    });
+    t.director.start();
+    t.fake.advanceTo(0);
+    expect(t.fake.tempoLog).toEqual(['90 @0']);
+    expect(t.director.snapshot().requested.tempoOverride).toBe(90);
+    t.director.request({ era: 'discovery', arrangement: 'test-arrangement', pin: 'disc-a@1' });
+    t.fake.advanceTo(PHRASE);
+    expect(t.fake.tempoLog).toEqual(['90 @0', `120 @${PHRASE}`]);
+  });
+});
+
 describe('music director transitions', () => {
   function crossLibrary(extraPatterns: unknown[] = []) {
     const input = sources({

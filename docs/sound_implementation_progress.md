@@ -68,3 +68,15 @@ Status: **done** (headless; human listening of the motif/transition still pendin
 
 Exit: `test:music` 84/84, `test:music-browser` 12/12, `test:game` 332/332, `test:browser` 30/30, `npm run check` OK, build within budgets (Tone still outside game chunks).
 Not verified (needs a person): listening to the motif and the Discovery→Singularity transition. Next: S04 (Music Lab).
+
+## S04 — Music Lab in the main build
+
+Status: **done** (headless Chromium desktop/390 px; no human listening, no real phone)
+
+- S04.1 `music-lab/index.html`, `src/music-lab/{main.ts,App.svelte,sources.ts,labController.ts,components/}`, Vite multi-page `build.rollupOptions.input` (game + Lab) and `build.manifest`. `tools/reportSize.ts` now walks the manifest from `index.html` (static + dynamic imports, skipping the lazy audio loader) and **fails the build** if the game page can reach any `music-lab`/`reviewStore` module or if `dist/music-lab/index.html` is missing. Game initial JS 230 KiB gzip; Lab page 78 KiB; Tone loader chunk 83 KiB loads only on PLAY. Production Lab sources: eras/presets/arrangements/motif + `*-demo-*` patterns only (dev serves the full corpus); the published approved pack joins in S06. `npm run dev:music-lab`.
+- Director gained `setLibrary` (one director per Lab document serves all modes; applies at the next replaceable boundary) and `tempoOverride` (audition-only BPM in the plan; the file is untouched). RED 2/2 first.
+- `labController.ts` (RED 9/9 vs a stub): Single loops the pinned version, a selection applies on the boundary, the audible key is reported only through the backend's audible notification; hard-invalid versions list their errors and never load audio; Random is approved-only (honestly 0 before reviews) with an explicit demo toggle and a visible demo label (5 simulated minutes, no immediate repeats, no NEXT); Transition alternates A/B via the director's commit hook and warns ("Lab audition only") about disallowed boundaries or clock mismatches; Evolution uses the S03 timeline driver, shows fallback stages, stops on the first silent boundary after the last stage; any mode switch stops the old schedule (0 fake entries). Volume shares `vibecoder.audio.v1`. Two test mistakes corrected (a selection before the commit point does replace the next phrase; Random correctly refuses to play with no approvals).
+- Browser: `tests/browser/lab.spec.ts` (production preview, 6 tests): game page fetches no Lab/Tone/pattern chunk; opening the Lab creates no game save and no audio; Single/Random/Transition/Evolution play through Tone in Chromium; 390 px has no horizontal overflow in any mode; keyboard can reach PLAY; volume survives mode switches. `tests/browser/music-lab-dev.spec.ts` (dev server) lists the four demos. Screenshots reviewed at 1100 and 390 px (fixed an invisible badge colour).
+
+Exit: `test:music` 95/95, `test:music-browser` 13/13, `test:browser` 36/36, `test:game` 332/332, `npm run check` OK, build within budgets.
+Not verified: real listening; mobile Safari/Android audio unlock. Settings link already points to `/music-lab/`; the Game→Lab handoff (save/pause) is S07. Next: S05 (reviews).

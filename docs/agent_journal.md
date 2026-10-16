@@ -57,6 +57,10 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   `transitions: [{from,to,stinger:'id@rev'}]` naming a validated library pattern; it occupies its
   own compiled ticks; missing → skipped. No separate fade stage: instrument releases are bounded.
   No transition JSON schema yet (none needed until a stinger is authored).
+- D18 (S04) Music Lab = second Vite page (`music-lab/index.html`), no router. Production Lab bundles
+  only `music/patterns/**/*-demo-*.json` (file-name convention) until S06 publishes an approved
+  pack; dev serves everything. `reportSize.ts` walks `dist/.vite/manifest.json` and fails if the
+  game page reaches Lab modules. One director per Lab document (`setLibrary` per mode).
 - D5 (P02) App-level commands (`retrySave`, `setTheme`) go through the same public
   `dispatch` as game commands, so UI still sees only `{subscribe, dispatch}`.
 
@@ -133,3 +137,5 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   (commit-driven scheduling, stinger, cross-era tempo verified in real Tone offline render).
 - 2026-10-16: S03 done (director, library, transitions/tempo, 4 demo patterns, evolution
   timeline; real-Tone renders). test:music 84, test:music-browser 12. Next S04 (Music Lab).
+- 2026-10-16: S04 done (Lab entry, 4 modes over one director, size/dependency guard, 390 px).
+  test:music 95, test:music-browser 13, test:browser 36. Next S05 (reviews).
