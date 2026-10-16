@@ -39,10 +39,13 @@ describe('setup view', () => {
     const setup = selectSetup(stacked, catalog);
     expect(setup.stacked.find((s) => s.id === 'compute-slot')).toMatchObject({
       level: 3,
-      maxLevel: 8,
+      maxLevel: null,
       effects: ['+3 compute'],
     });
-    expect(setup.stacked.find((s) => s.id === 'review-capacity')?.effects).toEqual(['−1 debt/s']);
+    expect(setup.stacked.find((s) => s.id === 'review-capacity')?.effects).toEqual([
+      '−1 debt/s',
+      '+2 managed',
+    ]);
     expect(setup.stacked.some((s) => s.id === 'additional-agent')).toBe(false);
   });
 

@@ -35,5 +35,5 @@ describe('cat care is independent of productivity', () => {
     expect(deriveRates(cared, catalog)).toEqual(deriveRates(neglected, catalog));
     expect(selectGame(cared, catalog).offers).toEqual(selectGame(neglected, catalog).offers);
     expect(cared.rng.economy).toBe(neglected.rng.economy);
-  });
+  }, 20_000);
 });

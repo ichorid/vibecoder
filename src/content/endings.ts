@@ -61,8 +61,8 @@ export const choices: readonly ChoiceDefinition[] = [
       'Warning: the expansion costs more each second than the company currently earns. The agents are confident.',
     confirm: 'Operating costs will exceed revenue. Continue?',
     available: (run) => has(run, 'autonomous-company') && !chose(run, 'expand-anyway'),
-    // Fixed overhead: twice the current revenue rate, plus a floor, so it is truly loss-making.
-    overhead: (run) => Math.max(20, run.economy.revenuePerSecond * 2),
+    // Fixed overhead: three times the current revenue rate, plus a floor, so it is truly loss-making.
+    overhead: (run) => Math.max(20, run.economy.revenuePerSecond * 3),
   },
   {
     id: 'self-acquisition',

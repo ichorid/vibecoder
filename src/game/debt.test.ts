@@ -74,3 +74,15 @@ describe('technical debt and review', () => {
     expect(steps(run, 100, catalog).economy.debt).toBeLessThan(50);
   });
 });
+
+describe('a clean pipeline (freeze-features) counts from Evaluations', () => {
+  it('debt-free time before Evaluations does not count; after it, it does', () => {
+    const before = steps(era([], { debt: 0 }), 20, catalog);
+    expect(before.stats.lowDebtMs).toBe(0);
+    const evaluated = {
+      ...before,
+      unlockedTechnologyIds: [...before.unlockedTechnologyIds, 'evaluations' as const],
+    };
+    expect(steps(evaluated, 20, catalog).stats.lowDebtMs).toBe(2000);
+  });
+});

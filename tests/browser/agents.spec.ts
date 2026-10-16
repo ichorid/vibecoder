@@ -50,5 +50,7 @@ test('the reviewer appears with debt in the header and can be bought', async ({ 
   // The reviewer opens a new decision (keep writing by hand) on the same card surface.
   await openUpgrades(page);
   await expect(page.locator('[data-choice="keep-manual"]')).toBeVisible();
-  await expect(page.locator('.offers li')).toHaveCount(3);
+  await expect(page.getByRole('button', { name: /Parallel agents/ })).toBeVisible();
+  // At most three cards; capacity shows only when it would help (journal D29).
+  expect(await page.locator('.offers li').count()).toBeLessThanOrEqual(3);
 });

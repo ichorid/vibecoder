@@ -401,3 +401,41 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
 - F19: under the fully parallel Playwright run a real click takes ~1 s, so 20 paced presses
   (buying Autocomplete) took ~25 s and four specs hit the 30 s default. Raised the default to
   60 s in playwright.config.ts; nothing about the assertions changed.
+- 2026-10-16: economy redesign E4–E8 + §6 tests (one commit: the scenario tests only pass with
+  the money act of E7, and the prices of E6 were tuned against E4/E5).
+  E4: agents / compute / reviewers uncapped (maxLevel 99) and priced by payback —
+  `priceRule: { paybackSeconds }` (agent 45, compute 35, review 45 after tuning; doc said
+  60/45/60), price = roundNice(max(level floor, K × useful/s per runnable agent)); reviewers
+  also +1 managed. The compute slot now requires Parallel agents (one agent before that).
+  E5: tech managed 4→3 / 2→1 / 4→3 / 6→4 / 12→8 / 24→16; Evaluations review 10, unchecked ×0.5;
+  self-driving review 20; the clean-pipeline clock (lowDebtMs) counts only from Evaluations.
+  E6 (tuned, not the doc table): act 2–3 keep their old prices (650…4.2k); context 6k–local
+  7.4k; custom 14k–self-improvement 28k; self-driving 190k; PM 170k. E7: operating cost 3 per
+  agent; marketing 9k, finance 21k, executive 28k, company 42k (revenue); expand overhead 3×
+  revenue/s; credit 120 s. E8: a v1 disaster takes max(50 % of the bank, 30 s of output),
+  at most the bank; the log lines no longer say "half".
+- D29: capacity cards are offered only when they help now (pay back within 300 s) or are the
+  relevant suggestion (`cardAdvice` in selectors: best code per code spent; when none helps
+  alone, the scarcest of agent / compute / manager, only while agents can still be hired).
+  Why: with uncapped capacity, cards that add nothing (agents without compute, compute without
+  agents) were bottomless traps — the greedy buyer took 47–55 min and the baseline 35. Cost: the
+  §4 "two optional cards visible ≥ 80 %" target is missed (5–18 %). Also a gentle level floor
+  (priceGrowth 1.2) so idle capacity is not free to spam.
+- D30: early header panels (≤ 3 stats) keep three numbers; QUALITY/TEAM take the automation
+  slot or a free one (acceptance: "three at most early", "debt in the header" at the Reviewer).
+- D31: the 10 cps ≥ 0.9 × baseline invariant is not met (0.84–0.86): presses after the agent
+  still matter a lot (PROMPT/DELEGATE/SUPERVISE at the 3/s cap vs one every 3 s). Encoded a
+  ≥ 0.8 guard (stronger than the old ≥ 20 min) and a todo for 0.9.
+  MEASURED after E4–E8 (seeds 1/7/42/101/2024 for baseline, 1 and 42 otherwise):
+  | config | company | notes |
+  | 3 cps→1/3s | 29.8–30.2 | acts 0.5/5.7/13.5/19.5/21.5–23.0/29.8–30.2; walls 1.2/1.4/1.6–2.4/1.2–1.8/1.8–2.6; cadence 58–59 s; q<.9 21–31 %; coord<.95 40–41 %; PM→co 5.3; freeze +120 s |
+  | 1 cps→1/5s | 33.4–34.0 | ≤ 36 ✓ |
+  | 10 cps | 25.1–25.9 | 0.84–0.86 × baseline (target ≥ 0.9 ✗) |
+  | idle (1/min) | 41.2–41.6 | ≤ 55 ✓ |
+  | greedy (follows the cards) | 31.6–31.9 | 20 % faster than progression-only 39.1–40.0 ✓ |
+  | seer | 29.7–31.3 | peak debt 37–328 (target ≤ 120 ✗) |
+  | experience 0.5 | 20.0–21.3 | ≥ 20 floor ✓ |
+  Disaster cost 4–74 s (target 25–40 ✗; depends on when it lands). D3 (cat scaling) still open;
+  E9 not done. tests/scenarios/economy-shape.test.ts holds the met targets and lists the rest
+  as todos. Strategies: baseline 28–31 on five seeds, shipper ≤ 45 min (31.3), early-automation
+  manager 11.5–14.5 min.

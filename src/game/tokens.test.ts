@@ -3,7 +3,7 @@ import { catalog } from '../content/catalog';
 import { steps } from '../../tests/helpers/run';
 import { applyCommand } from './commands';
 import { createRun } from './createRun';
-import { deriveRates, tokenDemandPerSecond, tokenPack } from './economy';
+import { deriveRates, economyFlows, tokenDemandPerSecond, tokenPack } from './economy';
 import { selectGame } from './selectors';
 import type { TechnologyId } from './ids';
 import type { RunState } from './types';
@@ -100,6 +100,33 @@ describe('auto-refill', () => {
     expect(offered(low(trusting), 'token-supply')).toBe(false);
     const burned = { ...trusting, stats: { ...trusting.stats, refillDisasters: 1 } };
     expect(offered(low(burned), 'token-supply')).toBe(true);
+  });
+
+  it('the bug costs at least 30 s of current output, or the whole bank (savers and spenders)', () => {
+    for (const bank of [600, 5_000, 1e6]) {
+      let run = hungry(1, 1);
+      run = { ...run, economy: { ...run.economy, output: bank } };
+      for (let refill = 1; refill <= 6 && run.stats.refillDisasters === 0; refill += 1) {
+        run = { ...run, economy: { ...run.economy, tokens: 0, output: bank } };
+        const rates = deriveRates(run, catalog);
+        const perSecond =
+          economyFlows(run.economy, rates, 0.1, catalog.balance).useful / 0.1 +
+          rates.passiveOutputPerSecond;
+        const next = steps(run, 1, catalog);
+        if (next.stats.refillDisasters === 1) {
+          const lost = bank - next.economy.output;
+          const floor = Math.min(
+            bank,
+            Math.max(bank * tokens.disasterLoss, tokens.disasterSeconds * perSecond),
+          );
+          // This step's own small production lands before the loss.
+          expect(lost).toBeGreaterThan(floor - perSecond);
+          expect(next.economy.output).toBeGreaterThanOrEqual(0);
+        }
+        run = next;
+      }
+      expect(run.stats.refillDisasters).toBe(1);
+    }
   });
 
   it('v1 has a bug: one of its refills 3–6 spends half the code and delivers no tokens', () => {

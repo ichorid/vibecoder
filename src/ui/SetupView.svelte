@@ -225,8 +225,8 @@
           {@render ico(cardIcon(item.id))}
           <span class="text">
             <span class="title"
-              >{item.title}{#if item.maxLevel > 1}<span class="level"
-                  >×{item.level}/{item.maxLevel}</span
+              >{item.title}{#if item.maxLevel === null}<span class="level">×{item.level}</span
+                >{:else if item.maxLevel > 1}<span class="level">×{item.level}/{item.maxLevel}</span
                 >{/if}</span
             >
             <span class="effects">▸ {item.effects.join(' · ')}</span>

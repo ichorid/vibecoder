@@ -2,9 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { catalog } from '../content/catalog';
 import { act, steps } from '../../tests/helpers/run';
 import { withTechnologies } from '../../tests/helpers/unlock';
-import { applyCommand } from './commands';
 import { createRun } from './createRun';
-import { COORDINATION_FLOOR, coordinationEfficiency, deriveRates, upgradePrice } from './economy';
+import { COORDINATION_FLOOR, coordinationEfficiency, deriveRates } from './economy';
 import type { TechnologyId } from './ids';
 import { selectGame } from './selectors';
 import type { RunState } from './types';
@@ -61,7 +60,8 @@ describe('parallel agents and coordination', () => {
     const worktrees = deriveRates(era(['parallel-agents', 'worktrees']), catalog);
     expect(worktrees.managed).toBe(2);
     const manager = deriveRates(era(['parallel-agents', 'worktrees', 'manager-agent']), catalog);
-    expect(manager.managed).toBe(6);
+    // The manager coordinates about 70 % of the agents it brings (+3).
+    expect(manager.managed).toBe(5);
     expect(manager.workPerAgentPerSecond).toBe(worktrees.workPerAgentPerSecond);
   });
 
@@ -88,27 +88,6 @@ describe('parallel agents and coordination', () => {
 });
 
 describe('repeatable upgrades', () => {
-  it('double in price per level up to eight levels', () => {
-    const compute = catalog.upgrades.find((u) => u.id === 'compute-slot');
-    if (!compute) throw new Error('missing');
-    expect([0, 1, 2, 7].map((l) => upgradePrice(compute, l))).toEqual([150, 300, 600, 19_200]);
-    let run = era([], { output: 1e9 });
-    for (let i = 0; i < 8; i += 1) {
-      const bought = applyCommand(
-        run,
-        { type: 'buyUpgrade', id: 'compute-slot' },
-        run.activeMs,
-        catalog,
-      );
-      expect(bought.result).toBe('applied');
-      run = bought.run;
-    }
-    expect(run.upgradeLevels['compute-slot']).toBe(8);
-    expect(
-      applyCommand(run, { type: 'buyUpgrade', id: 'compute-slot' }, run.activeMs, catalog).result,
-    ).toBe('unavailable');
-  });
-
   it('shows the progression card, the choice, then the card for what binds, at most three', () => {
     const run = era(['parallel-agents'], { tokens: 0, output: 50 });
     const ids = selectGame(run, catalog).offers.map((o) => o.id);

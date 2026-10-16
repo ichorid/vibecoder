@@ -202,14 +202,17 @@ export function savingForReleases(buyer: Policy): Policy {
 
 const CAPACITY = new Set(['compute-slot', 'additional-agent', 'review-capacity']);
 
-/** Progression first; then buy every affordable capacity card at once (no balancing). */
+/**
+ * Progression first; then, as soon as it is affordable, the capacity card the game puts first
+ * (no hidden knowledge: only what the cards show).
+ */
 export const greedyCapacityBuyer: Policy = (context) => {
   const base = baselineBuyer(context);
   if (base.length > 0) return base;
   const card = selectGame(context.run, context.catalog).offers.find(
-    (o) => o.kind === 'upgrade' && o.affordable && CAPACITY.has(o.id),
+    (o) => o.kind === 'upgrade' && CAPACITY.has(o.id),
   );
-  return card?.kind === 'upgrade' ? [{ type: 'buyUpgrade', id: card.id }] : [];
+  return card?.kind === 'upgrade' && card.affordable ? [{ type: 'buyUpgrade', id: card.id }] : [];
 };
 
 /** Progression and token packs only: never buys capacity. */

@@ -107,7 +107,7 @@ export const balance = {
   logVisibleLines: 5,
   chatter: { minGapMs: 30_000, maxGapMs: 60_000, newestCount: 3, newestWeight: 3 },
   // Running at a loss borrows up to 3 minutes of costs, at 0.2 % interest per second.
-  money: { creditSeconds: 180, interestPerSecond: 0.002 },
+  money: { creditSeconds: 120, interestPerSecond: 0.002 },
   // Water it about every 4–6 minutes: twice in a row drowns it, forgetting it for ~8 dries it.
   plant: {
     start: 60,
@@ -123,8 +123,10 @@ export const balance = {
     packMin: 300,
     // Auto-refill waits until the tokens are gone (the agents do stall for a moment).
     refillBelowTokens: 1,
-    // The bug pays for a pack that never arrives: half the current code, zero tokens.
+    // The bug pays for a pack that never arrives: half the current code (at least 30 s of
+    // output, so a spender who keeps the bank low still feels it), zero tokens.
     disasterLoss: 0.5,
+    disasterSeconds: 30,
     firstDisasterFrom: 3,
     firstDisasterTo: 6,
     laterDisasterChance: 0.15,

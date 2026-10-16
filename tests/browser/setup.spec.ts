@@ -17,7 +17,9 @@ test('the stats panel opens the setup with the economy, stacked upgrades and tec
   await expect(page.getByRole('heading', { name: 'SETUP' })).toBeVisible();
   await expect(page.getByTestId('setup-total')).toContainText('code/s');
   await expect(page.getByTestId('setup-stacked')).toContainText('Compute slot');
-  await expect(page.getByTestId('setup-stacked')).toContainText('×2/8');
+  // Capacity has no practical cap any more: the level alone.
+  await expect(page.getByTestId('setup-stacked')).toContainText('×2');
+  await expect(page.getByTestId('setup-stacked')).not.toContainText('×2/');
   await expect(page.getByTestId('setup-technologies').locator('li')).toHaveCount(9);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
 

@@ -26,7 +26,8 @@ export interface SetupViewModel {
     readonly id: UpgradeId;
     readonly title: string;
     readonly level: number;
-    readonly maxLevel: number;
+    /** null for capacity bought by payback (no practical cap). */
+    readonly maxLevel: number | null;
     readonly effects: readonly string[];
   }[];
   readonly economy: {
@@ -196,7 +197,8 @@ export function selectSetup(run: ReadonlyRun, catalog: Catalog): SetupViewModel 
         : upgrade.effectsPerLevel
             .map((e) => effectText(stacked(e, level), catalog))
             .filter((line): line is string => line !== null);
-      return [{ id: upgrade.id, title: upgrade.title, level, maxLevel: upgrade.maxLevel, effects }];
+      const maxLevel = upgrade.priceRule ? null : upgrade.maxLevel;
+      return [{ id: upgrade.id, title: upgrade.title, level, maxLevel, effects }];
     }),
     economy: {
       action: catalog.primaryActionLabels[currentPrimaryAction(run, catalog)],

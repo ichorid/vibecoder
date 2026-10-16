@@ -35,12 +35,14 @@ describe('event log', () => {
         'generated-snippets',
         'ai-native-ide',
         'terminal-agent',
+        'parallel-agents',
       ],
       upgradeLevels: {
         autocomplete: 1,
         'generated-snippets': 1,
         'ai-native-ide': 1,
         'terminal-agent': 1,
+        'parallel-agents': 1,
       },
       economy: { ...base.economy, output: 100_000 },
     };

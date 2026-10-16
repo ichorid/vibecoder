@@ -249,9 +249,23 @@ export function tokenPack(run: ReadonlyRun, catalog: Catalog): { tokens: number;
 
 /** The price shown and charged for an offer at its current level. */
 export function offerPrice(run: ReadonlyRun, upgrade: UpgradeDefinition, catalog: Catalog): number {
-  return upgrade.pack === 'tokens'
-    ? tokenPack(run, catalog).price
-    : upgradePrice(upgrade, upgradeLevel(run, upgrade.id));
+  if (upgrade.pack === 'tokens') return tokenPack(run, catalog).price;
+  if (upgrade.priceRule) {
+    return roundNice(
+      Math.max(
+        upgradePrice(upgrade, upgradeLevel(run, upgrade.id)),
+        upgrade.priceRule.paybackSeconds * usefulPerAgentPerSecond(run, catalog),
+      ),
+    );
+  }
+  return upgradePrice(upgrade, upgradeLevel(run, upgrade.id));
+}
+
+/** One runnable agent's useful code per second at the current balances (0 with no agents). */
+function usefulPerAgentPerSecond(run: ReadonlyRun, catalog: Catalog): number {
+  const dt = 0.1;
+  const flows = economyFlows(run.economy, deriveRates(run, catalog), dt, catalog.balance);
+  return flows.useful / dt / Math.max(1, flows.runnable);
 }
 
 /** Share of manual responsibilities now handled by the system (0–1). */

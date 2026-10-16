@@ -5,7 +5,14 @@ import { releaseNotices } from './releases';
 import { updateAttention, updateCat } from './cat';
 import { advanceSession, sessionOf, withSession } from './catPlaySession';
 import type { Catalog } from './catalog';
-import { deriveRates, roundAmount, stepEconomy, tokenDemandPerSecond, tokenPack } from './economy';
+import {
+  deriveRates,
+  economyFlows,
+  roundAmount,
+  stepEconomy,
+  tokenDemandPerSecond,
+  tokenPack,
+} from './economy';
 import { nextFloat } from './random';
 import { appendLog } from './log';
 import { resolveAutomaticEnding } from './endings';
@@ -41,7 +48,11 @@ export function stepRun(run: RunState, stepMs: number, catalog: Catalog): Transi
     stats: {
       ...run.stats,
       lifetimeOutput: roundAmount(run.stats.lifetimeOutput + economy.produced),
-      lowDebtMs: economy.economy.debt <= LOW_DEBT ? run.stats.lowDebtMs + stepMs : 0,
+      // A clean pipeline counts from Evaluations: the checks have to exist to stay green.
+      lowDebtMs:
+        economy.economy.debt <= LOW_DEBT && run.unlockedTechnologyIds.includes('evaluations')
+          ? run.stats.lowDebtMs + stepMs
+          : 0,
       positiveMarginMs: monetized && margin > 0 ? run.stats.positiveMarginMs + stepMs : 0,
       negativeMarginMs: monetized && margin < 0 ? run.stats.negativeMarginMs + stepMs : 0,
     },
@@ -105,7 +116,8 @@ function recordStray(run: RunState, facts: GameFact[]): RunState {
  * Auto-refill buys one pack only when the tokens have run out (below `refillBelowTokens`) and
  * the code is there. Version 1's bug: its first disaster lands uniformly on refill 3–6 (a seeded
  * "pity timer", so it reliably happens soon), later ones with a fixed chance; a disaster deletes
- * `disasterLoss` of the current code (paid to the wrong account) and buys nothing. The auto-reviewer adds a small permanent
+ * `disasterLoss` of the current code — at least `disasterSeconds` of current output, at most
+ * the bank — (paid to the wrong account) and buys nothing. The auto-reviewer adds a small permanent
  * rate bonus every interval up to its cap.
  */
 function tokenAutomation(run: RunState, stepMs: number, catalog: Catalog): RunState {
@@ -149,20 +161,24 @@ function tokenAutomation(run: RunState, stepMs: number, catalog: Catalog): RunSt
         : 1 / (t.firstDisasterTo - refills + 1);
   const rng = { ...next.rng, economy: draw.state };
   if (draw.value < chance) {
+    const flows = economyFlows(next.economy, rates, 0.1, catalog.balance);
+    const perSecond = flows.useful / 0.1 + rates.passiveOutputPerSecond;
+    const bank = next.economy.output;
+    const loss = Math.min(bank, Math.max(bank * t.disasterLoss, t.disasterSeconds * perSecond));
     const crashed: RunState = {
       ...next,
       rng,
       economy: {
         ...next.economy,
         autoRefills: refills,
-        output: roundAmount(next.economy.output * (1 - t.disasterLoss)),
+        output: roundAmount(bank - loss),
       },
       stats: { ...next.stats, refillDisasters: next.stats.refillDisasters + 1 },
     };
     const story =
       next.stats.refillDisasters % 2 === 0
-        ? '💸 Auto-refill v1 paid for tokens into the wrong account: half your code is gone, no tokens arrived.'
-        : '💸 Auto-refill v1 donated your tokens to charity. It spent half your code doing it.';
+        ? '💸 Auto-refill v1 paid for tokens into the wrong account: your code is gone, no tokens arrived.'
+        : '💸 Auto-refill v1 donated your tokens to charity. It spent your code doing it.';
     return appendLog(crashed, story, catalog);
   }
   return {

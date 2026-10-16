@@ -218,18 +218,60 @@ const CHOICE_PRIORITY = 30;
  */
 const RELEVANT_PRIORITY = 31;
 
+const CAPACITY_CARDS = ['additional-agent', 'compute-slot', 'review-capacity'] as const;
+/** A capacity card "helps" when its extra code pays its price back within this long. */
+const HELPS_WITHIN_SECONDS = 300;
+
+interface CardAdvice {
+  /** The optional card that relieves what binds now (shown first among optional cards). */
+  readonly relevant: string | null;
+  /** Capacity cards whose extra code would pay back soon (the others are not offered). */
+  readonly helping: ReadonlySet<string>;
+}
+
 /** Which optional card is relevant now, from the economy's own flows (one step ahead). */
-function relevantCard(run: ReadonlyRun, catalog: Catalog): string | null {
+type ImpactOf = (upgrade: UpgradeDefinition) => ReturnType<typeof upgradeImpact>;
+
+function cardAdvice(run: ReadonlyRun, catalog: Catalog, impactOf: ImpactOf): CardAdvice {
   const rates = deriveRates(run, catalog);
-  if (rates.agents === 0) return null;
-  const flows = economyFlows(run.economy, rates, 0.1, catalog.balance);
+  const helping = new Set<string>();
+  if (rates.agents === 0) return { relevant: null, helping };
+  const offered = catalog.upgrades.filter(
+    (u) => (CAPACITY_CARDS as readonly string[]).includes(u.id) && isUpgradeOffered(run, u),
+  );
+  // The capacity card that adds the most code per code spent right now…
+  let best: { id: string; value: number } | null = null;
+  for (const upgrade of offered) {
+    const gain = impactOf(upgrade)?.codePerSecond ?? 0;
+    const value = gain / Math.max(1, offerPrice(run, upgrade, catalog));
+    if (value * HELPS_WITHIN_SECONDS < 1) continue;
+    helping.add(upgrade.id);
+    if (!best || value > best.value) best = { id: upgrade.id, value };
+  }
+  return { relevant: relevantCard(run, catalog, rates, offered, best?.id ?? null), helping };
+}
+
+function relevantCard(
+  run: ReadonlyRun,
+  catalog: Catalog,
+  rates: ReturnType<typeof deriveRates>,
+  offered: readonly UpgradeDefinition[],
+  best: string | null,
+): string | null {
   const demand = tokenDemandPerSecond(rates);
   if (demand > 0 && run.economy.tokens < demand * 30) return 'token-supply';
-  if (rates.compute < rates.agents) return 'compute-slot';
-  if (run.economy.debt > 20) return 'review-capacity';
-  const capacityBinds = flows.funded >= flows.demand - 1e-9;
-  if (capacityBinds && rates.managed >= rates.agents) return 'additional-agent';
-  return null;
+  if (run.economy.debt > 20 && offered.some((u) => u.id === 'review-capacity')) {
+    return 'review-capacity';
+  }
+  if (best) return best;
+  // …or, when none helps alone (agents need compute and a manager), the scarcest of the three —
+  // only while more agents can be hired (compute and managers beyond the agents do nothing).
+  const flows = economyFlows(run.economy, rates, 0.1, catalog.balance);
+  if (flows.funded < flows.demand - 1e-9) return null;
+  if (!offered.some((u) => u.id === 'additional-agent')) return null;
+  if (rates.agents <= Math.min(rates.compute, rates.managed)) return 'additional-agent';
+  if (rates.compute <= rates.managed) return 'compute-slot';
+  return 'review-capacity';
 }
 
 function offerPriority(
@@ -287,12 +329,15 @@ function headerStats(run: ReadonlyRun, catalog: Catalog): StatViewModel[] {
   if (run.unlockedTechnologyIds.length > 0 && statValue(run, 'team', catalog) < 95) {
     pressure.push('team');
   }
+  // Early panels keep three numbers: QUALITY and TEAM show only where a slot is free (DEBT already
+  // tells the quality story); Setup's "Limited by" names the rest.
+  const cap = ids.length > 3 ? 6 : 3;
   let shown = [...ids];
   for (const id of pressure) {
     const automation = shown.indexOf('automation');
     if (automation >= 0) shown[automation] = id;
-    else if (shown.length < 6) shown.push(id);
-    else shown = [...shown.slice(0, 5), id];
+    else if (shown.length < cap) shown.push(id);
+    else if (cap === 6) shown = [...shown.slice(0, 5), id];
   }
   return shown
     .slice(0, 6)
@@ -334,10 +379,21 @@ export function selectGame(
   catalog: Catalog,
   discovered: readonly DeepReadonly<DiscoveredEnding>[] = [],
 ): GameViewModel {
-  const relevant = relevantCard(run, catalog);
+  // One impact per card per call (the advice and the card both read it).
+  const impacts = new Map<string, ReturnType<typeof upgradeImpact>>();
+  const impactOf: ImpactOf = (upgrade) => {
+    if (!impacts.has(upgrade.id)) impacts.set(upgrade.id, upgradeImpact(run, upgrade, catalog));
+    return impacts.get(upgrade.id) ?? null;
+  };
+  const { relevant, helping } = cardAdvice(run, catalog, impactOf);
   const action = currentPrimaryAction(run, catalog);
   const upgradeCards = catalog.upgrades
-    .filter((upgrade) => isUpgradeOffered(run, upgrade))
+    // Capacity is offered only when it helps now or is what to buy next (no idle traps).
+    .filter(
+      (upgrade) =>
+        isUpgradeOffered(run, upgrade) &&
+        (!upgrade.priceRule || helping.has(upgrade.id) || upgrade.id === relevant),
+    )
     .map((upgrade, order) => {
       const price = offerPrice(run, upgrade, catalog);
       const card: UpgradeOfferViewModel = {
@@ -350,7 +406,7 @@ export function selectGame(
         affordable:
           (upgrade.currency === 'revenue' ? run.economy.revenue : run.economy.output) >= price,
         effects: cardEffects(upgrade, catalog),
-        impact: upgradeImpact(run, upgrade, catalog),
+        impact: impactOf(upgrade),
         ...(upgrade.pack === 'tokens' ? { tokens: tokenPack(run, catalog).tokens } : {}),
         ...(upgrade.discovers
           ? {

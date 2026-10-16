@@ -46,14 +46,10 @@ describe('infrastructure (13–17)', () => {
         expect(count).toBeLessThanOrEqual(3);
       }
     }
-    expect(selectGame(through('finance'), catalog).stats.map((s) => s.id)).toEqual([
-      'output',
-      'tokens',
-      'debt',
-      'revenue',
-      'margin',
-      'automation',
-    ]);
+    const finance = selectGame(through('finance'), catalog).stats.map((s) => s.id);
+    expect(finance.slice(0, 5)).toEqual(['output', 'tokens', 'debt', 'revenue', 'margin']);
+    // The progress meter's slot, unless QUALITY or TEAM hurts right now (E2).
+    expect(['automation', 'quality', 'team']).toContain(finance[5]);
   });
 });
 

@@ -169,6 +169,8 @@ export interface TokenBalance {
   readonly refillBelowTokens: number;
   /** Share of current code auto-refill v1's bug deletes. */
   readonly disasterLoss: number;
+  /** …but never less than this many seconds of current output (clamped to the bank). */
+  readonly disasterSeconds: number;
   /** v1's first disaster lands on one of these refills (uniformly). */
   readonly firstDisasterFrom: number;
   readonly firstDisasterTo: number;
@@ -279,7 +281,7 @@ export interface UpgradeDefinition {
   readonly description: string;
   readonly currency: Currency;
   readonly basePrice: number;
-  /** Price multiplier per owned level; 1 for one-time upgrades. */
+  /** Price multiplier per owned level; 1 for one-time upgrades (the floor with `priceRule`). */
   readonly priceGrowth: number;
   readonly maxLevel: number;
   /** When the offer may be shown. Visibility does not imply affordability. */
@@ -290,6 +292,11 @@ export interface UpgradeDefinition {
   readonly discovers?: TechnologyId;
   /** Effects granted per owned level (repeatables). One-time transitions keep effects on the technology. */
   readonly effectsPerLevel: readonly Effect[];
+  /**
+   * Capacity priced by payback: about `paybackSeconds` of one runnable agent's useful work right
+   * now, never below the level price (a gentle `priceGrowth`, so idle capacity is no free spam).
+   */
+  readonly priceRule?: { readonly paybackSeconds: number };
   /** Optional named rule for conditions the declarative requirements cannot express. */
   readonly extraCondition?: (run: ReadonlyRun) => boolean;
   /** When this holds, the card is a recovery choice and outranks optional repeatables. */

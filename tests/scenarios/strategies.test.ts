@@ -82,11 +82,14 @@ function withVisits(policies: readonly Policy[], everyMs: number, lengthMs: numb
 }
 
 describe('player strategies (full catalog)', { timeout: 120_000 }, () => {
-  for (const seed of [101, 202, 303, 404]) {
-    it(`baseline care reaches the autonomous company in 25–35 active min with a living cat (seed ${seed})`, () => {
+  // The design baseline (docs/economy_redesign.md §7): 3 presses per second, then one every 3 s.
+  const BASELINE_MIN = new Map<number, number>();
+  for (const seed of [1, 7, 42, 101, 2024]) {
+    it(`baseline care reaches the autonomous company in 28–31 active min with a living cat (seed ${seed})`, () => {
       const r = route(seed, baseline, 'baseline');
-      expect(r.minutes).toBeGreaterThanOrEqual(25);
-      expect(r.minutes).toBeLessThanOrEqual(35);
+      BASELINE_MIN.set(seed, r.minutes);
+      expect(r.minutes).toBeGreaterThanOrEqual(28);
+      expect(r.minutes).toBeLessThanOrEqual(31);
       expect(r.run.cat.alive).toBe(true);
     });
   }
@@ -96,8 +99,8 @@ describe('player strategies (full catalog)', { timeout: 120_000 }, () => {
     expect(r.run.cat.alive).toBe(false);
     expect(r.diedAtMin).not.toBeNull();
     expect(r.diedAtMin ?? Infinity).toBeLessThan(r.minutes);
-    expect(r.minutes).toBeGreaterThanOrEqual(25);
-    expect(r.minutes).toBeLessThanOrEqual(35);
+    expect(r.minutes).toBeGreaterThanOrEqual(28);
+    expect(r.minutes).toBeLessThanOrEqual(31);
   });
 
   it('the demanding cat needs a meal about every minute: feeding a third less often starves it', () => {
@@ -146,11 +149,14 @@ describe('player strategies (full catalog)', { timeout: 120_000 }, () => {
 
   it('high-frequency input (10 presses per second) cannot trivialise the route', () => {
     const r = route(
-      404,
+      101,
       [every(100, pressPrimary), baselineBuyer, acknowledgeReveals, ...baselineCare],
       'mashing',
     );
     expect(r.minutes).toBeGreaterThanOrEqual(20);
+    // Mashing beats the baseline tapper by at most ~20 % (the §4 target is 10 %; journal).
+    const baselineMin = BASELINE_MIN.get(101) ?? route(101, baseline, 'baseline').minutes;
+    expect(r.minutes).toBeGreaterThanOrEqual(0.8 * baselineMin);
   });
 
   it('overfeeding makes the cat sick for a while; normal care afterwards keeps it alive', () => {
@@ -211,6 +217,6 @@ describe('player strategies (full catalog)', { timeout: 120_000 }, () => {
     );
     expect(r.run.releases.length).toBeGreaterThanOrEqual(3);
     expect(r.minutes).toBeGreaterThanOrEqual(25);
-    expect(r.minutes).toBeLessThanOrEqual(60);
+    expect(r.minutes).toBeLessThanOrEqual(45);
   });
 });

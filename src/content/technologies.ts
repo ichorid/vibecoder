@@ -153,7 +153,7 @@ export const technologies = [
     worldAdditionId: 'world-manager-agent',
     primaryAction: 'supervise',
     effects: [
-      { kind: 'managedCapacity', amount: 4 },
+      { kind: 'managedCapacity', amount: 3 },
       { kind: 'automates', responsibility: 'delegating' },
       { kind: 'passiveTasksPerSecond', amount: 4 },
     ],
@@ -195,7 +195,7 @@ export const technologies = [
     worldAdditionId: 'world-model-routing',
     effects: [
       { kind: 'tokenCostMultiplier', amount: 0.5 },
-      { kind: 'managedCapacity', amount: 2 },
+      { kind: 'managedCapacity', amount: 1 },
     ],
   },
   {
@@ -236,7 +236,7 @@ export const technologies = [
     worldAdditionId: 'world-custom-harness',
     effects: [
       { kind: 'workPerAgentPerSecond', amount: 16 },
-      { kind: 'managedCapacity', amount: 4 },
+      { kind: 'managedCapacity', amount: 3 },
       { kind: 'reviewPerSecond', amount: 4 },
       { kind: 'passiveTasksPerSecond', amount: 10 },
     ],
@@ -250,7 +250,7 @@ export const technologies = [
     worldAdditionId: 'world-meta-harness',
     effects: [
       { kind: 'agents', amount: 6 },
-      { kind: 'managedCapacity', amount: 6 },
+      { kind: 'managedCapacity', amount: 4 },
       { kind: 'compute', amount: 6 },
       { kind: 'tokenSupplyPerSecond', amount: 150 },
       { kind: 'passiveTasksPerSecond', amount: 16 },
@@ -267,8 +267,8 @@ export const technologies = [
     illustrationId: 'tech-evaluations',
     worldAdditionId: 'world-evaluations',
     effects: [
-      { kind: 'reviewPerSecond', amount: 20 },
-      { kind: 'uncheckedFractionMultiplier', amount: 0.2 },
+      { kind: 'reviewPerSecond', amount: 10 },
+      { kind: 'uncheckedFractionMultiplier', amount: 0.5 },
       { kind: 'automates', responsibility: 'supervising' },
     ],
     headerStats: ['output', 'tokens', 'debt', 'automation'],
@@ -310,12 +310,12 @@ export const technologies = [
     worldAdditionId: 'world-self-driving-repositories',
     effects: [
       { kind: 'agents', amount: 12 },
-      { kind: 'managedCapacity', amount: 12 },
+      { kind: 'managedCapacity', amount: 8 },
       { kind: 'compute', amount: 12 },
       { kind: 'tokenSupplyPerSecond', amount: 400 },
       { kind: 'passiveTasksPerSecond', amount: 40 },
       { kind: 'uncheckedFractionMultiplier', amount: 0.5 },
-      { kind: 'reviewPerSecond', amount: 40 },
+      { kind: 'reviewPerSecond', amount: 20 },
     ],
   },
   {
@@ -347,7 +347,7 @@ export const technologies = [
     illustrationId: 'tech-finance',
     worldAdditionId: 'world-finance',
     effects: [
-      { kind: 'operatingCostPerAgent', amount: 1 },
+      { kind: 'operatingCostPerAgent', amount: 3 },
       { kind: 'monetizationMultiplier', amount: 1.25 },
     ],
     headerStats: ['output', 'tokens', 'debt', 'revenue', 'margin', 'automation'],
@@ -376,7 +376,7 @@ export const technologies = [
     effects: [
       { kind: 'agents', amount: 24 },
       { kind: 'compute', amount: 24 },
-      { kind: 'managedCapacity', amount: 24 },
+      { kind: 'managedCapacity', amount: 16 },
       { kind: 'passiveTasksPerSecond', amount: 60 },
     ],
   },
