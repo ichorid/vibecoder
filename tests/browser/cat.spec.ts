@@ -61,3 +61,13 @@ test('a dead cat stays dead: gray bars, memorial with two photos, no care', asyn
   await page.getByRole('button', { name: 'HISTORY' }).click();
   await expect(page.locator('section.history').getByText('The cat is gone.')).toBeVisible();
 });
+
+test('tapping the cat in the Cat view meows and counts as PET', async ({ page }) => {
+  await freshGame(page);
+  await page.getByTestId('cat-button').click();
+  const mood = page.locator('.meter', { hasText: 'Mood' }).locator('.value');
+  const before = Number(await mood.textContent());
+  await page.getByRole('button', { name: 'Tap the cat' }).click();
+  await expect(page.getByTestId('floating-gain').filter({ hasText: 'meow' })).toHaveCount(1);
+  await expect.poll(async () => Number(await mood.textContent())).toBeGreaterThan(before);
+});

@@ -7,6 +7,8 @@
   import type { DomSpriteSheet } from './contracts';
   import PixelIcon from './PixelIcon.svelte';
   import { catRound, catSitting } from './pixelArt';
+  import FloatingGains from './FloatingGains.svelte';
+  import { MAX_FLOATING, type FloatingGain } from './floatingGains';
 
   interface Props {
     cat: CatViewModel;
@@ -57,6 +59,18 @@
   function pet() {
     react(dispatch({ type: 'petCat' }) === 'applied' ? 'purr' : 'wiggle');
   }
+
+  /** Tapping the cat itself is PET (same cooldown); it always answers with a meow. */
+  let meows = $state<FloatingGain[]>([]);
+  let nextMeow = 0;
+  function tapCat(event: MouseEvent) {
+    pet();
+    const target = event.currentTarget as HTMLElement;
+    const rect = target.getBoundingClientRect();
+    const x = event.detail > 0 && rect.width > 0 ? (event.clientX - rect.left) / rect.width : 0.5;
+    nextMeow += 1;
+    meows = [...meows.slice(-(MAX_FLOATING - 1)), { id: nextMeow, text: 'meow', x, y: 0.15 }];
+  }
 </script>
 
 <section class="cat-view" aria-labelledby="cat-title">
@@ -65,7 +79,7 @@
     <h2 id="cat-title">CAT</h2>
   </div>
   {#if cat.alive}
-    <div class="portrait {cat.presentation}" class:sick={cat.sick} aria-hidden="true">
+    <div class="portrait {cat.presentation}" class:sick={cat.sick}>
       {#key reactionKey}
         <div
           class="sprite {reaction}"
@@ -80,6 +94,10 @@
           {/if}
         </div>
       {/key}
+      {#if !cat.play}
+        <button type="button" class="tap" aria-label="Tap the cat" onclick={tapCat}></button>
+      {/if}
+      <FloatingGains gains={meows} onDone={(id) => (meows = meows.filter((m) => m.id !== id))} />
     </div>
     <p class="condition" data-testid="cat-condition">
       {cat.conditionText}{#if cat.overfedText}{' '}{cat.overfedText}{/if}
@@ -141,7 +159,17 @@
     font-weight: 800;
     cursor: pointer;
   }
+  .tap {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
   .portrait {
+    position: relative;
     display: grid;
     place-items: center;
     min-height: 120px;
