@@ -145,10 +145,13 @@
     }
   }
 
-  /** The coded demo showing (right after coding it, or replayed from History). */
-  let watching = $state<number | null>(null);
+  /**
+   * The coded demo showing, and whether it was just coded (then the next demo can be designed
+   * under it) or is a replay from History (then it is only watched).
+   */
+  let watching = $state<{ number: number; fresh: boolean } | null>(null);
   const watched = $derived(
-    watching === null ? null : ($api.game.demos.find((d) => d.number === watching) ?? null),
+    watching === null ? null : ($api.game.demos.find((d) => d.number === watching?.number) ?? null),
   );
   /** Dev server only: the Demo lab (Vite drops the import from production builds). */
   const loadDemoLab = import.meta.env.DEV ? () => import('../ui/DemoLab.svelte') : null;
@@ -314,7 +317,7 @@
         {compactOffers}
         onSetup={() => open('setup')}
         onSound={(id: WheelSound) => audio.effect?.(id)}
-        onDemo={(number: number) => (watching = number)}
+        onDemo={(number: number) => (watching = { number, fresh: true })}
       >
         {#snippet world()}
           <WorldCanvas
@@ -340,7 +343,7 @@
           history={$api.history}
           onReturn={returnToGame}
           {illustrationUrl}
-          onWatch={(number: number) => (watching = number)}
+          onWatch={(number: number) => (watching = { number, fresh: false })}
         />
       </div>
     {:else if view === 'cat'}
@@ -362,7 +365,7 @@
         demo={watched}
         {reducedMotion}
         onClose={() => (watching = null)}
-        next={watched.number === $api.game.demos.length ? $api.game.demo : null}
+        next={watching?.fresh ? $api.game.demo : null}
         onDesign={designDemo}
       />
     {/key}

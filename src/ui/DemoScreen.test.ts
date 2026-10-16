@@ -137,5 +137,12 @@ describe('the demo popup', () => {
     await fireEvent.click(screen.getByTestId('demo-depack'));
     runFrames(400);
     expect(screen.queryByTestId('demo-designer')).toBeNull();
+    // not even the newest one: a replay is for watching only
+    await fireEvent.click(screen.getByRole('button', { name: 'CLOSE' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Watch demo 2' }));
+    await fireEvent.click(screen.getByTestId('demo-depack'));
+    runFrames(400);
+    expect(screen.getByTestId('demo-screen').getAttribute('data-phase')).toBe('play');
+    expect(screen.queryByTestId('demo-designer')).toBeNull();
   });
 });

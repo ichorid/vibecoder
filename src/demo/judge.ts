@@ -100,6 +100,46 @@ export function maskStats(m: Uint8Array): { coverage: number; cells: number; det
   };
 }
 
+/**
+ * Rotational symmetry 0…1: how well the picture matches itself turned about its centre by
+ * 360°/k for k = 3, 4, 5, 6 or 8 (the best k). Radial forms read high, lone figures low.
+ */
+export function symmetryOf(m: Uint8Array): number {
+  // covered pixels on a 2-pixel grid are enough to tell (and four times cheaper)
+  const xs: number[] = [];
+  const ys: number[] = [];
+  let sx = 0;
+  let sy = 0;
+  for (let y = 0; y < MASK_H; y += 2) {
+    for (let x = 0; x < MASK_W; x += 2) {
+      if (!m[y * MASK_W + x]) continue;
+      xs.push(x);
+      ys.push(y);
+      sx += x;
+      sy += y;
+    }
+  }
+  const n = xs.length;
+  if (n < 6) return 0;
+  const cx = sx / n;
+  const cy = sy / n;
+  let best = 0;
+  for (const k of [3, 4, 5, 6, 8]) {
+    const c = Math.cos((2 * Math.PI) / k);
+    const s = Math.sin((2 * Math.PI) / k);
+    let hits = 0;
+    for (let i = 0; i < n; i++) {
+      const dx = (xs[i] ?? 0) - cx;
+      const dy = (ys[i] ?? 0) - cy;
+      const x = Math.round(cx + dx * c - dy * s);
+      const y = Math.round(cy + dx * s + dy * c);
+      if (x >= 0 && x < MASK_W && y >= 0 && y < MASK_H && m[y * MASK_W + x]) hits++;
+    }
+    best = Math.max(best, hits / n);
+  }
+  return best;
+}
+
 /** Changed share of the pixels either mask covers (0 = same picture). */
 export function maskDiff(a: Uint8Array, b: Uint8Array): number {
   let union = 0,
@@ -127,6 +167,8 @@ export interface Verdict {
     readonly motion: number;
     /** Mask change between the judged moments, 3 s apart (a mesmerising form keeps flowing). */
     readonly flow: number;
+    /** Rotational symmetry (see `symmetryOf`) at the middle judged moment. */
+    readonly symmetry: number;
   };
 }
 
@@ -171,6 +213,8 @@ export function judge(g: Genome, ancestors: readonly (readonly Uint8Array[])[] =
   const flow =
     masks.slice(1).reduce((sum, m, i) => sum + maskDiff(masks[i] ?? m, m), 0) /
     Math.max(1, masks.length - 1);
+  // one moment is enough: a form's symmetry does not change much as it swirls
+  const symmetry = symmetryOf(masks[1] ?? masks[0] ?? new Uint8Array(MASK_W * MASK_H));
   const novelty =
     ancestors.length === 0
       ? 0
@@ -192,7 +236,7 @@ export function judge(g: Genome, ancestors: readonly (readonly Uint8Array[])[] =
     ok,
     score,
     masks,
-    parts: { biggest: fr.biggest, coverage, cells, detail, grain, motion, flow },
+    parts: { biggest: fr.biggest, coverage, cells, detail, grain, motion, flow, symmetry },
   };
 }
 
@@ -277,12 +321,24 @@ export function candidates(
 }
 
 /**
+ * Lineages may start radial, then drift away: children pay a mild penalty for rotational
+ * symmetry above 0.5 (radial first demos read 0.25 / 0.56 / 0.79, webs 0.89, flocks and swarms
+ * ≈ 0.4 at p10 / p50 / p90). First demos are not penalised.
+ */
+const SYMMETRY_WEIGHT = 0.8;
+const SYMMETRY_FREE = 0.5;
+
+/**
  * How the judge ranks a child: its score, plus a little when the tree's shape changed (another
  * family, an arrangement more or less, other copies) — lineages should wander, not polish one
- * blob.
+ * blob — minus the symmetry penalty.
  */
 export function pickScore(parent: Judged, child: Judged): number {
-  return child.verdict.score + (skeleton(child.genome) !== skeleton(parent.genome) ? 0.15 : 0);
+  return (
+    child.verdict.score +
+    (skeleton(child.genome) !== skeleton(parent.genome) ? 0.15 : 0) -
+    SYMMETRY_WEIGHT * Math.max(0, child.verdict.parts.symmetry - SYMMETRY_FREE)
+  );
 }
 
 /** How many variants the player chooses between; `MYSTERY` is the fourth choice. */

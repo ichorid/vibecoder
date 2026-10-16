@@ -96,9 +96,19 @@ invisible structure placing visible parts that do not touch. Our versions:
   one of 16 angles; shapes that are not round turn along their tube on screen. Ribs and tips
   each have a shape gene (mutation `shape`, cosmetic to the judge).
 
+## Moving away from radial (user, 2026-10-16)
+
+A first demo may be radial, but lineages then drift away: the judge's ranking of children
+(`pickScore`) subtracts `0.8·max(0, symmetry − 0.5)`, where symmetry is how well the middle
+mask matches itself turned by 360°/k (k = 3, 4, 5, 6, 8; on a 2-pixel grid). First demos read
+0.25 / 0.56 / 0.79 (radial, p10/p50/p90) and ≈ 0.4 for flocks and swarms. Over 14 lineages that
+start radial or as webs, mean symmetry goes 0.75 → 0.47 → 0.48 at demos 1 / 4 / 8 (without the
+penalty 0.73 → 0.61 → 0.66).
+
 ## Designing the next demo (user, 2026-10-16)
 
-On the demo screen — and only there, under the newest demo — the player chooses what the next
+On the demo screen — and only there, right after coding a demo (not when a demo is replayed
+from History, not even the newest) — the player chooses what the next
 demo grows into: three live previews (A is the judge's own pick; B and C are the next best that
 look different) or **???**, a mystery that starts a brand-new random form. The previews are
 built from the next demo's real seed (`nextUint32(rng.demo)`, exposed by the offer), so the

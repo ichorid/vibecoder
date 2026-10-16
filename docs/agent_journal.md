@@ -530,4 +530,8 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   ring, gem, cube, star, petal, drop; non-round ones turn along their tube). First demos viable
   40/40. Note: main-route scenario once exceeded vitest's 5 s timeout under load (passes alone
   and on rerun).
+- 2026-10-16: (user) children pay a mild rotational-symmetry penalty in the judge's ranking, so
+  radial starts drift away (mean symmetry 0.75 → 0.47 by demo 4); first demos unpenalised.
+  Bug fix (user): replaying a demo from History no longer shows the designer (only right after
+  coding one).
 
