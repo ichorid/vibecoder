@@ -3,7 +3,8 @@ import { closeUpgrades, freshGame, loadSave, openUpgrades } from './helpers';
 import { progressedRun, saveText } from './fixtures';
 
 test('from the empty room to a working terminal agent with real presses', async ({ page }) => {
-  test.setTimeout(240_000);
+  // Every press waits for the tap budget; a slow shared CI runner needs ~4.5 min (locally ~2).
+  test.setTimeout(480_000);
   await freshGame(page);
   const primary = page.getByTestId('primary-action');
   for (const name of [/Autocomplete/, /Generated snippets/, /AI-native IDE/, /Terminal agent/]) {

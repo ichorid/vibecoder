@@ -2,6 +2,8 @@ import { expect, test } from '@playwright/test';
 import { closeUpgrades, freshGame, headerStat, openUpgrades, pressPrimary } from './helpers';
 
 test('first loop: write, buy, announce, visit Cat, next offer, reload', async ({ page }) => {
+  // 24 real presses at the tap budget: ~35 s on a fast runner, over a minute on a slow one.
+  test.setTimeout(120_000);
   await freshGame(page);
   await expect(page.locator('body')).not.toContainText('Generated snippets');
 
