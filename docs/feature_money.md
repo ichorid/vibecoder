@@ -258,6 +258,23 @@ player builds nothing else at all.
   rich. The chance is **never shown**, hinted or announced; there is no warning. This is
   deliberate (owner, 2026-10-17): the job should feel safe and be unfair. It is the one hidden
   chance in the game; wheels keep their honesty rule.
+- **Historic milestone: Best Employee.** At the **12th payday of one job** (the first, pro-rated
+  payday counts), *before* that payday's layoff draw — so the mug and the firing can land on the
+  same day — a History entry is added once per run: **Best Employee** — *"Twelve months at
+  Enterprise Solutions Inc. They gave you a mug. It says BEST EMPLOYEE. It was ordered for
+  someone else."* Log: *"🏆 Best Employee of the Year. Please collect your mug from reception."*
+  - New History kind `{ kind: 'milestone'; id: 'best-employee'; activeMs }`; content in
+    `src/content/milestones.ts` (title, text, `illustrationId`). When awarded, the picture is
+    shown once in the unlock-announcement panel (kicker `HISTORIC MILESTONE`); in History the
+    entry uses the existing 32×24 illustration icon plus a **VIEW** button that reopens the
+    panel (History can only open demos today, via WATCH — this adds the same pattern).
+  - **Picture** (`art/illustrations/`, both themes): a corporate mug, *BEST EMPLOYEE* in a stiff
+    serif-like pixel font, a soulless swoosh logo for Enterprise Solutions Inc., a sad little
+    trophy decal, steam. No cat (the cat rule never has to decide).
+  - COULD: the mug stays on the desk in the room afterwards (world sprite, `WorldViewModel.mug`).
+  - Rarity: 12 consecutive paydays survive the 20 % draw with probability 0.8¹¹ ≈ 8.6 % (the 12th
+    draw comes after the award), and take 36 min of active time with nothing else built — a
+    trophy for the player who gave the corporation everything.
 - **Cooldown:** after a firing, no offers for 2 months (*"HR has flagged your profile."*).
 - **Automation never moves the job:** auto-selection and auto-refill leave it alone; only the
   player can get themselves fired.
@@ -313,7 +330,7 @@ rent: { movedOut: boolean; month: number; nextDueMs: number | null; missedStreak
 rentWheels: RentRecord[];          // committed results, for the wheel and History
 job: {
   offer: { salary: number; expiresAtMs: number } | null;
-  employed: { salary: number; monthEmployedMs: number } | null;
+  employed: { salary: number; monthEmployedMs: number; paydays: number } | null;
   awayMs: number;                  // time the job's slot has had another target (fired at 2 s)
   cooldownUntilMs: number | null;
   fired: number;
@@ -367,7 +384,8 @@ variants, cat rule validation) → wheel generalised.
 takes all code from every slot and never completes (other slots paused) → accepting drops the
 gig, no gig offers or search while employed → payday pro-rated before rent → another target > 2 s
 fires with final pay, ≤ 2 s does not → hidden layoff at payday after the salary, a flat 20 %
-(frequency test over 10 000 seeds), nothing about it in any view model → cooldown 2 months → automation never moves the job →
+(frequency test over 10 000 seeds), nothing about it in any view model → Best Employee at the 12th payday, once per run, before
+the layoff draw (History entry, illustration, log) → cooldown 2 months → automation never moves the job →
 invariant: never employed with a gig or after Product Management → ∞ card, EMPLOYED and
 PAUSED · employed badges (browser).
 
