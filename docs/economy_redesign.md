@@ -132,7 +132,7 @@ TDD order: reaching the same lesson ending twice gains 0.1 once → RED/GREEN; a
 `experience: 0.7` and two lesson endings loads as 0.2; a repeat ending's view model has
 `gained 0, repeat true`; a non-lesson ending still shows nothing. Tune targets in §4 stay at
 experience 0; add one harness line at experience 0.5 (all lessons) and require the 3 cps run
-to stay ≥ 20 min.
+to stay ≥ 20 min (superseded by owner decision D33, journal: ≈ 19 min with projects and money).
 
 ### E1 — Card surface: show the decision (MUST)
 

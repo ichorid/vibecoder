@@ -146,6 +146,10 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   Harness), company cards 6.6K/15.7K/20.5K/28K. Presentation: the "+N" of a press flies into
   the build it fills, a chime (`projectReady` → sfx `ready`) when the release or a demo is built,
   the company lanyard on the programmer while employed.
+- D33 (owner, 2026-10-17) The 20–30 min target is for an attentive player. Lessons stay +10 %
+  each (D1; five give +50 %, a veteran replay ≈ 19 min). A slow picker (15 s per decision)
+  pays ≈ 5–8 min — the drift exists to force attention; measured: the cost is the idle 15 s
+  after each of ~25 builds before Manager Agent, not the half rate (×0.75 changed nothing).
 - D5 (P02) App-level commands (`retrySave`, `setTheme`) go through the same public
   `dispatch` as game commands, so UI still sees only `{subscribe, dispatch}`.
 
@@ -581,4 +585,7 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   10 cps ≤ 20 % faster, early debt/coordination friction ≈ 80–140 s. Still todo (measured): five
   lessons give 18.6–19.1 min (target 20; needs weaker lessons — owner decision) and a 15 s
   reaction costs +3.9 / +4.8 / +7.9 min (seeds 42 / 1 / 101; target +4, guard ≤ +6).
+- 2026-10-17: owner decided D33 (keep +50 % lessons and the slow-picker cost). The two todos
+  became decisions; new contract test: an attentive player (picks within 5 s) finishes within
+  30 min (measured 28.9–29.4 min, 5 % drifted).
 

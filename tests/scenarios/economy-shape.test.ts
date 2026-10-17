@@ -85,10 +85,21 @@ describe('economy shape (§4 contract)', { timeout: 300_000 }, () => {
     for (const seed of SEEDS) expect(baseline(seed).freezeDelaySec).toBeGreaterThanOrEqual(60);
   });
 
+  // Owner decision D33: lessons stay +10 % each (+50 % with five), so a veteran replay with
+  // every lesson takes about 19 min, a little under the first run's 20–30.
   it('five lessons learned (experience 0.5) still leave well over half the run', () => {
     for (const seed of SEEDS) {
       const m = measured(`xp-${seed}`, () => measureRun(seed, { experience: 0.5 }));
       expect(minutes(m)).toBeGreaterThanOrEqual(0.6 * minutes(baseline(seed)));
+    }
+  });
+
+  it('an attentive player (picks within 5 s) still finishes within 30 min', () => {
+    // Owner decision D33: the 20–30 min target is for an attentive player; a slow picker pays.
+    for (const seed of SEEDS) {
+      const m = measured(`react-5-${seed}`, () => measureRun(seed, { react: 5 }));
+      expect(minutes(m)).toBeLessThanOrEqual(30);
+      expect(m.taxedShareEarly).toBeLessThanOrEqual(0.15);
     }
   });
 
@@ -104,12 +115,6 @@ describe('economy shape (§4 contract)', { timeout: 300_000 }, () => {
   });
 
   it.todo('mashing at 10 cps is at most 10 % faster (measured 14–16 %)');
-  it.todo(
-    'five lessons learned still leave a 20-minute run (measured 18.6–19.1 min: +50 % code yield on a 28 min run; meeting it needs weaker lessons, an owner decision)',
-  );
-  it.todo(
-    'a 15 s reaction costs at most 4 min (docs/feature_projects.md §9; measured +3.9 / +4.8 / +7.9 on seeds 42 / 1 / 101)',
-  );
   it.todo('quality < 0.9 for 30–60 % of minutes 16–31 (measured 21–31 %)');
   it.todo('two optional cards visible ≥ 80 % of the time from 4 min (D29: only helpful capacity)');
   it.todo('act walls ≥ 2 min (measured 1.2–2.6)');

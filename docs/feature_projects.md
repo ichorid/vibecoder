@@ -350,7 +350,7 @@ At experience 0, seeds 1/7/42/101/2024, 3 cps.
 |---|---|
 | Company reached, attentive player (react 1 s) | within ±1 min of today's measured baseline |
 | Taxed share before Manager Agent, react 1 s / 5 s / 15 s | ≤ 3 % / 8–15 % / 20–30 % |
-| Company reached, react 15 s | ≤ +4 min vs react 1 s |
+| Company reached, react 5 s | ≤ 30 min (owner D33: a 15 s picker pays ≈ 5–8 min, by design) |
 | Idle player (1 press/min after agent, react 60 s) | finishes ≤ 60 min |
 | v1 disaster cost | 25–40 s of progress |
 | Seconds with ≥ 1 visible BUILDING/AUTO site from Terminal Agent | ≥ 70 % |
