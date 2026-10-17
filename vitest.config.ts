@@ -22,6 +22,7 @@ export default defineConfig({
     environment: 'node',
     // Whole-run scenarios take 2–4 s locally; shared CI runners need headroom over the 5 s default.
     testTimeout: 30_000,
+    setupFiles: ['tests/helpers/yieldBetweenTests.ts'],
     // Long synchronous simulations on a small CI runner starve the main process when every core
     // runs a worker (Vitest then times out on worker RPC); two workers leave it room.
     ...(process.env.CI ? { maxWorkers: 2, minWorkers: 1 } : {}),
