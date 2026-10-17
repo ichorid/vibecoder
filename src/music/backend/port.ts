@@ -55,5 +55,5 @@ export interface MusicBackendPort {
 }
 
 /** Allowlisted short sound effects (explicit care actions only; never mood/health alerts). */
-export const SFX_IDS = ['feed', 'pet', 'play', 'tick', 'release', 'jackpot'] as const;
+export const SFX_IDS = ['feed', 'pet', 'play', 'tick', 'release', 'jackpot', 'ready'] as const;
 export type SfxId = (typeof SFX_IDS)[number];

@@ -53,7 +53,7 @@ describe('money shape (§9 contract)', { timeout: 300_000 }, () => {
 
   it('the frugal lesson (rent −10 %) keeps the run in shape', () => {
     const m = measured('frugal-1', () => measureRun(1, { frugal: 0.9 }));
-    expect(m.rentMissed).toBeLessThanOrEqual(1);
+    expect(m.rentMissed).toBe(0);
     expect(m.evictedMin).toBeNull();
     expect(m.companyMin).not.toBeNull();
   });

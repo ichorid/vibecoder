@@ -26,7 +26,7 @@
     STAT_ICONS,
   } from './cardIcons';
   const CODE_ICON = STAT_ICONS.code;
-  import { gainText, MAX_FLOATING, type FloatingGain } from './floatingGains';
+  import { buildSelector, gainText, MAX_FLOATING, type FloatingGain } from './floatingGains';
   import type { AttentionLevel } from '../game/types';
 
   interface Props {
@@ -110,12 +110,35 @@
     const target = event.currentTarget as HTMLElement;
     const rect = target.getBoundingClientRect();
     const fromPointer = event.detail > 0 && rect.width > 0;
-    const x = fromPointer ? (event.clientX - rect.left) / rect.width : 0.5;
+    const x = Math.min(
+      0.9,
+      Math.max(0.1, fromPointer ? (event.clientX - rect.left) / rect.width : 0.5),
+    );
     nextGainId += 1;
     gains = [
       ...gains.slice(-(MAX_FLOATING - 1)),
-      { id: nextGainId, text, x: Math.min(0.9, Math.max(0.1, x)) },
+      { id: nextGainId, text, x, ...flight(gain?.unit === 'code' && !capped, rect, x) },
     ];
+  }
+
+  /**
+   * A press of code flies into the build it fills: the first slot's card or strip, or the
+   * cards button while the popup is closed. Nothing to fly to: it simply rises.
+   */
+  function flight(code: boolean, host: DOMRect, x: number): { to?: { x: number; y: number } } {
+    const selector = code ? buildSelector(game.buildTarget) : null;
+    if (!selector || !controls || host.width <= 0) return {};
+    const into =
+      controls.querySelector<HTMLElement>(selector) ??
+      controls.querySelector<HTMLElement>('[data-testid="offers-toggle"]');
+    const box = into?.getBoundingClientRect();
+    if (!box || box.width <= 0) return {};
+    return {
+      to: {
+        x: Math.round(box.left + box.width / 2 - (host.left + host.width * x)),
+        y: Math.round(box.top + box.height / 2 - host.top),
+      },
+    };
   }
 
   /** Pick a project to build (or confirm one drifting at half speed). */

@@ -8,6 +8,26 @@ export interface FloatingGain {
   readonly x: number;
   /** Vertical start position inside the host, 0–1 (top when omitted). */
   readonly y?: number;
+  /** Where it flies to, in px from its start: into the build the press fills (none: it rises). */
+  readonly to?: { readonly x: number; readonly y: number };
+}
+
+/** The element a press fills (the first slot's build), as a CSS selector in Game. */
+export function buildSelector(target: string | null): string | null {
+  switch (target) {
+    case null:
+      return null;
+    case 'release':
+      return '[data-testid="ship-build"]';
+    case 'demo':
+      return '[data-testid="demo-build"]';
+    case 'gig':
+      return '[data-testid="gig"]';
+    case 'job':
+      return '[data-testid="job-card"]';
+    default:
+      return `[data-offer="${target}"]`;
+  }
 }
 
 /** Short text for one primary press: what it really added. */

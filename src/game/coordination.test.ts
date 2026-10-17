@@ -60,8 +60,8 @@ describe('parallel agents and coordination', () => {
     const worktrees = deriveRates(era(['parallel-agents', 'worktrees']), catalog);
     expect(worktrees.managed).toBe(2);
     const manager = deriveRates(era(['parallel-agents', 'worktrees', 'manager-agent']), catalog);
-    // The manager coordinates about 70 % of the agents it brings (+3).
-    expect(manager.managed).toBe(5);
+    // The manager coordinates about half of the agents it brings (+2): the team runs short.
+    expect(manager.managed).toBe(4);
     expect(manager.workPerAgentPerSecond).toBe(worktrees.workPerAgentPerSecond);
   });
 

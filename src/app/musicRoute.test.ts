@@ -26,7 +26,16 @@ import { createMusicBinding } from './musicBinding';
 
 const TICKS_PER_MS = (120 / 60) * (192 / 1000); // 120 BPM, PPQ 192
 
-async function fullRun(care: boolean) {
+/**
+ * Cat food costs money by design (docs/feature_money.md §5.5); comparing a cared-for cat with a
+ * neglected one needs free food, or the food bill alone would change the route.
+ */
+const freeFood = {
+  ...catalog,
+  balance: { ...catalog.balance, rent: { ...catalog.balance.rent, foodPerFeed: 0 } },
+};
+
+async function fullRun(care: boolean, cat: typeof catalog = catalog) {
   const fake = createFakeBackend();
   const heard: (PhraseInfo & { atMin: number })[] = [];
   let activeMs = 0;
@@ -58,13 +67,13 @@ async function fullRun(care: boolean) {
   const unlockAt = new Map<string, number>();
   while (run.activeMs < 45 * 60_000 && run.status === 'playing') {
     for (const policy of policies) {
-      for (const command of policy({ run, catalog })) {
-        const result = applyCommand(run, command, run.activeMs, catalog);
+      for (const command of policy({ run, catalog: cat })) {
+        const result = applyCommand(run, command, run.activeMs, cat);
         binding.facts(result.facts);
         run = result.run;
       }
     }
-    const step = stepRun(run, 100, catalog);
+    const step = stepRun(run, 100, cat);
     run = step.run;
     binding.facts(step.facts);
     activeMs = run.activeMs;
@@ -115,8 +124,8 @@ describe('music through a full game run (headless)', { timeout: 60_000 }, () => 
   });
 
   it('a starving or dead cat changes nothing in the music plan', async () => {
-    const cared = await fullRun(true);
-    const neglected = await fullRun(false);
+    const cared = await fullRun(true, freeFood);
+    const neglected = await fullRun(false, freeFood);
     expect(neglected.run.cat.alive).toBe(false);
     // Up to the earlier company unlock both runs share the same musical intents.
     const intents = (r: typeof cared) =>

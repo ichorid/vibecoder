@@ -138,6 +138,14 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   landlord wheel reuses the release wheel (red special slice). Prices: progression ×0.7 from
   Terminal Agent, act 1 30/120/400, Self-Driving Repositories 200K (the freeze-features window),
   company cards ×0.78. Schema 10 (bank → release progress).
+  Second tuning pass (same day): a gig taken over a build resumes that build when it is paid
+  (an interruption, no drift tax; `SlotState.resume`); reviewers cost 110 s of payback and
+  late technologies bring agents ahead of managers (manager +2, custom harness +1, meta harness
+  +2, model routing 0, self-driving +3, company +8) so the team runs short after each wave;
+  Autonomous Edits debt 0.012, custom-harness review 2.5; progression ×0.85 (×0.8 from Custom
+  Harness), company cards 6.6K/15.7K/20.5K/28K. Presentation: the "+N" of a press flies into
+  the build it fills, a chime (`projectReady` → sfx `ready`) when the release or a demo is built,
+  the company lanyard on the programmer while employed.
 - D5 (P02) App-level commands (`retrySave`, `setTheme`) go through the same public
   `dispatch` as game commands, so UI still sees only `{subscribe, dispatch}`.
 
@@ -565,4 +573,12 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   pressure dropped to 3–5 % (the second worktree builds the capacity) — now a todo. Found: the
   strategies route loop spun forever once a run ended (eviction freezes time) — fixed; a
   10 cps masher must search before mashing (search taps share the tap budget).
+- 2026-10-17 (second pass, stop-hook review): finished the presentation leftovers (flying gain,
+  ready chime, lanyard) and met the economy contract at its strict bounds again instead of
+  loosened ones: 3 cps baseline 27.4–28.0 min, every act within ±1.5 min of 1 / 6.5 / 11.5 / 16
+  / 20.5 / 28.5, coordination < 0.95 for 20–41 % and quality < 0.9 for 14–33 % of minutes 16–31,
+  money act 5.5–6.0 min, freeze-features 120 s after Evaluations, frugal run misses no rent,
+  10 cps ≤ 20 % faster, early debt/coordination friction ≈ 80–140 s. Still todo (measured): five
+  lessons give 18.6–19.1 min (target 20; needs weaker lessons — owner decision) and a 15 s
+  reaction costs +3.9 / +4.8 / +7.9 min (seeds 42 / 1 / 101; target +4, guard ≤ +6).
 

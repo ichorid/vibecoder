@@ -168,6 +168,14 @@ describe('music binding', () => {
     expect(t.fake.log.filter((l) => l.startsWith('sfx'))).toEqual(['sfx feed', 'sfx play']);
   });
 
+  it('a release (or demo) that is built and waits for SHIP gets a soft chime', async () => {
+    const t = setup();
+    await t.binding.controls.setSound(true);
+    t.binding.facts([{ type: 'projectBuilt', id: 'autocomplete' }]);
+    t.binding.facts([{ type: 'projectReady', id: 'release' }]);
+    expect(t.fake.log.filter((l) => l.startsWith('sfx'))).toEqual(['sfx ready']);
+  });
+
   it('the same technologies with a living or a dead cat give the same musical plan', async () => {
     const run = async (catDied: boolean) => {
       const t = setup();

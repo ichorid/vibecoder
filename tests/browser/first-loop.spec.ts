@@ -47,6 +47,13 @@ test('first loop: write, build, announce, visit Cat, next offer, reload', async 
   await expect(page.getByRole('list').first()).toContainText('Autocomplete');
 });
 
+test('a press of code flies into the build it fills', async ({ page }) => {
+  await freshGame(page);
+  await page.getByTestId('primary-action').click();
+  // The original project is the first build: the "+1" flies into its strip.
+  await expect(page.locator('[data-testid="floating-gain"][data-flies="build"]')).toHaveCount(1);
+});
+
 test('each accepted press floats its real gain up from the button', async ({ page }) => {
   await page.goto('/');
   await page.evaluate(() => localStorage.clear());

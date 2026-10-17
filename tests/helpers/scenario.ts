@@ -238,7 +238,15 @@ export function projectPlayer(options: BuyerOptions = {}): Policy {
     const rates = deriveRates(run, catalog);
     const demand = tokenDemandPerSecond(rates);
     const pack = money.find((o) => o.id === 'token-supply');
-    if (pack && demand > 0 && run.economy.tokens < demand * MANUAL_PACK_BELOW_SECONDS) {
+    // Rent comes first: no pack that leaves less than the rent due within half a minute.
+    const due = game.money?.rentInSeconds;
+    const rentSoon = due !== null && due !== undefined && due < 30 ? (game.money?.rent ?? 0) : 0;
+    if (
+      pack &&
+      demand > 0 &&
+      run.economy.tokens < demand * MANUAL_PACK_BELOW_SECONDS &&
+      run.economy.money - pack.price >= rentSoon
+    ) {
       commands.push({ type: 'buyUpgrade', id: pack.id });
     } else {
       const company = money.find((o) => catalog.upgrades.find((u) => u.id === o.id)?.discovers);

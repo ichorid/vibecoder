@@ -70,3 +70,18 @@ describe('construction sites in the world projection', () => {
     expect(selectWorld(late, catalog).rentNotice).toBe('overdue');
   });
 });
+
+describe('the lanyard', () => {
+  it('is worn only while employed', () => {
+    const run = createRun(1, 'r');
+    expect(selectWorld(run, catalog).employed).toBe(false);
+    const hired = {
+      ...run,
+      job: {
+        ...run.job,
+        employed: { salary: 300, monthEmployedMs: 0, paydays: 0, permanent: false },
+      },
+    };
+    expect(selectWorld(hired, catalog).employed).toBe(true);
+  });
+});

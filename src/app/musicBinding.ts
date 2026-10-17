@@ -166,11 +166,18 @@ export function createMusicBinding(options: MusicBindingOptions): MusicBinding {
     facts(facts) {
       if (!director || controller.state().status !== 'playing') return;
       for (const fact of facts) {
-        if (fact.type !== 'catCared') continue;
+        // Care chirps, and a chime when the release (or a demo) is built and waits for SHIP.
+        const sfx =
+          fact.type === 'catCared'
+            ? fact.kind
+            : fact.type === 'projectReady'
+              ? ('ready' as const)
+              : null;
+        if (!sfx) continue;
         const at = options.now();
         if (at - lastSfx < SFX_COOLDOWN_MS) continue;
         lastSfx = at;
-        director.playSfx(fact.kind);
+        director.playSfx(sfx);
       }
     },
     suspend: () => controller.suspend(),

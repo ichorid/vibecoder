@@ -21,6 +21,7 @@ const world: WorldProjection = {
   plant: 'ok',
   sites: [],
   rentNotice: 'none',
+  employed: false,
   theme: 'light',
   reducedMotion: false,
 };

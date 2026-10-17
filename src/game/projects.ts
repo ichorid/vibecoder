@@ -293,6 +293,7 @@ function deliver(
     if (key === 'release' || key === 'demo') {
       // It waits for the player: the rest is polish.
       next = { ...next, projects: { ...next.projects, [key]: { code: price, price } } };
+      facts.push({ type: 'projectReady', id: key });
       next = polish(next, key, code - price, catalog);
       return next;
     }
@@ -305,7 +306,12 @@ function deliver(
     next = done.run;
     facts.push(...done.facts);
     if (next.status !== 'playing') return next;
-    next = nextTarget(next, index, catalog);
+    // A gig was an interruption: back to the build it interrupted, at full speed.
+    const resume = slot.resume;
+    next =
+      resume && isProjectAvailable(next, resume.target, catalog)
+        ? setSlot(next, index, resume.target, resume.by)
+        : nextTarget(next, index, catalog);
   }
   return next;
 }
@@ -515,7 +521,16 @@ export function selectProject(
     open.find(({ s }) => s.by === 'system') ??
     [...open].sort((a, b) => a.s.sinceMs - b.s.sinceMs)[0];
   if (!pick) return null;
-  return { run: setSlot(run, pick.i, key, 'player'), facts: [] };
+  const picked = setSlot(run, pick.i, key, 'player');
+  // A gig taken over a real build remembers it: the slot returns there once the gig is paid.
+  const was = pick.s;
+  if (key === 'gig' && was.by !== 'fallback' && was.target !== 'gig') {
+    const slots = picked.slots.map((s, i) =>
+      i === pick.i ? { ...s, resume: { target: was.target, by: was.by } } : s,
+    );
+    return { run: { ...picked, slots }, facts: [] };
+  }
+  return { run: picked, facts: [] };
 }
 
 /** Consume a ready release/demo's code (SHIP or running the demo). */

@@ -248,6 +248,8 @@ export interface SlotState {
   by: SlotBy;
   /** Active time the target was set (tap rule, overrule timer). */
   sinceMs: number;
+  /** A gig taken over a build: when it is paid, the slot goes back to that build. */
+  resume?: { target: ProjectKey; by: SlotBy };
 }
 
 /** A gig on the board: its size and pay are drawn when it is offered. */
@@ -400,6 +402,8 @@ export type GameFact =
   | { type: 'catCared'; kind: 'feed' | 'pet' | 'play' }
   | { type: 'purchased'; id: UpgradeId }
   | { type: 'projectBuilt'; id: ProjectKey }
+  /** The release or a demo holds its price and waits for SHIP / RUN. */
+  | { type: 'projectReady'; id: 'release' | 'demo' }
   | { type: 'gigPaid'; amount: number }
   | { type: 'hired' }
   | { type: 'fired'; reasonId: string; finalPay: number }

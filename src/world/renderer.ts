@@ -281,6 +281,23 @@ export async function createPixiRenderer(
     rentNotice.rect(-69, -7, 1, 2).fill(0x9aa3b5);
   }
 
+  // ---- The company lanyard, worn while employed (a strap on the neck, a badge at the side). ----
+  const lanyard = new Graphics();
+  siteLayer.addChild(lanyard);
+  let lanyardDrawn: boolean | null = null;
+  function drawLanyard(): void {
+    const on = projection?.employed ?? false;
+    if (on === lanyardDrawn) return;
+    lanyardDrawn = on;
+    lanyard.clear();
+    if (!on) return;
+    // The programmer stands at (−36, −20): neck at local (16–21, 13–16), torso to the right.
+    lanyard.rect(-20, -5, 6, 1).fill(0xc0392b);
+    lanyard.rect(-14, -5, 1, 9).fill(0xc0392b);
+    lanyard.rect(-16, 4, 4, 5).fill(0xf4f1e8).stroke({ width: 0.5, color: 0x2b1d14 });
+    lanyard.rect(-15, 5, 2, 1).fill(0x3d8fe0);
+  }
+
   // ---- Construction sites. ----
   const sites = new Map<string, Site>();
   let framedSiteKey: string | null = null;
@@ -835,6 +852,7 @@ export async function createPixiRenderer(
     if (plan.build.length > 0 || plan.reveal) rebuildLinks();
     reconcileSites();
     drawRentNotice();
+    drawLanyard();
     const firstFraming = envelopeIds.length === 0 && clusters.size <= plan.build.length + 1;
     const changed = plan.envelopeIds.join() !== envelopeIds.join();
     envelopeIds = plan.envelopeIds;
@@ -868,6 +886,7 @@ export async function createPixiRenderer(
     data.plant = plantBuilt;
     data.sites = [...sites.keys()].join(',');
     data.rentNotice = noticeDrawn ?? 'none';
+    data.lanyard = lanyardDrawn ? 'on' : 'off';
     data.framedSite = framedSiteKey ?? '';
     // Screen centres of the tap targets (CSS px on the canvas), empty when not tappable.
     const at = (x: number, y: number) => {

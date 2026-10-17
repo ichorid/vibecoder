@@ -230,10 +230,12 @@ export function createToneBackend(tone: Tone, options: ToneBackendOptions = {}):
         tick: ['A6'],
         release: ['G5', 'C6'],
         jackpot: ['C5', 'E5', 'G5', 'C6', 'G5', 'C6'],
+        // A build is ready to ship: a soft rising chime.
+        ready: ['E5', 'G5', 'C6'],
       };
       const sequence = notes[id];
-      const gap = id === 'jackpot' ? 0.11 : 0.07;
-      const level = id === 'tick' ? 0.25 : 0.5;
+      const gap = id === 'jackpot' ? 0.11 : id === 'ready' ? 0.09 : 0.07;
+      const level = id === 'tick' ? 0.25 : id === 'ready' ? 0.35 : 0.5;
       sequence.forEach((note, i) => {
         const length = id === 'tick' ? 0.015 : i === sequence.length - 1 ? 0.07 : 0.05;
         sfxSynth?.triggerAttackRelease(note, length, now + i * gap, level);

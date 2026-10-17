@@ -421,10 +421,19 @@ function decodeProjects(value: unknown, path: string): RunState['projects'] {
 
 function decodeSlot(value: unknown, path: string): RunState['slots'][number] {
   const raw = record(value, path);
-  return {
+  const slot: RunState['slots'][number] = {
     target: oneOf(raw.target, `${path}.target`, PROJECT_KEYS),
     by: oneOf(raw.by, `${path}.by`, SLOT_BY),
     sinceMs: num(raw.sinceMs, `${path}.sinceMs`, nonNegative),
+  };
+  if (raw.resume === undefined) return slot;
+  const resume = record(raw.resume, `${path}.resume`);
+  return {
+    ...slot,
+    resume: {
+      target: oneOf(resume.target, `${path}.resume.target`, PROJECT_KEYS),
+      by: oneOf(resume.by, `${path}.resume.by`, SLOT_BY),
+    },
   };
 }
 

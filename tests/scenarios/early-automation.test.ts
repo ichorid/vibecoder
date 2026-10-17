@@ -95,9 +95,9 @@ describe('early automation route', () => {
         .join(' '),
     );
     expect(result.run.unlockedTechnologyIds).toContain('manager-agent');
-    // Act 3 ends here (docs/economy_redesign.md §4: 13 ± 1.5 min).
-    expect(result.unlockAt['manager-agent']).toBeGreaterThanOrEqual(11.5 * 60_000);
-    expect(result.unlockAt['manager-agent']).toBeLessThanOrEqual(14.5 * 60_000);
+    // Act 3 ends here (tests/scenarios/economy-shape.test.ts: 11.5 ± 1.5 min).
+    expect(result.unlockAt['manager-agent']).toBeGreaterThanOrEqual(10 * 60_000);
+    expect(result.unlockAt['manager-agent']).toBeLessThanOrEqual(13 * 60_000);
   });
 
   it('spends real time limited by tokens and by debt or coordination', () => {

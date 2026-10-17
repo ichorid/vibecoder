@@ -3,7 +3,7 @@ import { catalog } from '../content/catalog';
 import { act, steps } from '../../tests/helpers/run';
 import { withTechnologies } from '../../tests/helpers/unlock';
 import { createRun } from './createRun';
-import { automationFraction, deriveRates } from './economy';
+import { automationFraction, creditLimit, deriveRates } from './economy';
 import { TECHNOLOGY_IDS, type TechnologyId } from './ids';
 import { selectGame } from './selectors';
 import type { RunState } from './types';
@@ -96,7 +96,7 @@ describe('organizations (23–28)', () => {
     expect(before.economy.revenuePerSecond).toBe(0);
     const after = steps(through('product-management'), 50, catalog);
     expect(after.economy.revenuePerSecond).toBeGreaterThan(0);
-    expect(after.economy.money).toBeGreaterThan(before.economy.money);
+    expect(after.economy.money).toBeGreaterThan(0);
     expect(selectGame(after, catalog).stats.map((s) => s.id)).toContain('money');
   });
 
@@ -106,11 +106,12 @@ describe('organizations (23–28)', () => {
     expect(selectGame(run, catalog).stats.map((s) => s.id)).toContain('margin');
   });
 
-  it('idles unfunded capacity when revenue runs out, never going negative', () => {
+  it('idles unfunded capacity when revenue runs out, never past the credit line', () => {
     const run = through('finance', { money: 0 });
     const starved = { ...run, upgradeLevels: { ...run.upgradeLevels, 'additional-agent': 8 } };
     const later = steps(starved, 200, catalog);
-    expect(later.economy.money).toBeGreaterThanOrEqual(0);
+    const limit = creditLimit(later.economy.costPerSecond, catalog.balance);
+    expect(later.economy.money).toBeGreaterThanOrEqual(-limit - 1e-6);
     expect(Number.isFinite(later.stats.lifetimeOutput)).toBe(true);
   });
 

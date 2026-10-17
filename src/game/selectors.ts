@@ -49,6 +49,7 @@ import type {
   DeepReadonly,
   DiscoveredEnding,
   MilestoneId,
+  ProjectKey,
   ReadonlyRun,
 } from './types';
 
@@ -244,6 +245,8 @@ export interface GameViewModel {
   readonly rentWheel: RentWheelViewModel | null;
   /** A market update or milestone panel waiting to be shown. */
   readonly notice: NoticeViewModel | null;
+  /** What a press builds right now (the first slot's target), for the flying "+N". */
+  readonly buildTarget: ProjectKey | null;
 }
 
 /** What a History line shows in front of its title. */
@@ -575,6 +578,7 @@ export function selectGame(
     job: selectJob(run, catalog),
     rentWheel: selectRentWheel(run, catalog),
     notice: selectNotice(run, catalog),
+    buildTarget: run.status === 'playing' ? (run.slots[0]?.target ?? null) : null,
   };
 }
 
@@ -853,6 +857,8 @@ export interface WorldViewModel {
   readonly sites: readonly WorldSiteViewModel[];
   /** The rent notice on the room's door: none, a bill, or a red one after a missed month. */
   readonly rentNotice: 'none' | 'notice' | 'overdue';
+  /** At the enterprise job: the programmer wears the company lanyard. */
+  readonly employed: boolean;
 }
 
 /** A build shown in the world as scaffolding. */
@@ -886,6 +892,7 @@ export function selectWorld(run: ReadonlyRun, catalog: Catalog): WorldViewModel 
     computeSlots: run.upgradeLevels['compute-slot'] ?? 0,
     plant: plantLook(run, catalog),
     sites: worldSites(run, catalog),
+    employed: run.status === 'playing' && run.job.employed !== null,
     rentNotice:
       !run.rent.movedOut || run.unlockedTechnologyIds.includes('product-management')
         ? 'none'

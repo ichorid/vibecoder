@@ -59,7 +59,7 @@ export const technologies = [
     worldAdditionId: 'world-autonomous-edits',
     effects: [
       { kind: 'workPerAgentPerSecond', amount: 6 },
-      { kind: 'debtPerUncheckedWork', amount: 0.01 },
+      { kind: 'debtPerUncheckedWork', amount: 0.012 },
       { kind: 'uncheckedFractionMultiplier', amount: 0.5 },
       // The few tests it brings catch a little: a slow recovery path before the reviewer.
       { kind: 'reviewPerSecond', amount: 0.05 },
@@ -153,7 +153,7 @@ export const technologies = [
     worldAdditionId: 'world-manager-agent',
     primaryAction: 'supervise',
     effects: [
-      { kind: 'managedCapacity', amount: 3 },
+      { kind: 'managedCapacity', amount: 2 },
       { kind: 'automates', responsibility: 'delegating' },
       { kind: 'passiveTasksPerSecond', amount: 4 },
     ],
@@ -195,7 +195,7 @@ export const technologies = [
     worldAdditionId: 'world-model-routing',
     effects: [
       { kind: 'tokenCostMultiplier', amount: 0.5 },
-      { kind: 'managedCapacity', amount: 1 },
+      { kind: 'managedCapacity', amount: 0 },
     ],
   },
   {
@@ -236,8 +236,8 @@ export const technologies = [
     worldAdditionId: 'world-custom-harness',
     effects: [
       { kind: 'workPerAgentPerSecond', amount: 16 },
-      { kind: 'managedCapacity', amount: 3 },
-      { kind: 'reviewPerSecond', amount: 4 },
+      { kind: 'managedCapacity', amount: 1 },
+      { kind: 'reviewPerSecond', amount: 2.5 },
       { kind: 'passiveTasksPerSecond', amount: 10 },
     ],
   },
@@ -250,7 +250,7 @@ export const technologies = [
     worldAdditionId: 'world-meta-harness',
     effects: [
       { kind: 'agents', amount: 6 },
-      { kind: 'managedCapacity', amount: 4 },
+      { kind: 'managedCapacity', amount: 2 },
       { kind: 'compute', amount: 6 },
       { kind: 'tokenSupplyPerSecond', amount: 150 },
       { kind: 'passiveTasksPerSecond', amount: 16 },
@@ -310,7 +310,7 @@ export const technologies = [
     worldAdditionId: 'world-self-driving-repositories',
     effects: [
       { kind: 'agents', amount: 12 },
-      { kind: 'managedCapacity', amount: 8 },
+      { kind: 'managedCapacity', amount: 3 },
       { kind: 'compute', amount: 12 },
       { kind: 'tokenSupplyPerSecond', amount: 400 },
       { kind: 'passiveTasksPerSecond', amount: 40 },
@@ -376,7 +376,7 @@ export const technologies = [
     effects: [
       { kind: 'agents', amount: 24 },
       { kind: 'compute', amount: 24 },
-      { kind: 'managedCapacity', amount: 16 },
+      { kind: 'managedCapacity', amount: 8 },
       { kind: 'passiveTasksPerSecond', amount: 60 },
     ],
   },
