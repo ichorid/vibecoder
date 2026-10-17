@@ -151,7 +151,9 @@ need falls. The announcements reveal nothing about upcoming technologies (progre
 
 - **Move-out** happens when the first gig is paid (log line). Rent is due every `monthMs`
   (180 000 ms of active time) from then on; the strip shows the countdown.
-- **Rent:** `rentBase` ($100) × the profile's frugal factor (0.9 after AI Got My Job, §5.9).
+- **Rent:** `(rentBase + rentCreep × months since move-out) × frugal`, rounded to whole dollars:
+  $100, $101, $102, … (`rentCreep` = $1), times 0.9 after AI Got My Job (§5.9). The increase is
+  **quiet**: no log line, no announcement; only the number on the strip changes.
 - **Cat food:** $2 per accepted FEED after move-out. Feeding is **never** blocked by money (it may
   go into debt) and never starts the landlord wheel. Cat care still has no positive production
   effect (initial design §6).
@@ -249,6 +251,13 @@ player builds nothing else at all.
     productive*, alive-only: *your cat walked across the keyboard during the all-hands*. Format:
     *"💼 You're fired: {reason}. Your final paycheck: ${n}."*
   - The player's new target runs at ×1 (they chose it; no fallback tax).
+- **Layoffs (hidden):** at every payday while employed, after the salary is paid, a draw from
+  `rng.gigs` may fire the player anyway, with the same reasons and log format (the final
+  paycheck is the salary just paid). The chance grows with tenure — paydays employed 1, 2, 3, 4,
+  5+: **10 / 20 / 30 / 40 / 50 %** — so a job lasts about 3 months on average and never makes the
+  player rich. The chance is **never shown**, hinted or announced; there is no warning. This is
+  deliberate (owner, 2026-10-17): the job should feel safe and be unfair. It is the one hidden
+  chance in the game; wheels keep their honesty rule.
 - **Cooldown:** after a firing, no offers for 2 months (*"HR has flagged your profile."*).
 - **Automation never moves the job:** auto-selection and auto-refill leave it alone; only the
   player can get themselves fired.
@@ -300,11 +309,11 @@ gigs: {
   search: { done: number; needed: number } | null;
   paid: number;                    // count (narrative, achievements)
 };
-rent: { movedOut: boolean; nextDueMs: number | null; missedStreak: number; missedTotal: number };
+rent: { movedOut: boolean; month: number; nextDueMs: number | null; missedStreak: number; missedTotal: number };
 rentWheels: RentRecord[];          // committed results, for the wheel and History
 job: {
   offer: { salary: number; expiresAtMs: number } | null;
-  employed: { salary: number; monthEmployedMs: number } | null;
+  employed: { salary: number; monthEmployedMs: number; paydays: number } | null;
   awayMs: number;                  // time the job's slot has had another target (fired at 2 s)
   cooldownUntilMs: number | null;
   fired: number;
@@ -350,13 +359,15 @@ debt → auto-refill in money → v1 disaster in money.
 **N5 — Rent, cat food, the landlord wheel, the ending (MUST).** Bill at `monthMs` → missed rent
 charges anyway and grows the streak → reset rule → hazard table (unit test of the cumulative
 column) → wheel committed at due time, shown when Game is visible → eviction ends the run →
-frugal lesson derived once, applied by `createRun` → FEED costs $2, never blocked → art (both
+frugal lesson derived once, applied by `createRun` → rent grows $1 a month with no log line →
+FEED costs $2, never blocked → art (both
 variants, cat rule validation) → wheel generalised.
 
 **N5b — Enterprise job (SHOULD).** Offer at rent due from `rng.gigs`, expiry 90 s → selecting it
 takes all code from every slot and never completes (other slots paused) → accepting drops the
 gig, no gig offers or search while employed → payday pro-rated before rent → another target > 2 s
-fires with final pay, ≤ 2 s does not → cooldown 2 months → automation never moves the job →
+fires with final pay, ≤ 2 s does not → hidden layoff at payday after the salary, hazard by
+tenure (table test over 10 000 seeds), nothing about it in any view model → cooldown 2 months → automation never moves the job →
 invariant: never employed with a gig or after Product Management → ∞ card, EMPLOYED and
 PAUSED · employed badges (browser).
 
@@ -382,7 +393,9 @@ At experience 0, frugal 1, seeds 1/7/42/101/2024, 3 cps, attentive projects poli
 | Time with no gig and no search in progress, `freelancer` | ≤ 10 % before the bot |
 | A single missed rent ends the run | ≤ 5 % (the hazard table) |
 | Enterprise job offers per run (before Product Management) | 1–3 on most seeds |
-| `employedForever` (takes the job, never leaves) | never misses rent; builds nothing after being hired, with one slot or two |
+| Job tenure (paydays), `employedForever` over 1 000 seeds | mean ≈ 3, 95th percentile ≤ 7 |
+| Rent at month 10 | $110 (frugal: $99) |
+| `employedForever` (takes every job, never leaves one) | never misses rent while employed; builds nothing after being hired, with one slot or two |
 
 ## 10. Risks
 
