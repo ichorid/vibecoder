@@ -5,6 +5,9 @@ Every number is a *starting value*; the harness (`tools/tune.ts`, `tests/helpers
 decides, and each phase records its measured result in docs/agent_journal.md. Follow AGENTS.md
 TDD: one behaviour RED → GREEN → refactor per step.
 
+Amended by docs/feature_money.md: token packs and compute slots are bought with money, not
+built (§5.6 below is superseded there); gigs are projects.
+
 Supersedes, where they conflict: docs/feature_ship_it.md §5.2 and D27 ("shipping spends all
 your code"), docs/economy_redesign.md E8 (the disaster's loss is defined on the bank) and every
 "affordable / shortfall" rule in `src/game/selectors.ts`.
