@@ -212,37 +212,46 @@ need falls. The announcements reveal nothing about upcoming technologies (progre
 ### 5.8 Enterprise job (minor feature, owner request 2026-10-17)
 
 A rare, safe, soul-eating alternative to gigs: a fixed salary every month for as long as the
-player builds nothing else in that slot.
+player builds nothing else at all.
 
 - **Offer:** at each rent due from month 2 on, with probability 0.25 (`rng.gigs`), unless
   employed, on cooldown, or past `product-management`: *"A recruiter from Enterprise Solutions
   Inc. found your profile."* The offer is a card on the offer surface (ranked first while it
   lasts) and **expires after 90 s** of active time.
 - **The card:** price **∞** (an infinity symbol where the code price goes), *Salary $N / month*,
-  ETA *never*. Tapping it selects the job as the slot's target (docs/feature_projects.md §5.2)
-  like any project; from then the card shows **EMPLOYED**.
-- **The job is a project that never completes:** all code flowing into its slot is consumed by
-  the job. No scaffold in the world. With one slot nothing else gets built; from `worktrees` on,
-  the job can sit in one slot while the other builds (moonlighting).
+  ETA *never*. Tapping it makes the job the run's target (docs/feature_projects.md §5.2); from
+  then the card shows **EMPLOYED**.
+- **The job takes everything.** While employed, **all** code — manual and agent, from every
+  slot — goes into the job and is consumed; it never completes. Worktrees do not help: the
+  other slot keeps its target and progress but receives nothing (*PAUSED · employed*). No
+  scaffold in the world. With the job there is exactly one target, so any tap on another
+  project card (in any slot) replaces the job.
+- **Never a job and a gig.** Accepting the job **abandons the gig**: an offered gig is withdrawn
+  and a gig in progress is dropped with its progress and no pay (*"You told the dentist you
+  found something stable."*). While employed the gig board shows *Employed*: no gig offers, no
+  SEARCH, and the job-search bot and auto-freelancing stay idle. Gigs return after a firing
+  through the normal search.
+- **Never a job and a company.** Offers stop at `product-management`, and Product Management
+  cannot be built while employed (nothing else gets code), so the two never overlap. Asserted
+  as an invariant in the scenario tests, not handled as a case.
 - **Salary** is fixed at the offer: `0.75 × monthMs/1000 × codePerSecond × marketRate`, rounded —
   a bit worse than freelancing for the same code, but steady. It **does not follow market
   updates**: nobody at Enterprise Solutions has heard of AI, so after a market update the job
   quietly becomes the better deal.
 - **Payday** is rent day: salary × (time employed this month ÷ month), paid before rent is
   charged, so an employed player never misses rent.
-- **Fired:** when the job's slot has another target for more than **2 s** of active time
-  (grace for a mis-tap), the player is fired: pro-rated final pay at once, a log line from a
-  pool, a History entry, and the job is gone. Not an ending.
+- **Fired:** when any other project has been the target for more than **2 s** of active time
+  (grace for a mis-tap; tapping the job again within it cancels), the player is fired:
+  pro-rated final pay at once, a log line from a pool, a History entry, and the job is gone.
+  Not an ending. The paused slots resume.
   - Reasons (`src/content/jobs.ts`): *overqualified*, *no cultural fit*, *the reorg*, *camera off
     in stand-up*, *not enough emoji in Slack*, *replaced by an agent you wrote*, *too
     productive*, alive-only: *your cat walked across the keyboard during the all-hands*. Format:
     *"💼 You're fired: {reason}. Your final paycheck: ${n}."*
   - The player's new target runs at ×1 (they chose it; no fallback tax).
 - **Cooldown:** after a firing, no offers for 2 months (*"HR has flagged your profile."*).
-- **Automation never moves the job:** auto-selection, auto-refill and auto-freelancing leave a
-  slot holding the job alone; only the player can get themselves fired.
-- **Product Management:** an employed player resigns automatically (*"You quit. The company is
-  yours now. Nobody at Enterprise Solutions noticed."*); no further offers.
+- **Automation never moves the job:** auto-selection and auto-refill leave it alone; only the
+  player can get themselves fired.
 - Cosmetic (COULD): the programmer wears a lanyard while employed.
 
 ### 5.9 Ending: AI Got My Job (`ai-got-my-job`, M4)
@@ -345,9 +354,11 @@ frugal lesson derived once, applied by `createRun` → FEED costs $2, never bloc
 variants, cat rule validation) → wheel generalised.
 
 **N5b — Enterprise job (SHOULD).** Offer at rent due from `rng.gigs`, expiry 90 s → selecting it
-consumes the slot's code and never completes → payday pro-rated before rent → away > 2 s fires
-with final pay, ≤ 2 s does not → cooldown 2 months → automation never moves the job → resign at
-Product Management → ∞ card and EMPLOYED badge (browser).
+takes all code from every slot and never completes (other slots paused) → accepting drops the
+gig, no gig offers or search while employed → payday pro-rated before rent → another target > 2 s
+fires with final pay, ≤ 2 s does not → cooldown 2 months → automation never moves the job →
+invariant: never employed with a gig or after Product Management → ∞ card, EMPLOYED and
+PAUSED · employed badges (browser).
 
 **N6 — Auto-freelancing (MUST).** Threshold pick → auto-search → AUTO badge and log pool.
 
@@ -371,7 +382,7 @@ At experience 0, frugal 1, seeds 1/7/42/101/2024, 3 cps, attentive projects poli
 | Time with no gig and no search in progress, `freelancer` | ≤ 10 % before the bot |
 | A single missed rent ends the run | ≤ 5 % (the hazard table) |
 | Enterprise job offers per run (before Product Management) | 1–3 on most seeds |
-| `employedForever` (takes the job, never leaves) | never misses rent; reaches no act wall after the one it was hired in (one slot) |
+| `employedForever` (takes the job, never leaves) | never misses rent; builds nothing after being hired, with one slot or two |
 
 ## 10. Risks
 
