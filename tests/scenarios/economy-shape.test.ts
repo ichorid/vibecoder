@@ -85,9 +85,9 @@ describe('economy shape (§4 contract)', { timeout: 300_000 }, () => {
     for (const seed of SEEDS) expect(baseline(seed).freezeDelaySec).toBeGreaterThanOrEqual(60);
   });
 
-  // Owner decision D33: lessons stay +10 % each (+50 % with five), so a veteran replay with
-  // every lesson takes about 19 min, a little under the first run's 20–30.
-  it('five lessons learned (experience 0.5) still leave well over half the run', () => {
+  // Lessons give +10 % code each (+50 % with five) and gigs ask a veteran for a novice's code,
+  // so a five-lesson replay is a faster run (owner D33/D34: about 18 min) — never a trivial one.
+  it('five lessons learned (experience 0.5) still leave 60 % of a first run', () => {
     for (const seed of SEEDS) {
       const m = measured(`xp-${seed}`, () => measureRun(seed, { experience: 0.5 }));
       expect(minutes(m)).toBeGreaterThanOrEqual(0.6 * minutes(baseline(seed)));

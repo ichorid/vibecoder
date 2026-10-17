@@ -40,7 +40,8 @@ export function maybeOfferJob(run: RunState, catalog: Catalog): RunState {
     Math.round(
       b.salaryShare *
         (catalog.balance.rent.monthMs / 1000) *
-        run.economy.codeRate *
+        // Flat: a senior gets no advantage (owner decision D34): what a novice would code.
+        (run.economy.codeRate / (1 + run.experience)) *
         marketRate(run, catalog),
     ),
   );

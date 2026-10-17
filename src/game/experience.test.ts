@@ -47,3 +47,41 @@ describe('experience from earlier runs', () => {
     ]);
   });
 });
+
+describe('lessons and gigs (owner decision D34)', () => {
+  it('a gig asks a veteran for a novice’s code and pays the same: it is just done sooner', async () => {
+    const { offerGig } = await import('./gigs');
+    const base = createRun(3, 'n');
+    const novice = { ...base, economy: { ...base.economy, codeRate: 10 } };
+    // The same player with five lessons writes 50 % more code per second.
+    const veteran = { ...novice, experience: 0.5, economy: { ...novice.economy, codeRate: 15 } };
+    const a = offerGig(novice, catalog).gigs.offer;
+    const b = offerGig(veteran, catalog).gigs.offer;
+    expect(b?.size).toBe(a?.size);
+    expect(b?.payMin).toBe(a?.payMin);
+    expect(b?.payMax).toBe(a?.payMax);
+    expect((b?.size ?? 0) / 15).toBeLessThan((a?.size ?? 0) / 10);
+  });
+});
+
+describe('the enterprise job pays seniors no more (owner decision D34)', () => {
+  it('offers the same salary to a veteran as to a novice', async () => {
+    const { maybeOfferJob } = await import('./job');
+    const base = createRun(3, 'j');
+    const novice = {
+      ...base,
+      rent: { ...base.rent, movedOut: true, month: 3 },
+      economy: { ...base.economy, codeRate: 10 },
+      // An offer for sure: a catalog where the recruiter always calls.
+    };
+    const always = {
+      ...catalog,
+      balance: { ...catalog.balance, job: { ...catalog.balance.job, offerChance: 1 } },
+    };
+    const veteran = { ...novice, experience: 0.5, economy: { ...novice.economy, codeRate: 15 } };
+    const a = maybeOfferJob(novice, always).job.offer;
+    const b = maybeOfferJob(veteran, always).job.offer;
+    expect(a?.salary).toBeGreaterThan(0);
+    expect(b?.salary).toBe(a?.salary);
+  });
+});

@@ -100,8 +100,9 @@ takes over the money and gigs disappear.
 
 - A gig is a project (docs/feature_projects.md §5.1) with key `gig`. At most one gig exists at a
   time: the **offer** (available, not started), in progress, or none.
-- **Size:** `gigSeconds` (25) × the code per second at the moment it is offered, at least 50,
-  rounded to a nice number. Frozen with the gig.
+- **Size:** `gigSeconds` (25) × the code per second *a novice* would write at the moment it is
+  offered (`codeRate / (1 + experience)`), at least 50, rounded to a nice number. Frozen with the
+  gig. Lessons make a veteran finish the same gig sooner (owner decision D34, journal).
 - **Pay:** `size × marketRate(era) × draw`, where the draw is uniform in [0.7, 1.3], with a 10 %
   chance of a **tip** (×1.5) and a 10 % chance of a **ghost** (×0.5). The card shows the honest
   range of the common case and the rare cases in small print (*"sometimes a tip, sometimes they
@@ -244,7 +245,7 @@ player builds nothing else at all.
 - **Never a job and a company.** Offers stop at `product-management`, and Product Management
   cannot be built while employed (nothing else gets code), so the two never overlap. Asserted
   as an invariant in the scenario tests, not handled as a case.
-- **Salary** is fixed at the offer: `0.75 × monthMs/1000 × codePerSecond × marketRate`, rounded —
+- **Salary** is fixed at the offer: `0.75 × monthMs/1000 × novice codePerSecond × marketRate` (flat: a senior earns what a novice would, D34), rounded —
   a bit worse than freelancing for the same code, but steady. It **does not follow market
   updates**: nobody at Enterprise Solutions has heard of AI, so after a market update the job
   quietly becomes the better deal.

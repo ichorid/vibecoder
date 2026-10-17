@@ -31,7 +31,10 @@ export function moneyShown(run: ReadonlyRun): boolean {
 export function offerGig(run: RunState, catalog: Catalog): RunState {
   const g = catalog.balance.gigs;
   let rng = run.rng.gigs;
-  const size = Math.max(g.minSize, roundNice(g.seconds * run.economy.codeRate));
+  // A gig asks for what a novice writes in `seconds` (owner decision D34): lessons make you
+  // code faster, so a veteran finishes the same gig sooner, for the same pay.
+  const noviceRate = run.economy.codeRate / (1 + run.experience);
+  const size = Math.max(g.minSize, roundNice(g.seconds * noviceRate));
   const rate = marketRate(run, catalog);
   const luck = nextFloat(rng);
   rng = luck.state;

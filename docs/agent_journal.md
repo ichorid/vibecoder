@@ -150,6 +150,10 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   each (D1; five give +50 %, a veteran replay ≈ 19 min). A slow picker (15 s per decision)
   pays ≈ 5–8 min — the drift exists to force attention; measured: the cost is the idle 15 s
   after each of ~25 builds before Manager Agent, not the half rate (×0.75 changed nothing).
+- D34 (owner, 2026-10-17) Lessons and money: a gig asks a veteran for what a novice would code
+  in 25 s (`size` from `codeRate / (1 + experience)`) and pays the same, so lessons make gigs
+  quicker; the enterprise salary is flat — a senior gets no advantage. Revenue and capacity
+  prices keep following this run's code. A five-lesson replay: ≈ 18 min (D33 accepted).
 - D5 (P02) App-level commands (`retrySave`, `setTheme`) go through the same public
   `dispatch` as game commands, so UI still sees only `{subscribe, dispatch}`.
 
