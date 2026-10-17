@@ -223,14 +223,14 @@ player builds nothing else at all.
 - **The card:** price **∞** (an infinity symbol where the code price goes), *Salary $N / month*,
   ETA *never*. Tapping it makes the job the run's target (docs/feature_projects.md §5.2); from
   then the card shows **EMPLOYED**.
-- **Best Employee bar.** From the moment the job starts, the card's fill bar (which a job would
-  never use — it never completes) becomes a **tenure bar** toward Best Employee: 12 pixel
-  segments, labelled *BEST EMPLOYEE 3/12*. Each payday fills a segment; the current segment
-  fills smoothly with the time employed this month. A firing (hidden layoff or switching) takes
-  the bar with the job; the next job starts again at 0/12. Once the mug is awarded in this run,
-  the bar is replaced by a small mug icon on later job cards. The bar shows tenure only — never
-  the layoff chance — so every full segment is hope, and every layoff takes it away.
-  View model: `job.tenure: { paydays: number; of: 12; monthFraction: number } | null`.
+- **Tryout bar.** Every job starts as a **tryout period**. From the moment the job starts, the
+  card's fill bar (which a job would never use — it never completes) becomes the tryout bar: 12
+  pixel segments, labelled *TRYOUT PERIOD 3/12*. Each payday fills a segment; the current
+  segment fills smoothly with the time employed this month. A firing (hidden layoff or
+  switching) takes the bar with the job; the next job starts its own tryout at 0/12. The bar
+  shows tenure only — never the layoff chance — so the player reads it as a countdown to safety.
+  View model: `job.tenure: { paydays: number; of: 12; monthFraction: number; permanent: boolean }
+  | null`.
 - **The job takes everything.** While employed, **all** code — manual and agent, from every
   slot — goes into the job and is consumed; it never completes. Worktrees do not help: the
   other slot keeps its target and progress but receives nothing (*PAUSED · employed*). No
@@ -266,23 +266,29 @@ player builds nothing else at all.
   rich. The chance is **never shown**, hinted or announced; there is no warning. This is
   deliberate (owner, 2026-10-17): the job should feel safe and be unfair. It is the one hidden
   chance in the game; wheels keep their honesty rule.
-- **Historic milestone: Best Employee.** At the **12th payday of one job** (the first, pro-rated
-  payday counts), *before* that payday's layoff draw — so the mug and the firing can land on the
-  same day — a History entry is added once per run: **Best Employee** — *"Twelve months at
-  Enterprise Solutions Inc. They gave you a mug. It says BEST EMPLOYEE. It was ordered for
-  someone else."* Log: *"🏆 Best Employee of the Year. Please collect your mug from reception."*
-  - New History kind `{ kind: 'milestone'; id: 'best-employee'; activeMs }`; content in
+- **Permanent contract (historic milestone).** At the **12th payday of one job** (the first,
+  pro-rated payday counts), *before* that payday's layoff draw — so the contract and the firing
+  can land on the same day — the tryout ends and the player gets a **permanent contract**. It
+  changes **nothing**: the 20 % payday layoff and the 2 s switching rule stay exactly as they
+  were. That is the trick: everything about it says *you are safe now, relax* — so the player
+  relaxes, switches to build something, and is fired.
+  - Log: *"📜 Tryout passed. Welcome to your permanent contract."* The card's bar is replaced by
+    a **PERMANENT ✓** badge with a wax-seal icon and the line *"Permanent. Relax."*
+  - Firings after the contract add one reason to the pool: *"the permanent contract was
+    restructured"*.
+  - A History entry, once per run: **Permanent contract** — *"Twelve months of tryout at
+    Enterprise Solutions Inc. You signed. The fine print says 'permanent, until further
+    notice'."*
+  - New History kind `{ kind: 'milestone'; id: 'permanent-contract'; activeMs }`; content in
     `src/content/milestones.ts` (title, text, `illustrationId`). When awarded, the picture is
     shown once in the unlock-announcement panel (kicker `HISTORIC MILESTONE`); in History the
     entry uses the existing 32×24 illustration icon plus a **VIEW** button that reopens the
     panel (History can only open demos today, via WATCH — this adds the same pattern).
-  - **Picture** (`art/illustrations/`, both themes): a corporate mug, *BEST EMPLOYEE* in a stiff
-    serif-like pixel font, a soulless swoosh logo for Enterprise Solutions Inc., a sad little
-    trophy decal, steam. No cat (the cat rule never has to decide).
-  - COULD: the mug stays on the desk in the room afterwards (world sprite, `WorldViewModel.mug`).
+  - **Picture** (`art/illustrations/`, both themes): a contract headed *PERMANENT CONTRACT*, a
+    big red wax seal, a confident signature, and a block of microscopic fine print; the soulless
+    swoosh logo of Enterprise Solutions Inc. No cat (the cat rule never has to decide).
   - Rarity: 12 consecutive paydays survive the 20 % draw with probability 0.8¹¹ ≈ 8.6 % (the 12th
-    draw comes after the award), and take 36 min of active time with nothing else built — a
-    trophy for the player who gave the corporation everything.
+    draw comes after the contract), and take 36 min of active time with nothing else built.
 - **Cooldown:** after a firing, no offers for 2 months (*"HR has flagged your profile."*).
 - **Automation never moves the job:** auto-selection and auto-refill leave it alone; only the
   player can get themselves fired.
@@ -389,14 +395,15 @@ FEED costs $2, never blocked → art (both
 variants, cat rule validation) → wheel generalised.
 
 **N5b — Enterprise job (SHOULD).** Offer at rent due from `rng.gigs`, expiry 90 s → selecting it
-takes all code from every slot and never completes (other slots paused) → accepting drops the
-gig, no gig offers or search while employed → payday pro-rated before rent → another target > 2 s
-fires with final pay, ≤ 2 s does not → hidden layoff at payday after the salary, a flat 20 %
-(frequency test over 10 000 seeds), nothing about it in any view model → tenure bar (paydays, month fraction; reset on firing; mug
-icon after the award) → Best Employee at the 12th payday, once per run, before
-the layoff draw (History entry, illustration, log) → cooldown 2 months → automation never moves the job →
-invariant: never employed with a gig or after Product Management → ∞ card, EMPLOYED and
-PAUSED · employed badges (browser).
+takes all code from every slot and never completes (other slots paused) → accepting drops the gig,
+no gig offers or search while employed → payday pro-rated before rent → another target > 2 s fires
+with final pay, ≤ 2 s does not → hidden layoff at payday after the salary, a flat 20 % (frequency
+test over 10 000 seeds), nothing about it in any view model → tryout bar (paydays, month fraction;
+reset on firing) → permanent contract at the 12th payday before the layoff draw (History entry once
+per run, illustration, log, PERMANENT badge) → layoff chance and switching rule unchanged after the
+contract → the extra reason only after it → cooldown 2 months → automation never moves the job →
+invariant: never employed with a gig or after Product Management → ∞ card, EMPLOYED and PAUSED ·
+employed badges (browser).
 
 **N6 — Auto-freelancing (MUST).** Threshold pick → auto-search → AUTO badge and log pool.
 
