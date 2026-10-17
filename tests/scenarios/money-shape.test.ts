@@ -25,23 +25,30 @@ describe('money shape (§9 contract)', { timeout: 300_000 }, () => {
     }
   });
 
-  it('a careless player (gigs only once in debt) is evicted in most runs', () => {
+  // One run per test: long synchronous simulations must not block a worker for minutes.
+  for (const seed of SEEDS) {
+    it(`a careless player (gigs only once in debt), seed ${seed}: evicted by 30 min or survives`, () => {
+      const m = measured(`careless-${seed}`, () => measureRun(seed, { freelance: -1 }));
+      if (m.evictedMin !== null) expect(m.evictedMin).toBeLessThanOrEqual(30);
+    });
+  }
+
+  it('a careless player is evicted in most runs', () => {
     const evicted = SEEDS.map((seed) =>
       measured(`careless-${seed}`, () => measureRun(seed, { freelance: -1 })),
     ).filter((m) => m.evictedMin !== null);
     expect(evicted.length).toBeGreaterThanOrEqual(3);
-    for (const m of evicted) expect(m.evictedMin).toBeLessThanOrEqual(30);
   });
 
-  it('a player who ignores money is evicted in every run, after a few months of luck', () => {
-    for (const seed of SEEDS) {
+  for (const seed of SEEDS) {
+    it(`a player who ignores money is evicted after a few months of luck (seed ${seed})`, () => {
       const m = measured(`ignore-${seed}`, () => measureRun(seed, { freelance: 0 }));
-      expect(m.evictedMin, `seed ${seed}`).not.toBeNull();
+      expect(m.evictedMin).not.toBeNull();
       expect(m.evictedMin ?? 0).toBeGreaterThanOrEqual(8);
       expect(m.evictedMin ?? Infinity).toBeLessThanOrEqual(30);
       expect(m.run.ending?.id).toBe('ai-got-my-job');
-    }
-  });
+    });
+  }
 
   it('gigs take a real share of the code while money matters, and fade once the company pays', () => {
     const m = measured('freelancer-1', () => measureRun(1));
