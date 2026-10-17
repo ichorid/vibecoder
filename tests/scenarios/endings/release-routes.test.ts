@@ -19,6 +19,7 @@ import {
   shipWhenAffordable,
   type Policy,
 } from '../../helpers/scenario';
+import { withBuilt } from '../../browser/fixtures';
 import { expectEnding, newRun, playUntil } from '../../helpers/endingRoute';
 
 const shipper: Policy[] = [
@@ -50,10 +51,9 @@ describe('The Infinite Weekend', () => {
         ...fresh,
         unlockedTechnologyIds: windows,
         history: windows.map((id) => ({ kind: 'technology' as const, id, activeMs: 0 })),
-        economy: { ...fresh.economy, output: 1e12 },
       };
       for (let k = 0; k < 5 && run.status === 'playing'; k += 1) {
-        run = { ...run, economy: { ...run.economy, output: 1e12 } };
+        run = withBuilt(run, 'release');
         run = applyCommand(run, { type: 'shipRelease' }, 0, catalog).run;
       }
       if (run.ending?.id === 'the-infinite-weekend') wins += 1;

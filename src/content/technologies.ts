@@ -47,7 +47,7 @@ export const technologies = [
       { kind: 'grantTokens', amount: 150 },
       { kind: 'automates', responsibility: 'writing' },
     ],
-    headerStats: ['output', 'tokens'],
+    headerStats: ['code', 'tokens'],
   },
   {
     id: 'autonomous-edits',
@@ -64,7 +64,7 @@ export const technologies = [
       // The few tests it brings catch a little: a slow recovery path before the reviewer.
       { kind: 'reviewPerSecond', amount: 0.05 },
     ],
-    headerStats: ['output', 'tokens', 'debt'],
+    headerStats: ['code', 'tokens', 'debt'],
   },
   {
     id: 'tool-permissions',
@@ -256,7 +256,7 @@ export const technologies = [
       { kind: 'passiveTasksPerSecond', amount: 16 },
       { kind: 'reviewPerSecond', amount: 8 },
     ],
-    headerStats: ['output', 'debt', 'tokens'],
+    headerStats: ['code', 'debt', 'tokens'],
   },
   {
     id: 'evaluations',
@@ -271,7 +271,7 @@ export const technologies = [
       { kind: 'uncheckedFractionMultiplier', amount: 0.5 },
       { kind: 'automates', responsibility: 'supervising' },
     ],
-    headerStats: ['output', 'tokens', 'debt', 'automation'],
+    headerStats: ['code', 'tokens', 'debt', 'automation'],
   },
   {
     id: 'workflow-optimization',
@@ -327,7 +327,7 @@ export const technologies = [
     illustrationId: 'tech-product-management',
     worldAdditionId: 'world-product-management',
     effects: [{ kind: 'monetization', amount: 0.02 }],
-    headerStats: ['output', 'tokens', 'debt', 'revenue', 'automation'],
+    headerStats: ['code', 'tokens', 'debt', 'money', 'automation'],
   },
   {
     id: 'marketing',
@@ -350,7 +350,7 @@ export const technologies = [
       { kind: 'operatingCostPerAgent', amount: 3 },
       { kind: 'monetizationMultiplier', amount: 1.25 },
     ],
-    headerStats: ['output', 'tokens', 'debt', 'revenue', 'margin', 'automation'],
+    headerStats: ['code', 'tokens', 'debt', 'money', 'margin', 'automation'],
   },
   {
     id: 'executive-agents',

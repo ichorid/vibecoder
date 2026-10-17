@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
-import { closeUpgrades, freshGame, loadSave, openUpgrades } from './helpers';
-import { progressedRun, saveText } from './fixtures';
+import { buildCard, freshGame, loadSave, openUpgrades, pressUntilOffered } from './helpers';
+import { nearlyBuilt, progressedRun, saveText } from './fixtures';
 
 test('from the empty room to a working terminal agent with real presses', async ({ page }) => {
   // Every press waits for the tap budget; a slow shared CI runner needs ~4.5 min (locally ~2).
@@ -8,19 +8,10 @@ test('from the empty room to a working terminal agent with real presses', async 
   await freshGame(page);
   const primary = page.getByTestId('primary-action');
   for (const name of [/Autocomplete/, /Generated snippets/, /AI-native IDE/, /Terminal agent/]) {
-    const card = page.getByRole('button', { name });
-    // The cards popup says when something can be bought; then open it and buy.
-    const toggle = page.getByTestId('offers-toggle');
-    const affordable = async () =>
-      (await toggle.count()) > 0 && Number(await toggle.getAttribute('data-affordable')) > 0;
-    while (!(await affordable())) {
-      await expect(primary).toHaveAttribute('data-ready', 'true');
-      await primary.click();
-    }
-    await openUpgrades(page);
-    await card.click();
+    // A card appears, the player picks it, and every press fills it until it is built.
+    await pressUntilOffered(page, name);
+    await buildCard(page, name);
     await page.getByRole('button', { name: 'CONTINUE' }).click();
-    await closeUpgrades(page);
   }
   await expect(primary).toHaveText('PROMPT');
   await expect(page.getByTestId('stats')).toContainText('Tokens');
@@ -29,7 +20,13 @@ test('from the empty room to a working terminal agent with real presses', async 
     .toContain('world-terminal-agent');
   // PROMPT queues tasks; the agent spends tokens.
   const tokens = async () =>
-    Number((await page.getByTestId('stats').locator('dd').nth(1).textContent()) ?? '0');
+    Number(
+      (await page
+        .getByTestId('stats')
+        .locator('.stat', { hasText: 'Tokens' })
+        .locator('dd')
+        .textContent()) ?? '0',
+    );
   const before = await tokens();
   await primary.click();
   await primary.click();
@@ -37,15 +34,11 @@ test('from the empty room to a working terminal agent with real presses', async 
   expect(await tokens()).not.toBe(before);
 });
 
-test('the reviewer appears with debt in the header and can be bought', async ({ page }) => {
-  const run = progressedRun(8);
-  const rich = { ...run, economy: { ...run.economy, output: 50_000 } };
-  await loadSave(page, saveText(rich));
+test('the reviewer, almost built, completes on its own and opens a decision', async ({ page }) => {
+  // One line short: the agents' next step finishes it (no press needed).
+  const run = nearlyBuilt(progressedRun(8), 'reviewer');
+  await loadSave(page, saveText(run));
   await expect(page.getByTestId('stats')).toContainText('Debt');
-  await openUpgrades(page);
-  const reviewer = page.getByRole('button', { name: /Reviewer agent/ });
-  await expect(reviewer).toBeEnabled();
-  await reviewer.click();
   await expect(page.getByTestId('announcement')).toContainText('Reviewer Agent');
   await page.getByRole('button', { name: 'CONTINUE' }).click();
   // The reviewer opens a new decision (keep writing by hand) on the same card surface.

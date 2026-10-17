@@ -1,12 +1,11 @@
 import { expect, test, type Page } from '@playwright/test';
 import { loadSave } from './helpers';
-import { progressedRun, saveText } from './fixtures';
+import { progressedRun, saveText, withBuilt } from './fixtures';
 import type { RunState } from '../../src/game/types';
 
-/** A run at the Terminal Agent (window v0.1 open) with enough code to ship it. */
+/** A run at the Terminal Agent with v0.1 built and ready to ship. */
 function readyToShip(seed: number): RunState {
-  const run = progressedRun(4, false, seed);
-  return { ...run, economy: { ...run.economy, output: run.economy.output + 2500 } };
+  return withBuilt(progressedRun(4, false, seed), 'release');
 }
 
 /** The Ship strip sits under the cards, outside the popup. */
@@ -14,7 +13,7 @@ async function ship(page: Page) {
   const card = page.locator('[data-release="1"]');
   await expect(card).toBeVisible();
   await expect(card).toContainText('Ship v0.1');
-  await card.click();
+  await card.getByTestId('ship-go').click();
   await expect(page.getByTestId('release-wheel')).toBeVisible();
 }
 
@@ -32,7 +31,7 @@ test('ship a release: wheel, result, back to work, a frame on the wall, the card
   await expect(page.getByTestId('release-wheel')).toContainText('Top comment:');
   await page.getByRole('button', { name: 'BACK TO WORK' }).click();
   await expect(page.getByTestId('release-wheel')).toHaveCount(0);
-  // The next release is on offer at once — and all the code is gone.
+  // The next release is on offer at once — and it has to be built again.
   await expect(page.locator('[data-release="2"]')).toContainText('Ship v0.2');
   await expect(page.locator('[data-release="1"]')).toHaveCount(0);
   await expect(page.getByRole('list', { name: 'Recent events' })).toContainText('Shipped v0.1:');

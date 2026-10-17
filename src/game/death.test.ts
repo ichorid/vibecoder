@@ -51,7 +51,7 @@ describe('cat death transaction', () => {
     const dead = stepUntilDeath(nearDeath()).run;
     const clicked = applyCommand(dead, { type: 'primaryAction' }, dead.activeMs, catalog);
     expect(clicked.result).toBe('applied');
-    expect(steps(clicked.run, 1, catalog).economy.output).toBe(1);
+    expect(steps(clicked.run, 1, catalog).stats.lifetimeOutput).toBe(1);
   });
 
   it('rejects all care after death without consuming randomness', () => {

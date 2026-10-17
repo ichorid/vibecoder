@@ -60,7 +60,7 @@ describe('tapping world objects', () => {
     const t = await setup();
     await t.tap('monitor');
     t.tick(100);
-    expect(t.run().economy.output).toBe(1);
+    expect(t.run().stats.lifetimeOutput).toBe(1);
     expect(t.floats()).toContain('+1');
   });
 
@@ -71,7 +71,7 @@ describe('tapping world objects', () => {
     await t.tap('shelf');
     await t.tap('window');
     t.tick(100);
-    expect(t.run().economy.output).toBe(0);
+    expect(t.run().stats.lifetimeOutput).toBe(0);
     expect(t.floats()).toEqual([
       '+1 motivation (does nothing)',
       '+1 inspiration (expired)',

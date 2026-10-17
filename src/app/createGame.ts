@@ -2,7 +2,7 @@ import type { Catalog } from '../game/catalog';
 import { applyCommand, type CommandResult } from '../game/commands';
 import { selectCat, selectGame, selectHistory, selectWorld } from '../game/selectors';
 import { selectSetup } from '../game/setup';
-import { experienceOf } from '../game/experience';
+import { experienceOf, frugalOf } from '../game/experience';
 import { stepRun } from '../game/simulation';
 import type { GameCommand, GameFact, ReadonlyRun, RunState } from '../game/types';
 import {
@@ -61,8 +61,11 @@ export interface GameOptions {
   scheduler: IntervalScheduler;
   run: RunState;
   /** Factory for a deliberate restart (new ID and seed come from the app boundary). */
-  /** A fresh run carrying the profile's experience (code yield from earlier endings). */
-  newRun?: (experience: number) => RunState;
+  /**
+   * A fresh run carrying the profile's lessons: experience (code yield) and the frugal rent
+   * factor, both derived from earlier endings.
+   */
+  newRun?: (experience: number, frugal: number) => RunState;
   persistence?: PersistenceOptions;
   freezeSnapshots?: boolean;
   /** App-level listener for committed facts (e.g. care sound effects); never alters the run. */
@@ -256,7 +259,7 @@ export function createGame(options: GameOptions): Game {
       case 'restart': {
         if (!options.newRun) return 'unavailable';
         runtime.settle();
-        run = options.newRun(profile.experience);
+        run = options.newRun(profile.experience, frugalOf(profile.endings, catalog));
         lastSavedRun = null;
         lastSaveActiveMs = run.activeMs;
         write();

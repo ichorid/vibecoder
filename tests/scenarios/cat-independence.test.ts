@@ -15,15 +15,23 @@ import {
 
 const economy = [every(1000, pressPrimary), buyFirstAffordable, acknowledgeReveals];
 const THIRTY_MINUTES = 30 * 60_000;
+/**
+ * Cat food costs money by design (docs/feature_money.md §5.5); with free food the two runs must
+ * be the same run, which proves care itself never helps production.
+ */
+const freeFood = {
+  ...catalog,
+  balance: { ...catalog.balance, rent: { ...catalog.balance.rent, foodPerFeed: 0 } },
+};
 
 describe('cat care is independent of productivity', () => {
   it('gives identical economies to a cared-for and a neglected cat', () => {
-    const cared = runScenario(createRun(5, 'a'), catalog, THIRTY_MINUTES, [
+    const cared = runScenario(createRun(5, 'a'), freeFood, THIRTY_MINUTES, [
       ...economy,
       ...baselineCare,
       playEvery(),
     ]).run;
-    const neglected = runScenario(createRun(5, 'b'), catalog, THIRTY_MINUTES, economy).run;
+    const neglected = runScenario(createRun(5, 'b'), freeFood, THIRTY_MINUTES, economy).run;
 
     expect(cared.cat.alive).toBe(true);
     expect(neglected.cat.alive).toBe(false);
@@ -32,8 +40,19 @@ describe('cat care is independent of productivity', () => {
     expect(cared.stats.lifetimeOutput).toBe(neglected.stats.lifetimeOutput);
     expect(cared.upgradeLevels).toEqual(neglected.upgradeLevels);
     expect(cared.unlockedTechnologyIds).toEqual(neglected.unlockedTechnologyIds);
-    expect(deriveRates(cared, catalog)).toEqual(deriveRates(neglected, catalog));
-    expect(selectGame(cared, catalog).offers).toEqual(selectGame(neglected, catalog).offers);
+    expect(deriveRates(cared, freeFood)).toEqual(deriveRates(neglected, freeFood));
+    expect(selectGame(cared, freeFood).offers).toEqual(selectGame(neglected, freeFood).offers);
     expect(cared.rng.economy).toBe(neglected.rng.economy);
   }, 20_000);
+
+  it('feeding costs money after moving out, and is never refused for it', async () => {
+    const { act } = await import('../helpers/run');
+    const run = createRun(5, 'food');
+    const home = act(run, { type: 'feedCat' }, catalog);
+    expect(home.economy.money).toBe(0);
+    const broke = { ...run, rent: { ...run.rent, movedOut: true } };
+    const fed = act(broke, { type: 'feedCat' }, catalog);
+    expect(fed.stats.feeds).toBe(1);
+    expect(fed.economy.money).toBe(-catalog.balance.rent.foodPerFeed);
+  });
 });

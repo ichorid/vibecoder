@@ -3,6 +3,7 @@
  * (docs/economy_redesign.md §4) and print a per-window table plus the summary metrics.
  * Usage: npx vite-node tools/tune.ts -- [--seed 101] [--cps 3] [--cps-after 0.333]
  *        [--buyer baseline|greedy|seer|saver] [--care play|none] [--experience 0] [--minutes 60]
+ *        [--react 1] [--freelance 1.5] [--job yes|no] [--frugal 1]
  *        [--seeds 1,7,42,101,2024]   (summary only, one line per seed)
  */
 import { measureRun, type Buyer, type RunMetrics } from '../tests/helpers/metrics';
@@ -19,6 +20,10 @@ const options = {
   care: flag('care', 'play') as 'play' | 'none',
   experience: Number(flag('experience', '0')),
   limitMin: Number(flag('minutes', '60')),
+  react: Number(flag('react', '1')),
+  freelance: Number(flag('freelance', '1.5')),
+  takeJob: flag('job', 'no') === 'yes',
+  frugal: Number(flag('frugal', '1')),
 };
 const pct = (x: number) => `${Math.round(x * 100)}%`.padStart(4);
 const num = (x: number | null) => (x === null ? '  –  ' : x.toFixed(1).padStart(5));
@@ -41,6 +46,11 @@ function summary(seed: number, m: RunMetrics): string {
     `disaster ${m.disasterSec.map((s) => `${s.toFixed(0)}s`).join(',') || '–'}`,
     `freeze+${m.freezeDelaySec === null ? '–' : `${m.freezeDelaySec.toFixed(0)}s`}`,
     `cat ${m.run.cat.alive ? 'alive' : 'gone'}`,
+    `taxed ${pct(m.taxedShareEarly)}`,
+    `gigs ${m.gigsPaid} ${m.gigShareByAct.map(pct).join('')}`,
+    `missed ${m.rentMissed}`,
+    `evicted ${num(m.evictedMin)}`,
+    `end ${m.run.ending?.id ?? '–'}`,
   ].join(' | ');
 }
 
@@ -55,11 +65,11 @@ if (seedsArg) {
   const seed = Number(flag('seed', '101'));
   const m = measureRun(seed, options);
   console.log(
-    '   min  technology                 agents compute tasks tokens  q<.9 crd<.95 2+crd manual   bank    rev   cost',
+    '   min  technology                 agents compute tasks tokens  q<.9 crd<.95 2+crd manual  money    rev   cost',
   );
   for (const w of m.windows) {
     console.log(
-      `${w.startMin.toFixed(2).padStart(6)} ${w.tech.padEnd(26)} ${pct(w.binding.agents)}   ${pct(w.binding.compute)}  ${pct(w.binding.tasks)}  ${pct(w.binding.tokens)}  ${pct(w.qualityLow)}   ${pct(w.coordLow)}  ${pct(w.twoOffers)}  ${pct(w.manualShare)} ${fmt(w.bank).padStart(6)} ${fmt(w.revenue).padStart(6)} ${fmt(w.cost).padStart(6)}`,
+      `${w.startMin.toFixed(2).padStart(6)} ${w.tech.padEnd(26)} ${pct(w.binding.agents)}   ${pct(w.binding.compute)}  ${pct(w.binding.tasks)}  ${pct(w.binding.tokens)}  ${pct(w.qualityLow)}   ${pct(w.coordLow)}  ${pct(w.twoOffers)}  ${pct(w.manualShare)} ${fmt(w.money).padStart(6)} ${fmt(w.revenue).padStart(6)} ${fmt(w.cost).padStart(6)}`,
     );
   }
   console.log(summary(seed, m));

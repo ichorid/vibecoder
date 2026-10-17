@@ -8,6 +8,7 @@ import type { Catalog, CatAwareText, DemoContent } from './catalog';
 import { catAware } from './catAware';
 import { MAX_DEMOS } from './ids';
 import { appendLog } from './log';
+import { withoutProject } from './projectState';
 import { deriveSeed, nextInt, nextUint32 } from './random';
 import type { Transition } from './simulation';
 import type { DemoRecord, ReadonlyRun, RunState } from './types';
@@ -92,7 +93,8 @@ type MakeResult =
 export function makeDemo(run: RunState, catalog: Catalog): MakeResult {
   const offer = nextDemo(run, catalog);
   if (!offer) return { accepted: false, reason: 'unavailable' };
-  if (run.economy.output < offer.price) return { accepted: false, reason: 'unaffordable' };
+  const built = run.projects.demo;
+  if (!built || built.code < built.price) return { accepted: false, reason: 'unaffordable' };
   const seed = nextUint32(run.rng.demo);
   const record: DemoRecord = {
     number: offer.number,
@@ -105,7 +107,8 @@ export function makeDemo(run: RunState, catalog: Catalog): MakeResult {
     {
       ...run,
       rng: { ...run.rng, demo: seed.state },
-      economy: { ...run.economy, output: run.economy.output - offer.price },
+      // Running the demo consumes what was built into it.
+      projects: withoutProject(run.projects, 'demo'),
       demos: [...run.demos, record],
       demoPick: null,
       history: [...run.history, { kind: 'demo', number: record.number, activeMs: run.activeMs }],
@@ -133,10 +136,10 @@ export function designDemo(
   };
 }
 
-/** One log line the first time a demo is affordable. */
+/** One log line the first time a demo becomes possible. */
 export function demoNotice(run: RunState, catalog: Catalog): RunState {
   const offer = nextDemo(run, catalog);
-  if (!offer || run.demos.length > 0 || run.economy.output < offer.price) return run;
+  if (!offer || run.demos.length > 0) return run;
   const id = 'demo-open';
   if (run.narrative.fired.includes(id)) return run;
   return appendLog(

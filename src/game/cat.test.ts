@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { catalog } from '../content/catalog';
-import { AUTOCOMPLETE_PRICE, steps } from '../../tests/helpers/run';
+import { steps } from '../../tests/helpers/run';
 import { catConditions, noteMeaningfulAction, updateCat } from './cat';
 import { createCat, createRun } from './createRun';
 import type { CatState } from './types';
@@ -84,16 +84,15 @@ describe('cat in the simulation', () => {
 });
 
 describe('meaningful actions', () => {
-  it('counts primary and purchase commands, not care or acknowledgement', async () => {
+  it('counts primary presses and project picks, not care', async () => {
     const { act, clickAndSettle } = await import('../../tests/helpers/run');
-    let run = clickAndSettle(createRun(1, 'r'), AUTOCOMPLETE_PRICE, catalog);
-    expect(run.cat.pendingActions).toBe(AUTOCOMPLETE_PRICE);
-    run = act(run, { type: 'buyUpgrade', id: 'autocomplete' }, catalog);
-    expect(run.cat.pendingActions).toBe(AUTOCOMPLETE_PRICE + 1);
-    run = act(run, { type: 'acknowledgeUnlock', id: 'autocomplete' }, catalog);
+    let run = clickAndSettle(createRun(1, 'r'), 5, catalog);
+    expect(run.cat.pendingActions).toBe(5);
+    run = act(run, { type: 'selectProject', id: 'autocomplete' }, catalog);
+    expect(run.cat.pendingActions).toBe(6);
     run = act(run, { type: 'petCat' }, catalog);
     run = act(run, { type: 'feedCat' }, catalog);
-    expect(run.cat.pendingActions).toBe(AUTOCOMPLETE_PRICE + 1);
+    expect(run.cat.pendingActions).toBe(6);
   });
 });
 

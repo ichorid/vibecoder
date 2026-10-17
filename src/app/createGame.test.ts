@@ -47,7 +47,7 @@ describe('createGame store', () => {
     });
     expect(Object.isFrozen(snapshot?.run.cat)).toBe(true);
     expect(() => {
-      (snapshot?.run.economy as { output: number }).output = 1e9;
+      (snapshot?.run.economy as { money: number }).money = 1e9;
     }).toThrow();
   });
 
@@ -61,7 +61,7 @@ describe('createGame store', () => {
     expect(seen).toHaveLength(2);
     const after = seen[1];
     expect(after?.run.activeMs).toBe(200);
-    expect(after?.run.economy.output).toBe(0);
+    expect(after?.run.stats.lifetimeOutput).toBe(0);
     expect(after?.run.economy.pendingManualWork).toBe(1);
   });
 
@@ -77,7 +77,7 @@ describe('createGame store', () => {
     scheduler.fire();
     scheduler.fire();
     game.api.dispatch({ type: 'primaryAction' });
-    expect(latest?.run.economy.output).toBe(1);
+    expect(latest?.run.stats.lifetimeOutput).toBe(1);
     expect(latest?.run.activeMs).toBe(100);
   });
 

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import type { RentWheelViewModel } from '../game/projectViews';
   import type { ReleaseWheelViewModel } from '../game/selectors';
   import type { WheelSound } from './contracts';
   import {
@@ -12,14 +13,19 @@
   } from './wheelGeometry';
 
   interface Props {
-    /** A release that is already committed; the wheel only animates toward it. */
-    wheel: ReleaseWheelViewModel;
+    /**
+     * A result that is already committed; the wheel only animates toward it. The landlord
+     * wheel (a missed rent) has the same shape: its special slice is eviction, drawn in red.
+     */
+    wheel: ReleaseWheelViewModel | RentWheelViewModel;
     reducedMotion: boolean;
     sound?: ((id: WheelSound) => void) | undefined;
     onDone: () => void;
+    variant?: 'release' | 'rent';
   }
 
-  const { wheel, reducedMotion, sound, onDone }: Props = $props();
+  const { wheel, reducedMotion, sound, onDone, variant = 'release' }: Props = $props();
+  const special = $derived(variant === 'rent' ? '#e8483c' : '#e7b42f');
 
   const SPIN_MS = 4000;
   const SKIP_AFTER_MS = 1000;
@@ -96,9 +102,10 @@
 <div
   class="wheel-overlay"
   class:flash={phase === 'flash'}
+  class:rent={variant === 'rent'}
   role="dialog"
   aria-modal="true"
-  aria-label="Release {wheel.version}"
+  aria-label={variant === 'rent' ? `Missed ${wheel.version}` : `Release ${wheel.version}`}
   tabindex="-1"
   data-testid="release-wheel"
   data-phase={phase}
@@ -106,7 +113,9 @@
   onclick={skip}
   onkeydown={keydown}
 >
-  <p class="kicker">SHIPPING {wheel.version}</p>
+  <p class="kicker">
+    {variant === 'rent' ? `MISSED ${wheel.version}` : `SHIPPING ${wheel.version}`}
+  </p>
   <div class="wheel">
     <svg viewBox="0 0 200 200" aria-hidden="true">
       <g transform="rotate({rotation} {C} {C})">
@@ -116,7 +125,7 @@
             {@const mid = (arc.start + arc.end) / 2}
             <path
               d={sectorPath(arc, C, C, R)}
-              fill={slice.gold ? '#e7b42f' : (COLORS[i % COLORS.length] ?? '#ffffff')}
+              fill={slice.gold ? special : (COLORS[i % COLORS.length] ?? '#ffffff')}
               stroke="#2b1d14"
               stroke-width="1.5"
             />
@@ -126,7 +135,7 @@
                 cx={C}
                 cy={C - R - 6}
                 r="4"
-                fill="#e7b42f"
+                fill={special}
                 stroke="#2b1d14"
                 transform="rotate({mid} {C} {C})"
               />
@@ -147,13 +156,15 @@
     </svg>
   </div>
   <p class="odds" data-testid="wheel-odds">
-    <span class="gold-chip" aria-hidden="true"></span>{wheel.slices.at(-1)?.label}: {percent}
+    <span class="gold-chip" aria-hidden="true" style:background={special}></span>{wheel.slices.at(
+      -1,
+    )?.label}: {percent}
   </p>
   <div class="result" aria-live="polite">
     {#if phase === 'result'}
       <h2 data-testid="release-result">{wheel.result.label}</h2>
       {#if wheel.result.text}<p class="line">{wheel.result.text}</p>{/if}
-      {#if wheel.result.comment}
+      {#if 'comment' in wheel.result && wheel.result.comment}
         <p class="comment">Top comment: “{wheel.result.comment}”</p>
       {/if}
       <button
@@ -187,6 +198,14 @@
   }
   .wheel-overlay.flash {
     animation: gold 0.6s steps(3);
+  }
+  .wheel-overlay.rent.flash {
+    animation: evicted 0.6s steps(3);
+  }
+  @keyframes evicted {
+    50% {
+      background: #e8483c;
+    }
   }
   @keyframes gold {
     50% {

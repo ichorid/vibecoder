@@ -1,16 +1,29 @@
 import { catConditions, visibleAttention, type CatConditions } from './cat';
 import type { ReadonlyPlay } from './catPlaySession';
 import type { CatPresentation, Catalog, StatId, UpgradeDefinition } from './catalog';
+import { cardAdvice, type ImpactOf } from './advice';
 import {
   automationFraction,
   coordinationEfficiency,
   deriveRates,
-  economyFlows,
   offerPrice,
   qualityEfficiency,
-  tokenDemandPerSecond,
   tokenPack,
 } from './economy';
+import { moneyShown } from './gigs';
+import { projectCode } from './projects';
+import {
+  projectView,
+  selectJob,
+  selectMoney,
+  selectNotice,
+  selectRentWheel,
+  type JobViewModel,
+  type MoneyStripViewModel,
+  type NoticeViewModel,
+  type ProjectViewModel,
+  type RentWheelViewModel,
+} from './projectViews';
 import type {
   ChoiceId,
   EndingId,
@@ -35,6 +48,7 @@ import type {
   CareNote,
   DeepReadonly,
   DiscoveredEnding,
+  MilestoneId,
   ReadonlyRun,
 } from './types';
 
@@ -47,8 +61,14 @@ export interface UpgradeOfferViewModel {
   readonly title: string;
   readonly description: string;
   readonly price: number;
-  readonly currency: 'output' | 'revenue';
+  /** Code-priced cards are projects (tap to build); money-priced cards are bought at once. */
+  readonly currency: 'output' | 'money';
+  /** Money cards: the money is there. Project cards: always true (any project can be built). */
   readonly affordable: boolean;
+  /** Code-priced cards: progress, pace and badge (null for money cards). */
+  readonly project: ProjectViewModel | null;
+  /** The system's own project: shown, never selectable. */
+  readonly internal: boolean;
   /** Token packs: how many tokens this purchase adds. */
   readonly tokens?: number;
   /** Progression cards: the illustration of the technology they discover. */
@@ -79,9 +99,13 @@ export interface ReleaseOfferViewModel {
   readonly title: string;
   readonly description: string;
   readonly price: number;
+  /** Built and waiting for SHIP (the project works). */
   readonly affordable: boolean;
-  /** Code still missing (0 when affordable). */
+  /** Code still missing (0 when ready). */
   readonly shortfall: number;
+  readonly project: ProjectViewModel;
+  /** SHIP exists (the project works); before that the strip is just "the project". */
+  readonly shippable: boolean;
   /** The true chance of the gold slice on this release (0–1). */
   readonly retireChance: number;
   readonly effects: readonly string[];
@@ -101,8 +125,10 @@ export interface DemoOfferViewModel {
   readonly number: number;
   readonly title: string;
   readonly price: number;
+  /** Built and waiting to run. */
   readonly affordable: boolean;
   readonly shortfall: number;
+  readonly project: ProjectViewModel;
   /** The next demo's seed and the demos before it: the designer previews from these. */
   readonly seed: number;
   readonly steps: readonly DemoStepViewModel[];
@@ -159,6 +185,8 @@ export interface EndingViewModel {
     readonly next: number;
     readonly repeat: boolean;
   } | null;
+  /** The live-frugal lesson: rent in later runs × `factor` (repeat: learned before). */
+  readonly frugal: { readonly factor: number; readonly repeat: boolean } | null;
 }
 
 export interface StatViewModel {
@@ -208,6 +236,14 @@ export interface GameViewModel {
   readonly lastRelease: ReleaseWheelViewModel | null;
   /** Running on the bank's credit (null while the bank is in the black). */
   readonly credit: CreditState | null;
+  /** Money, rent and gigs (null until the first gig). */
+  readonly money: MoneyStripViewModel | null;
+  /** The enterprise job: an offer or the current job (null otherwise). */
+  readonly job: JobViewModel | null;
+  /** The next landlord wheel to watch (null: none pending). */
+  readonly rentWheel: RentWheelViewModel | null;
+  /** A market update or milestone panel waiting to be shown. */
+  readonly notice: NoticeViewModel | null;
 }
 
 /** What a History line shows in front of its title. */
@@ -221,9 +257,27 @@ export type HistoryIconViewModel =
     };
 
 export interface HistoryEntryViewModel {
-  readonly kind: 'technology' | 'cat' | 'event' | 'achievement' | 'ending' | 'release' | 'demo';
+  readonly kind:
+    | 'technology'
+    | 'cat'
+    | 'event'
+    | 'achievement'
+    | 'ending'
+    | 'release'
+    | 'demo'
+    | 'market'
+    | 'job'
+    | 'milestone'
+    | 'money';
   /** A demo entry: which demo to replay. */
   readonly demo?: number;
+  /** A milestone entry: its panel can be reopened (VIEW). */
+  readonly milestone?: {
+    readonly id: MilestoneId;
+    readonly title: string;
+    readonly text: string;
+    readonly illustrationId: string;
+  };
   readonly title: string;
   readonly activeMs: number;
   readonly icon: HistoryIconViewModel;
@@ -257,62 +311,6 @@ const CHOICE_PRIORITY = 30;
  */
 const RELEVANT_PRIORITY = 31;
 
-const CAPACITY_CARDS = ['additional-agent', 'compute-slot', 'review-capacity'] as const;
-/** A capacity card "helps" when its extra code pays its price back within this long. */
-const HELPS_WITHIN_SECONDS = 300;
-
-interface CardAdvice {
-  /** The optional card that relieves what binds now (shown first among optional cards). */
-  readonly relevant: string | null;
-  /** Capacity cards whose extra code would pay back soon (the others are not offered). */
-  readonly helping: ReadonlySet<string>;
-}
-
-/** Which optional card is relevant now, from the economy's own flows (one step ahead). */
-type ImpactOf = (upgrade: UpgradeDefinition) => ReturnType<typeof upgradeImpact>;
-
-function cardAdvice(run: ReadonlyRun, catalog: Catalog, impactOf: ImpactOf): CardAdvice {
-  const rates = deriveRates(run, catalog);
-  const helping = new Set<string>();
-  if (rates.agents === 0) return { relevant: null, helping };
-  const offered = catalog.upgrades.filter(
-    (u) => (CAPACITY_CARDS as readonly string[]).includes(u.id) && isUpgradeOffered(run, u),
-  );
-  // The capacity card that adds the most code per code spent right now…
-  let best: { id: string; value: number } | null = null;
-  for (const upgrade of offered) {
-    const gain = impactOf(upgrade)?.codePerSecond ?? 0;
-    const value = gain / Math.max(1, offerPrice(run, upgrade, catalog));
-    if (value * HELPS_WITHIN_SECONDS < 1) continue;
-    helping.add(upgrade.id);
-    if (!best || value > best.value) best = { id: upgrade.id, value };
-  }
-  return { relevant: relevantCard(run, catalog, rates, offered, best?.id ?? null), helping };
-}
-
-function relevantCard(
-  run: ReadonlyRun,
-  catalog: Catalog,
-  rates: ReturnType<typeof deriveRates>,
-  offered: readonly UpgradeDefinition[],
-  best: string | null,
-): string | null {
-  const demand = tokenDemandPerSecond(rates);
-  if (demand > 0 && run.economy.tokens < demand * 30) return 'token-supply';
-  if (run.economy.debt > 20 && offered.some((u) => u.id === 'review-capacity')) {
-    return 'review-capacity';
-  }
-  if (best) return best;
-  // …or, when none helps alone (agents need compute and a manager), the scarcest of the three —
-  // only while more agents can be hired (compute and managers beyond the agents do nothing).
-  const flows = economyFlows(run.economy, rates, 0.1, catalog.balance);
-  if (flows.funded < flows.demand - 1e-9) return null;
-  if (!offered.some((u) => u.id === 'additional-agent')) return null;
-  if (rates.agents <= Math.min(rates.compute, rates.managed)) return 'additional-agent';
-  if (rates.compute <= rates.managed) return 'compute-slot';
-  return 'review-capacity';
-}
-
 function offerPriority(
   run: ReadonlyRun,
   upgrade: UpgradeDefinition,
@@ -328,16 +326,16 @@ function offerPriority(
 
 function statValue(run: ReadonlyRun, id: StatId, catalog: Catalog): number {
   switch (id) {
-    case 'output':
-      return Math.floor(run.economy.output);
+    case 'code':
+      return Math.round(run.economy.codeRate);
     case 'tokens':
       return Math.floor(run.economy.tokens);
     case 'debt':
       return Math.floor(run.economy.debt);
     case 'automation':
       return Math.round(automationFraction(run, catalog) * 100);
-    case 'revenue':
-      return Math.floor(run.economy.revenue);
+    case 'money':
+      return Math.floor(run.economy.money);
     case 'margin':
       return Math.round(run.economy.revenuePerSecond - run.economy.costPerSecond);
     case 'quality':
@@ -356,10 +354,14 @@ function statValue(run: ReadonlyRun, id: StatId, catalog: Catalog): number {
  * on; the late company piles up to six numbers on the player (two rows).
  */
 function headerStats(run: ReadonlyRun, catalog: Catalog): StatViewModel[] {
-  let ids: readonly StatId[] = ['output'];
+  let ids: readonly StatId[] = ['code'];
   for (const id of run.unlockedTechnologyIds) {
     const stats = findTechnology(catalog, id)?.headerStats;
     if (stats) ids = stats;
+  }
+  // Money shows from the first gig, right after the code rate.
+  if (moneyShown(run) && !ids.includes('money')) {
+    ids = [ids[0] ?? 'code', 'money', ...ids.slice(1)];
   }
   // The hidden couplings made visible (E2): QUALITY and TEAM appear while they hurt (< 95 %),
   // taking the progress meter's (automation) slot first.
@@ -426,15 +428,23 @@ export function selectGame(
   };
   const { relevant, helping } = cardAdvice(run, catalog, impactOf);
   const action = currentPrimaryAction(run, catalog);
+  const inSlot = new Set(run.slots.map((s) => s.target));
   const upgradeCards = catalog.upgrades
-    // Capacity is offered only when it helps now or is what to buy next (no idle traps).
-    .filter(
-      (upgrade) =>
-        isUpgradeOffered(run, upgrade) &&
-        (!upgrade.priceRule || helping.has(upgrade.id) || upgrade.id === relevant),
+    // Capacity is offered only when it helps now or is what to buy next (no idle traps); a
+    // started build always stays on the surface. The system's own projects show while running.
+    .filter((upgrade) =>
+      upgrade.internal
+        ? inSlot.has(upgrade.id)
+        : isUpgradeOffered(run, upgrade) &&
+          (!upgrade.priceRule ||
+            helping.has(upgrade.id) ||
+            upgrade.id === relevant ||
+            projectCode(run, upgrade.id) > 0 ||
+            inSlot.has(upgrade.id)),
     )
     .map((upgrade, order) => {
-      const price = offerPrice(run, upgrade, catalog);
+      const project = upgrade.currency === 'output' ? projectView(run, upgrade.id, catalog) : null;
+      const price = project?.price ?? offerPrice(run, upgrade, catalog);
       const card: UpgradeOfferViewModel = {
         kind: 'upgrade',
         id: upgrade.id,
@@ -442,8 +452,9 @@ export function selectGame(
         description: upgrade.description,
         price,
         currency: upgrade.currency,
-        affordable:
-          (upgrade.currency === 'revenue' ? run.economy.revenue : run.economy.output) >= price,
+        affordable: project ? true : run.economy.money >= price,
+        project,
+        internal: upgrade.internal === true,
         effects: cardEffects(upgrade, catalog),
         impact: impactOf(upgrade),
         ...(upgrade.pack === 'tokens' ? { tokens: tokenPack(run, catalog).tokens } : {}),
@@ -454,7 +465,10 @@ export function selectGame(
             }
           : {}),
       };
-      return { card, order, priority: offerPriority(run, upgrade, relevant) };
+      // A build in progress (or in a slot) outranks unstarted optional cards.
+      const started = project !== null && (project.code > 0 || project.badge !== null);
+      const priority = offerPriority(run, upgrade, relevant);
+      return { card, order, priority: started ? Math.min(priority, RELEVANT_PRIORITY) : priority };
     });
   const choiceCards = catalog.choices
     .filter((choice) => isChoiceOffered(run, choice))
@@ -488,40 +502,51 @@ export function selectGame(
     .sort((a, b) => a.priority - b.priority || a.order - b.order)
     .slice(0, MAX_OFFERS)
     .map(({ card }) => card);
-  // Ship It has its own strip outside the three cards (economy redesign D2): always the next
-  // release, once the project works.
-  const window = nextRelease(run, catalog);
-  const release: ReleaseOfferViewModel | null = window
-    ? {
-        kind: 'release',
-        id: 'release',
-        window: window.window,
-        version: window.version,
-        title: window.title,
-        description: window.description,
-        price: window.price,
-        affordable: run.economy.output >= window.price,
-        shortfall: Math.max(0, window.price - run.economy.output),
-        retireChance: jackpotHazard(catalog.releases, window.window),
-        effects: [
-          'spends ALL your code',
-          `${Number((jackpotHazard(catalog.releases, window.window) * 100).toFixed(2))}% chance to retire`,
-        ],
-      }
-    : null;
+  // Ship It has its own strip outside the three cards (economy redesign D2): the original
+  // project, built from the start; SHIP exists once the project works.
+  const shippable = nextRelease(run, catalog);
+  const window =
+    shippable ??
+    (catalog.releases.windows.length > 0
+      ? releaseAt(catalog.releases, run.releases.length + 1)
+      : null);
+  const releaseProject = projectView(run, 'release', catalog);
+  const release: ReleaseOfferViewModel | null =
+    run.status === 'playing' && window
+      ? {
+          kind: 'release',
+          id: 'release',
+          window: window.window,
+          version: window.version,
+          title: shippable ? window.title : 'The project',
+          description: window.description,
+          price: releaseProject.price ?? window.price,
+          affordable: shippable !== null && releaseProject.ready,
+          shortfall: Math.max(0, (releaseProject.price ?? window.price) - releaseProject.code),
+          project: releaseProject,
+          shippable: shippable !== null,
+          retireChance: jackpotHazard(catalog.releases, window.window),
+          effects: [
+            `${Number((jackpotHazard(catalog.releases, window.window) * 100).toFixed(2))}% chance to retire`,
+          ],
+        }
+      : null;
   const demoOffer = nextDemo(run, catalog);
-  const demo: DemoOfferViewModel | null = demoOffer
-    ? {
-        number: demoOffer.number,
-        title: catalog.demos.title,
-        price: demoOffer.price,
-        affordable: run.economy.output >= demoOffer.price,
-        shortfall: Math.max(0, demoOffer.price - run.economy.output),
-        seed: demoOffer.seed,
-        steps: run.demos.map((d) => ({ seed: d.seed, pick: d.pick })),
-        pick: run.demoPick,
-      }
-    : null;
+  const demoProject = demoOffer ? projectView(run, 'demo', catalog) : null;
+  const demo: DemoOfferViewModel | null =
+    demoOffer && demoProject
+      ? {
+          number: demoOffer.number,
+          title: catalog.demos.title,
+          price: demoProject.price ?? demoOffer.price,
+          affordable: demoProject.ready,
+          shortfall: Math.max(0, (demoProject.price ?? demoOffer.price) - demoProject.code),
+          project: demoProject,
+          seed: demoOffer.seed,
+          steps: run.demos.map((d) => ({ seed: d.seed, pick: d.pick })),
+          pick: run.demoPick,
+        }
+      : null;
   const pendingId = run.pendingUnlockIds[0];
   const pending = pendingId === undefined ? undefined : findTechnology(catalog, pendingId);
   return {
@@ -548,6 +573,10 @@ export function selectGame(
     ending: selectEnding(run, catalog, discovered),
     lastRelease: selectRelease(run, catalog, run.releases.length - 1),
     credit: creditState(run, catalog),
+    money: selectMoney(run, catalog),
+    job: selectJob(run, catalog),
+    rentWheel: selectRentWheel(run, catalog),
+    notice: selectNotice(run, catalog),
   };
 }
 
@@ -591,6 +620,7 @@ function selectEnding(
       paragraphs: [],
       illustrationId: null,
       experience: null,
+      frugal: null,
     };
   }
   const picture = definition.illustrationId;
@@ -600,6 +630,12 @@ function selectEnding(
     illustrationId: picture ? `ending-${picture}${record.catAlive ? '' : '-nocat'}` : null,
     experience: definition.experience
       ? endingLesson(run, definition.experience, record.id, discovered, catalog)
+      : null,
+    frugal: definition.frugal
+      ? {
+          factor: definition.frugal,
+          repeat: discovered.some((e) => e.id === record.id && e.runId !== run.id),
+        }
       : null,
     paragraphs: record.catAlive
       ? definition.text.alive
@@ -689,6 +725,41 @@ export function selectHistory(
             ...(record ? { demo: record.number } : {}),
           };
         }
+        case 'market':
+          return {
+            kind: 'market',
+            title: catalog.money.eras[entry.era]?.text ?? 'Market update',
+            activeMs: entry.activeMs,
+            icon: { kind: 'emoji', text: '📉' },
+          };
+        case 'job':
+          return {
+            kind: 'job',
+            title:
+              entry.event === 'hired'
+                ? 'Hired at Enterprise Solutions Inc.'
+                : 'Fired from Enterprise Solutions Inc.',
+            activeMs: entry.activeMs,
+            icon: { kind: 'emoji', text: '💼' },
+          };
+        case 'milestone':
+          return {
+            kind: 'milestone',
+            title: catalog.money.contract.title,
+            activeMs: entry.activeMs,
+            icon: { kind: 'illustration', id: catalog.money.contract.illustrationId },
+            milestone: { id: entry.id, ...catalog.money.contract },
+          };
+        case 'money':
+          return {
+            kind: 'money',
+            title:
+              entry.id === 'moved-out'
+                ? "Moved out of your parents' place"
+                : 'The company pays your rent',
+            activeMs: entry.activeMs,
+            icon: { kind: 'emoji', text: entry.id === 'moved-out' ? '🏠' : '🏢' },
+          };
       }
     }),
   };
@@ -777,6 +848,26 @@ export interface WorldViewModel {
   readonly computeSlots: number;
   /** How the corner plant looks (it can be watered, and drowned, and forgotten). */
   readonly plant: PlantLook;
+  /** Construction sites: builds in progress (docs/feature_projects.md §7.2). */
+  readonly sites: readonly WorldSiteViewModel[];
+  /** The rent notice on the room's door: none, a bill, or a red one after a missed month. */
+  readonly rentNotice: 'none' | 'notice' | 'overdue';
+}
+
+/** A build shown in the world as scaffolding. */
+export interface WorldSiteViewModel {
+  /** A technology's addition, the next release frame on the wall, or the system's own project. */
+  readonly kind: 'addition' | 'frame' | 'internal';
+  /** The world addition ID (`addition`), the frame number (`frame`), or the project ID. */
+  readonly id: string;
+  /** 0–1. */
+  readonly progress: number;
+  /** In a slot right now (its crane moves). */
+  readonly active: boolean;
+  /** Drifting at reduced speed (its crane idles). */
+  readonly half: boolean;
+  /** Built for a while: the camera makes room for it (never on quick switching). */
+  readonly framed: boolean;
 }
 
 /** Discovered-world projection for the renderer: unlocked IDs and the cat's presentation facts. */
@@ -793,7 +884,50 @@ export function selectWorld(run: ReadonlyRun, catalog: Catalog): WorldViewModel 
     releases: run.releases.length,
     computeSlots: run.upgradeLevels['compute-slot'] ?? 0,
     plant: plantLook(run, catalog),
+    sites: worldSites(run, catalog),
+    rentNotice:
+      !run.rent.movedOut || run.unlockedTechnologyIds.includes('product-management')
+        ? 'none'
+        : run.rent.missedStreak > 0
+          ? 'overdue'
+          : 'notice',
   };
+}
+
+/** The camera makes room for a site only after it has been built this long (no bouncing). */
+const SITE_FRAMING_MS = 2000;
+
+function worldSites(run: ReadonlyRun, catalog: Catalog): WorldSiteViewModel[] {
+  if (run.status !== 'playing') return [];
+  const employed = run.job.employed !== null;
+  const sites: WorldSiteViewModel[] = [];
+  const keys = new Set<string>([
+    ...run.slots.map((s) => s.target as string),
+    ...Object.keys(run.projects),
+  ]);
+  for (const key of keys) {
+    const slot = run.slots.find((s) => s.target === key);
+    const project = projectView(run, key as never, catalog);
+    const active = slot !== undefined && !employed;
+    const half = slot?.by === 'fallback' && project.badge === 'auto-half';
+    const framed = active && run.activeMs - (slot?.sinceMs ?? run.activeMs) >= SITE_FRAMING_MS;
+    if (project.progress <= 0 && !active) continue;
+    const site = { progress: project.progress, active, half, framed };
+    if (key === 'release') {
+      sites.push({ ...site, kind: 'frame', id: String(run.releases.length + 1), framed: false });
+      continue;
+    }
+    const upgrade = findUpgradeDefinition(catalog, key);
+    if (upgrade?.internal) {
+      sites.push({ ...site, kind: 'internal', id: key, framed: false });
+      continue;
+    }
+    const technology = upgrade?.discovers ? findTechnology(catalog, upgrade.discovers) : undefined;
+    if (technology && !run.unlockedTechnologyIds.includes(technology.id)) {
+      sites.push({ ...site, kind: 'addition', id: technology.worldAdditionId });
+    }
+  }
+  return sites;
 }
 
 /** What the music binding may know: committed progress only — never the cat's state. */

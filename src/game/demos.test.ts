@@ -8,15 +8,30 @@ import { selectGame, selectHistory } from './selectors';
 import { stepRun } from './simulation';
 import type { RunState } from './types';
 
-function withTechnologies(ids: readonly TechnologyId[], output = 1e9): RunState {
-  const run = createRun(7, 'demo-test');
+/** Code built into the next demo (capped at its price: a built demo waits to be run). */
+function builtDemo(run: RunState, code = Infinity): RunState {
+  const offer = nextDemo(run, catalog);
+  if (!offer) return run;
   return {
     ...run,
-    unlockedTechnologyIds: [...ids],
-    upgradeLevels: Object.fromEntries(ids.map((id) => [id, 1])),
-    economy: { ...run.economy, output },
-    stats: { ...run.stats, lifetimeOutput: output },
+    projects: {
+      ...run.projects,
+      demo: { code: Math.min(code, offer.price), price: offer.price },
+    },
   };
+}
+
+function withTechnologies(ids: readonly TechnologyId[], code = Infinity): RunState {
+  const run = createRun(7, 'demo-test');
+  return builtDemo(
+    {
+      ...run,
+      unlockedTechnologyIds: [...ids],
+      upgradeLevels: Object.fromEntries(ids.map((id) => [id, 1])),
+      stats: { ...run.stats, lifetimeOutput: 1e9 },
+    },
+    code,
+  );
 }
 const make = (run: RunState) => applyCommand(run, { type: 'makeDemo' }, run.activeMs, catalog);
 const ready = () => withTechnologies(['autocomplete', catalog.demos.availableFrom]);
@@ -29,11 +44,11 @@ describe('coding a demo', () => {
     expect(make(withTechnologies(['autocomplete'])).result).toBe('unavailable');
   });
 
-  it('costs its price (never all your code), and each next one costs more', () => {
+  it('consumes what was built into it, and each next one costs more', () => {
     const rich = ready();
     const first = make(rich);
     expect(first.result).toBe('applied');
-    expect(first.run.economy.output).toBe(rich.economy.output - catalog.demos.basePrice);
+    expect(first.run.projects.demo).toBeUndefined();
     expect(nextDemo(first.run, catalog)?.price).toBe(demoPrice(catalog.demos, 2));
     expect(demoPrice(catalog.demos, 2)).toBeGreaterThan(demoPrice(catalog.demos, 1));
     const poor = withTechnologies(['autocomplete', catalog.demos.availableFrom], 10);
@@ -52,11 +67,9 @@ describe('coding a demo', () => {
     if (!record) throw new Error('no demo recorded');
     expect(after.log.at(-1)?.text).toContain(demoText(record, catalog).title);
     expect(facts).toEqual([{ type: 'demoMade', number: 1 }]);
-    // the economy does not notice (cosmetic): same rates, only the code went
-    expect(after.economy).toEqual({
-      ...run.economy,
-      output: run.economy.output - catalog.demos.basePrice,
-    });
+    // the economy does not notice (cosmetic): same rates, only the built code went
+    expect(after.economy).toEqual(run.economy);
+    expect(after.projects.demo).toBeUndefined();
   });
 
   it('the same run makes the same demos whenever they are made', () => {
@@ -81,18 +94,22 @@ describe('coding a demo', () => {
   it('the Game view offers the strip and lists the demos; History can replay them', () => {
     const run = make(ready()).run;
     const game = selectGame(run, catalog);
-    expect(game.demo).toMatchObject({ number: 2, affordable: true });
+    expect(game.demo).toMatchObject({ number: 2, affordable: false, project: { code: 0 } });
+    expect(selectGame(builtDemo(run), catalog).demo).toMatchObject({ number: 2, affordable: true });
     expect(game.demos).toHaveLength(1);
     expect(game.demos[0]?.steps).toEqual([{ seed: run.demos[0]?.seed, pick: null }]);
     const entry = selectHistory(run, catalog).entries.at(-1);
     expect(entry).toMatchObject({ kind: 'demo', demo: 1, icon: { kind: 'symbol', id: 'demo' } });
   });
 
-  it('logs once, the first time a demo is affordable', () => {
-    let run = withTechnologies([catalog.demos.availableFrom], 10);
+  it('logs once, the first time a demo becomes possible', () => {
+    let run = withTechnologies(['autocomplete'], 10);
     run = stepRun(run, 100, catalog).run;
     expect(run.log.filter((l) => l.text.startsWith('💾'))).toHaveLength(0);
-    run = { ...run, economy: { ...run.economy, output: 1e9 } };
+    run = {
+      ...run,
+      unlockedTechnologyIds: [...run.unlockedTechnologyIds, catalog.demos.availableFrom],
+    };
     run = stepRun(run, 100, catalog).run;
     run = stepRun(run, 100, catalog).run;
     expect(run.log.filter((l) => l.text.startsWith('💾'))).toHaveLength(1);

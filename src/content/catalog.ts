@@ -6,6 +6,7 @@ import { chatter } from './chatter';
 import { demos } from './demos';
 import { choices, endings } from './endings';
 import { events } from './events';
+import { money } from './money';
 import { releases } from './releases';
 import { technologies } from './technologies';
 import { upgrades } from './upgrades';
@@ -19,6 +20,7 @@ export const catalog: Catalog = {
   endings,
   releases,
   demos,
+  money,
   events,
   achievements,
   primaryActionLabels: {
@@ -30,11 +32,11 @@ export const catalog: Catalog = {
     observe: 'OBSERVE',
   },
   statLabels: {
-    output: 'Code',
+    code: 'Code/s',
     tokens: 'Tokens',
     debt: 'Debt',
     automation: 'Automation',
-    revenue: 'Revenue',
+    money: '$',
     margin: 'Margin',
     quality: 'Quality',
     team: 'Team',

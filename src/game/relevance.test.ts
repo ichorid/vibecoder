@@ -16,7 +16,7 @@ function at(last: TechnologyId, patch: Partial<RunState> = {}): RunState {
     unlockedTechnologyIds: owned,
     upgradeLevels: Object.fromEntries(owned.map((id) => [id, 1])),
     history: owned.map((id) => ({ kind: 'technology' as const, id, activeMs: 0 })),
-    economy: { ...run.economy, output: 1e6, tokens: 1e9, tasks: 60 },
+    economy: { ...run.economy, money: 1e6, tokens: 1e9, tasks: 60 },
     ...patch,
   };
 }

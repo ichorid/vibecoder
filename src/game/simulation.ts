@@ -8,7 +8,8 @@ import { advanceSession, sessionOf, withSession } from './catPlaySession';
 import type { Catalog } from './catalog';
 import {
   deriveRates,
-  economyFlows,
+  marketRate,
+  offerPrice,
   roundAmount,
   stepEconomy,
   tokenDemandPerSecond,
@@ -18,6 +19,10 @@ import { nextFloat } from './random';
 import { appendLog } from './log';
 import { resolveAutomaticEnding } from './endings';
 import { evaluateAchievements, evaluateNarrative, isQuietStep } from './narrative';
+import { stepGigs } from './gigs';
+import { stepJob } from './job';
+import { stepProjects } from './projects';
+import { stepRent } from './rent';
 import type { GameFact, RunState } from './types';
 
 /** Debt at or below this counts as a clean pipeline. */
@@ -59,8 +64,23 @@ export function stepRun(run: RunState, stepMs: number, catalog: Catalog): Transi
     },
   };
 
+  // 2a. The code goes into the build slots' projects (completions, discoveries, gigs paid).
+  const built = stepProjects(next, economy.produced, economy.manual, catalog);
+  next = built.run;
+  facts.push(...built.facts);
+
   // 2b. Token automation: auto-refill (v1 has a bug) and the auto-reviewer.
   next = tokenAutomation(next, stepMs, catalog);
+
+  // 2c. Money: gigs and the market, the job, rent day and the landlord.
+  next = stepGigs(next, stepMs, catalog);
+  const job = stepJob(next, stepMs, catalog);
+  next = job.run;
+  facts.push(...job.facts);
+  const rent = stepRent(next, catalog);
+  next = rent.run;
+  facts.push(...rent.facts);
+  if (next.status !== 'playing') return { run: next, facts };
 
   // 3. Cat needs, health and terminal death.
   const cat = updateCat(next.cat, stepMs, catalog.balance.cat);
@@ -116,10 +136,10 @@ function recordStray(run: RunState, facts: GameFact[]): RunState {
 
 /**
  * Auto-refill buys one pack only when the tokens have run out (below `refillBelowTokens`) and
- * the code is there. Version 1's bug: its first disaster lands uniformly on refill 3–6 (a seeded
+ * the money is there. Version 1's bug: its first disaster lands uniformly on refill 3–6 (a seeded
  * "pity timer", so it reliably happens soon), later ones with a fixed chance; a disaster deletes
- * `disasterLoss` of the current code — at least `disasterSeconds` of current output, at most
- * the bank — (paid to the wrong account) and buys nothing. The auto-reviewer adds a small permanent
+ * `disasterLoss` of the money — at least `disasterSeconds` of what the code earns, at most
+ * what there is — (paid to the wrong account) and buys nothing. The auto-reviewer adds a small permanent
  * rate bonus every interval up to its cap.
  */
 function tokenAutomation(run: RunState, stepMs: number, catalog: Catalog): RunState {
@@ -142,13 +162,15 @@ function tokenAutomation(run: RunState, stepMs: number, catalog: Catalog): RunSt
   const demand = tokenDemandPerSecond(rates);
   if (demand <= 0 || next.economy.tokens >= t.refillBelowTokens) return next;
   const pack = tokenPack(next, catalog);
-  if (next.economy.output < pack.price) return next;
+  const definition = catalog.upgrades.find((u) => u.pack === 'tokens');
+  const price = definition ? offerPrice(next, definition, catalog) : pack.price;
+  if (next.economy.money < price) return next;
   if (rates.autoRefill === 2) {
     return {
       ...next,
       economy: {
         ...next.economy,
-        output: roundAmount(next.economy.output - pack.price),
+        money: roundAmount(next.economy.money - price),
         tokens: roundAmount(next.economy.tokens + pack.tokens),
       },
     };
@@ -163,9 +185,10 @@ function tokenAutomation(run: RunState, stepMs: number, catalog: Catalog): RunSt
         : 1 / (t.firstDisasterTo - refills + 1);
   const rng = { ...next.rng, economy: draw.state };
   if (draw.value < chance) {
-    const flows = economyFlows(next.economy, rates, 0.1, catalog.balance);
-    const perSecond = flows.useful / 0.1 + rates.passiveOutputPerSecond;
-    const bank = next.economy.output;
+    // Paid into the wrong account: half the money, at least `disasterSeconds` of what the
+    // current code is worth on the market, never more than there is.
+    const bank = Math.max(0, next.economy.money);
+    const perSecond = next.economy.codeRate * marketRate(next, catalog);
     const loss = Math.min(bank, Math.max(bank * t.disasterLoss, t.disasterSeconds * perSecond));
     const crashed: RunState = {
       ...next,
@@ -173,7 +196,7 @@ function tokenAutomation(run: RunState, stepMs: number, catalog: Catalog): RunSt
       economy: {
         ...next.economy,
         autoRefills: refills,
-        output: roundAmount(bank - loss),
+        money: roundAmount(next.economy.money - loss),
       },
       stats: { ...next.stats, refillDisasters: next.stats.refillDisasters + 1 },
     };
@@ -189,7 +212,7 @@ function tokenAutomation(run: RunState, stepMs: number, catalog: Catalog): RunSt
     economy: {
       ...next.economy,
       autoRefills: refills,
-      output: roundAmount(next.economy.output - pack.price),
+      money: roundAmount(next.economy.money - price),
       tokens: roundAmount(next.economy.tokens + pack.tokens),
     },
   };

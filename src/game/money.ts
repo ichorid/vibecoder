@@ -16,7 +16,9 @@ export interface CreditState {
 }
 
 export function creditState(run: ReadonlyRun, catalog: Catalog): CreditState | null {
-  const owed = -run.economy.revenue;
+  // Only the company has a credit line; personal debt is the landlord's (docs/feature_money.md).
+  if (!run.unlockedTechnologyIds.includes('product-management')) return null;
+  const owed = -run.economy.money;
   if (owed <= 0) return null;
   const limit = creditLimit(run.economy.costPerSecond, catalog.balance);
   const netLoss =

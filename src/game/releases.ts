@@ -1,6 +1,7 @@
 /**
- * Ship It: the next release is always on offer (once the project works). It needs a minimum of
- * code and spends ALL of it. The jackpot hazard is fixed per release number; the draw uses only
+ * Ship It: the original project is the default build target (docs/feature_projects.md §5.5);
+ * once it holds the next release's price it waits for the player, who can ship it once the
+ * project works. The jackpot hazard is fixed per release number; the draw uses only
  * `rng.release`, so an outcome depends on the seed and on how many releases were shipped — not
  * on when, and not on a reload.
  */
@@ -8,6 +9,7 @@ import type { Catalog, ReleaseContent, ReleaseWindowDefinition } from './catalog
 import { catAware } from './catAware';
 import { endRun } from './endings';
 import { appendLog } from './log';
+import { withoutProject } from './projectState';
 import { nextFloat, nextInt } from './random';
 import type { Transition } from './simulation';
 import type { GameFact, ReadonlyRun, ReleaseRecord, RunState } from './types';
@@ -64,7 +66,7 @@ type ShipResult =
   | { readonly accepted: false; readonly reason: 'unavailable' | 'unaffordable' };
 
 /**
- * Ship the next release: it needs at least its price in code and spends all of the code. Draw
+ * Ship the next release: it needs its price built into the release project and consumes it. Draw
  * jackpot → slice → comment from `rng.release` (slices and comments repeat only once all were
  * used), record it with the cat's presence, and log it. A jackpot ends the run with the jackpot
  * ending in the same transition.
@@ -72,7 +74,8 @@ type ShipResult =
 export function shipRelease(run: RunState, catalog: Catalog): ShipResult {
   const window = nextRelease(run, catalog);
   if (!window) return { accepted: false, reason: 'unavailable' };
-  if (run.economy.output < window.price) return { accepted: false, reason: 'unaffordable' };
+  const built = run.projects.release;
+  if (!built || built.code < built.price) return { accepted: false, reason: 'unaffordable' };
   const content = catalog.releases;
 
   let rng = run.rng.release;
@@ -107,8 +110,8 @@ export function shipRelease(run: RunState, catalog: Catalog): ShipResult {
     {
       ...run,
       rng: { ...run.rng, release: rng },
-      // Shipping takes everything you have written.
-      economy: { ...run.economy, output: 0 },
+      // Shipping consumes what was built into the release.
+      projects: withoutProject(run.projects, 'release'),
       releases: [...run.releases, record],
       history: [
         ...run.history,

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { catalog } from '../content/catalog';
 import { worldAdditions } from '../content/world';
+import { build } from '../../tests/helpers/run';
 import { withTechnologies } from '../../tests/helpers/unlock';
 import { applyCommand } from '../game/commands';
 import { createRun } from '../game/createRun';
@@ -35,15 +36,15 @@ describe.each(EARLY)('transition to %s', (id, action) => {
     const earlier = withTechnologies(createRun(12, 'r'), before.slice(0, -1), catalog);
     expect(selectGame(earlier, catalog).offers.map((o) => o.id)).not.toContain(id);
     const offer = selectGame(base, catalog).offers.find((o) => o.id === id);
-    expect(offer).toMatchObject({ price: upgrade.basePrice, affordable: false });
+    expect(offer).toMatchObject({ price: upgrade.basePrice, project: { code: 0, progress: 0 } });
     expect(selectGame(base, catalog).offers[0]?.id).toBe(id);
   });
 
-  it('costs exactly its price and applies its effect once', () => {
-    const rich = { ...base, economy: { ...base.economy, output: upgrade.basePrice } };
-    const bought = applyCommand(rich, { type: 'buyUpgrade', id: upgrade.id }, 0, catalog);
-    expect(bought.result).toBe('applied');
-    expect(bought.run.economy.output).toBe(0);
+  it('takes exactly its price in code and applies its effect once', () => {
+    const run = build(base, upgrade.id, catalog);
+    const bought = { run };
+    expect(run.projects[upgrade.id]).toBeUndefined();
+    expect(run.upgradeLevels[upgrade.id]).toBe(1);
     const owned = activeEffects(bought.run, catalog).filter((e) =>
       technology.effects.includes(e as never),
     );
@@ -52,7 +53,7 @@ describe.each(EARLY)('transition to %s', (id, action) => {
       1,
     );
     expect(selectGame(bought.run, catalog).primaryAction.label).toBe(action);
-    const again = applyCommand(bought.run, { type: 'buyUpgrade', id: upgrade.id }, 0, catalog);
+    const again = applyCommand(bought.run, { type: 'selectProject', id: upgrade.id }, 0, catalog);
     expect(again.result).toBe('unavailable');
   });
 

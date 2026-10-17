@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { parseColor } from '../lib/canvas';
 import { light } from '../palette';
 import { catSprites } from '../sprites/cat';
-import { infiniteWeekend, WEEKEND_CAT } from './endings';
+import { aiGotMyJob, infiniteWeekend, permanentContract, STREET_BOX, WEEKEND_CAT } from './endings';
 
 const CAT_COLORS = [light.cat, light.catDark, light.catLight, light.catWhite, light.catNose].map(
   (c) => parseColor(c).slice(0, 3).join(','),
@@ -40,5 +40,34 @@ describe('The Infinite Weekend picture', () => {
         if (!inside) expect(a[y * withCat.width + x], `${x},${y}`).toBe(b[y * withCat.width + x]);
       }
     }
+  });
+});
+
+describe('the AI Got My Job picture', () => {
+  const withCat = aiGotMyJob(true);
+  const noCat = aiGotMyJob(false);
+
+  it('has no cat at all without the cat, and the cat with it', () => {
+    expect(pixels(noCat).some((p) => CAT_COLORS.includes(p))).toBe(false);
+    expect(pixels(withCat).some((p) => CAT_COLORS.includes(p))).toBe(true);
+  });
+
+  it('is the same scene outside the cat and its box (absence shown as absence)', () => {
+    const a = pixels(withCat);
+    const b = pixels(noCat);
+    const box = STREET_BOX;
+    for (let y = 0; y < withCat.height; y += 1) {
+      for (let x = 0; x < withCat.width; x += 1) {
+        const inside =
+          x >= box.x - 2 && x < box.x + box.w + 2 && y >= box.y - 8 && y < box.y + box.h;
+        if (!inside) expect(a[y * withCat.width + x], `${x},${y}`).toBe(b[y * withCat.width + x]);
+      }
+    }
+  });
+});
+
+describe('the permanent contract picture', () => {
+  it('has no cat in it (the cat rule never has to decide)', () => {
+    expect(pixels(permanentContract()).some((p) => CAT_COLORS.includes(p))).toBe(false);
   });
 });

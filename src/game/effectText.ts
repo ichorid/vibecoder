@@ -94,5 +94,6 @@ export function cardEffects(upgrade: UpgradeDefinition, catalog: Catalog): strin
   if (upgrade.effectsPerLevel.some((e) => e.kind === 'autoRefill' && e.version === 1)) {
     lines.push('has a bug');
   }
+  lines.push(...(upgrade.effectLines ?? []));
   return lines;
 }

@@ -1,6 +1,6 @@
 # Feature: Money — gigs, rent, and AI Got My Job
 
-Status: **proposal, not implemented** (2026-10-17). Builds on docs/feature_projects.md (gigs are
+Status: **implemented** (2026-10-17); deviations are listed in docs/agent_journal.md D30. Builds on docs/feature_projects.md (gigs are
 projects); implement after its Q1. Owner decisions (2026-10-17) are in §2. Every number is a
 *starting value*; the harness decides, and each phase records its measured result in
 docs/agent_journal.md. Follow AGENTS.md TDD: one behaviour RED → GREEN → refactor per step.

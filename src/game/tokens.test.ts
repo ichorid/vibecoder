@@ -3,7 +3,7 @@ import { catalog } from '../content/catalog';
 import { steps } from '../../tests/helpers/run';
 import { applyCommand } from './commands';
 import { createRun } from './createRun';
-import { deriveRates, economyFlows, tokenDemandPerSecond, tokenPack } from './economy';
+import { deriveRates, marketRate, offerPrice, tokenDemandPerSecond, tokenPack } from './economy';
 import { selectGame } from './selectors';
 import type { TechnologyId } from './ids';
 import type { RunState } from './types';
@@ -19,15 +19,31 @@ function at(last: TechnologyId, patch: Partial<RunState['economy']> = {}, seed =
     unlockedTechnologyIds: upTo(last),
     // Each technology's progression card was bought (their IDs match).
     upgradeLevels: Object.fromEntries(upTo(last).map((id) => [id, 1])),
-    economy: { ...run.economy, output: 100_000, tasks: 60, ...patch },
+    economy: { ...run.economy, money: 100_000, tasks: 60, ...patch },
+    // Money is already on screen (no first-gig savings land during these steps).
+    narrative: { ...run.narrative, fired: ['first-gig'] },
   };
 }
-const buy = (run: RunState, id: string) =>
-  applyCommand(run, { type: 'buyUpgrade', id: id as never }, run.activeMs, catalog);
+/** Money cards are bought; code cards are owned directly (unit-test shortcut for a build). */
+const buy = (run: RunState, id: string) => {
+  const upgrade = catalog.upgrades.find((u) => u.id === id);
+  if (upgrade?.currency === 'money') {
+    return applyCommand(run, { type: 'buyUpgrade', id: id as never }, run.activeMs, catalog);
+  }
+  return {
+    result: 'applied' as const,
+    run: { ...run, upgradeLevels: { ...run.upgradeLevels, [id]: 1 } },
+  };
+};
+const packPrice = (run: RunState) => {
+  const pack = catalog.upgrades.find((u) => u.pack === 'tokens');
+  if (!pack) throw new Error('no pack');
+  return offerPrice(run, pack, catalog);
+};
 const offered = (run: RunState, id: string) =>
   selectGame(run, catalog).offers.some((o) => o.id === id);
 
-describe('buying tokens with code', () => {
+describe('buying tokens with money', () => {
   it('a pack is about a minute of current agent demand (at least the minimum) at the base rate', () => {
     const early = at('terminal-agent');
     const pack = tokenPack(early, catalog);
@@ -40,12 +56,21 @@ describe('buying tokens with code', () => {
     expect(mid.tokens).toBeGreaterThan(pack.tokens);
   });
 
-  it('buying a pack spends code and adds the tokens; the card shows only while tokens run low', () => {
+  it('a pack costs its code value at the market rate, rounded up by the reseller', () => {
+    const run = at('terminal-agent');
+    const pack = tokenPack(run, catalog);
+    const raw = pack.price * marketRate(run, catalog) * catalog.balance.gigs.tokenMarkup;
+    expect(packPrice(run)).toBeGreaterThanOrEqual(raw * 0.95);
+    expect(packPrice(run)).toBeLessThanOrEqual(raw * 1.05);
+  });
+
+  it('buying a pack spends money and adds the tokens; the card shows only while tokens run low', () => {
     const run = at('terminal-agent', { tokens: 5 });
     const pack = tokenPack(run, catalog);
+    const price = packPrice(run);
     const bought = buy(run, 'token-supply');
     expect(bought.result).toBe('applied');
-    expect(bought.run.economy.output).toBe(100_000 - pack.price);
+    expect(bought.run.economy.money).toBe(100_000 - price);
     expect(bought.run.economy.tokens).toBe(5 + pack.tokens);
     // Plenty of tokens now: the card makes room until they would last under half a minute.
     const demand = tokenDemandPerSecond(deriveRates(run, catalog));
@@ -57,7 +82,10 @@ describe('buying tokens with code', () => {
     const low = { ...full, economy: { ...full.economy, tokens: demand * 29 } };
     expect(offered(low, 'token-supply')).toBe(true);
     const card = selectGame(run, catalog).offers.find((o) => o.id === 'token-supply');
-    expect(card).toMatchObject({ price: pack.price, tokens: pack.tokens });
+    expect(card).toMatchObject({ price, tokens: pack.tokens, currency: 'money' });
+    // Without the money, the pack cannot be bought.
+    const broke = buy({ ...run, economy: { ...run.economy, money: price - 1 } }, 'token-supply');
+    expect(broke.result).toBe('unaffordable');
   });
 });
 
@@ -73,12 +101,15 @@ describe('auto-refill', () => {
     return run;
   }
 
-  it('v1 buys a pack when tokens run low, while code lasts', () => {
+  it('v1 buys a pack when tokens run low, while money lasts', () => {
     const run = hungry(1);
     const next = steps(run, 1, catalog);
     expect(next.economy.autoRefills).toBe(1);
     expect(next.economy.tokens).toBeGreaterThan(0);
-    expect(next.economy.output).toBeLessThan(run.economy.output);
+    expect(next.economy.money).toBeLessThan(run.economy.money);
+    // No money, no pack: the agents stall.
+    const broke = steps({ ...run, economy: { ...run.economy, money: 0 } }, 1, catalog);
+    expect(broke.economy.autoRefills).toBe(0);
   });
 
   it('waits until the tokens are really gone: no refill while any are left', () => {
@@ -102,26 +133,22 @@ describe('auto-refill', () => {
     expect(offered(low(burned), 'token-supply')).toBe(true);
   });
 
-  it('the bug costs at least 30 s of current output, or the whole bank (savers and spenders)', () => {
+  it('the bug costs at least 30 s of what the code earns, or all the money (savers and spenders)', () => {
     for (const bank of [600, 5_000, 1e6]) {
       let run = hungry(1, 1);
-      run = { ...run, economy: { ...run.economy, output: bank } };
+      run = { ...run, economy: { ...run.economy, money: bank, codeRate: 40 } };
       for (let refill = 1; refill <= 6 && run.stats.refillDisasters === 0; refill += 1) {
-        run = { ...run, economy: { ...run.economy, tokens: 0, output: bank } };
-        const rates = deriveRates(run, catalog);
-        const perSecond =
-          economyFlows(run.economy, rates, 0.1, catalog.balance).useful / 0.1 +
-          rates.passiveOutputPerSecond;
+        run = { ...run, economy: { ...run.economy, tokens: 0, money: bank } };
+        const perSecond = run.economy.codeRate * marketRate(run, catalog);
         const next = steps(run, 1, catalog);
         if (next.stats.refillDisasters === 1) {
-          const lost = bank - next.economy.output;
+          const lost = bank - next.economy.money;
           const floor = Math.min(
             bank,
             Math.max(bank * tokens.disasterLoss, tokens.disasterSeconds * perSecond),
           );
-          // This step's own small production lands before the loss.
-          expect(lost).toBeGreaterThan(floor - perSecond);
-          expect(next.economy.output).toBeGreaterThanOrEqual(0);
+          expect(lost).toBeGreaterThan(floor * 0.9);
+          expect(next.economy.money).toBeGreaterThanOrEqual(0);
         }
         run = next;
       }
@@ -129,19 +156,19 @@ describe('auto-refill', () => {
     }
   });
 
-  it('v1 has a bug: one of its refills 3–6 spends half the code and delivers no tokens', () => {
+  it('v1 has a bug: one of its refills 3–6 spends half the money and delivers no tokens', () => {
     for (const seed of [1, 2, 3, 4, 5, 6, 7, 8]) {
       let run = hungry(1, seed);
       let disasterAt = 0;
       for (let refill = 1; refill <= 6 && disasterAt === 0; refill += 1) {
         run = { ...run, economy: { ...run.economy, tokens: 0 } };
-        const before = run.economy.output;
+        const before = run.economy.money;
         const next = steps(run, 1, catalog);
         if (next.stats.refillDisasters === 1) {
           disasterAt = next.economy.autoRefills;
-          // Half the code is spent (this step's own small production lands before the loss).
-          expect(next.economy.output).toBeLessThan(before * (1 - tokens.disasterLoss) + 1);
-          expect(next.economy.output).toBeGreaterThan(before * (1 - tokens.disasterLoss) - 1);
+          // Half the money is gone.
+          expect(next.economy.money).toBeLessThan(before * (1 - tokens.disasterLoss) + 1);
+          expect(next.economy.money).toBeGreaterThan(before * (1 - tokens.disasterLoss) - 1);
           expect(next.economy.tokens).toBeLessThan(1);
           expect(next.log.some((line) => /wrong account|charity/.test(line.text))).toBe(true);
         }
@@ -152,7 +179,7 @@ describe('auto-refill', () => {
     }
   });
 
-  it('v2 appears only after the first disaster, replaces v1 and never deletes code', () => {
+  it('v2 appears only after the first disaster, replaces v1 and never deletes money', () => {
     const before = hungry(1);
     expect(offered(before, 'auto-refill-v2')).toBe(false);
     let run = hungry(2);
@@ -161,7 +188,7 @@ describe('auto-refill', () => {
       run = steps({ ...run, economy: { ...run.economy, tokens: 0 } }, 1, catalog);
     }
     expect(run.stats.refillDisasters).toBe(1);
-    expect(run.economy.output).toBeGreaterThan(50_000);
+    expect(run.economy.money).toBeGreaterThan(50_000);
   });
 
   it('auto-reviewer raises the rate every interval up to its cap', () => {

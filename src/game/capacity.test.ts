@@ -3,7 +3,7 @@ import { catalog } from '../content/catalog';
 import { withTechnologies } from '../../tests/helpers/unlock';
 import { applyCommand } from './commands';
 import { createRun } from './createRun';
-import { deriveRates, economyFlows, offerPrice, upgradePrice } from './economy';
+import { codePrice, deriveRates, economyFlows, upgradePrice } from './economy';
 import type { TechnologyId, UpgradeId } from './ids';
 import type { RunState } from './types';
 
@@ -17,7 +17,7 @@ function era(ids: readonly TechnologyId[], levels: Partial<Record<UpgradeId, num
   return {
     ...run,
     upgradeLevels: { ...run.upgradeLevels, ...levels },
-    economy: { ...run.economy, tokens: 1e6, tasks: 1e4, output: 1e9 },
+    economy: { ...run.economy, tokens: 1e6, tasks: 1e4, money: 1e9 },
   };
 }
 
@@ -36,7 +36,7 @@ function perAgent(run: RunState): number {
 const CAPACITY = ['additional-agent', 'compute-slot', 'review-capacity'] as const;
 
 describe('capacity cards (agents, compute, reviewers)', () => {
-  it('cost about K seconds of one agent’s work, never less than the base price', () => {
+  it('are worth about K seconds of one agent’s work, never less than the base price', () => {
     const late = era(TO_LOCAL_SERVERS, { 'compute-slot': 4 });
     for (const id of CAPACITY) {
       const definition = card(id);
@@ -44,7 +44,7 @@ describe('capacity cards (agents, compute, reviewers)', () => {
       expect(seconds).toBeGreaterThan(0);
       const expected = seconds * perAgent(late);
       expect(expected).toBeGreaterThan(definition.basePrice);
-      const price = offerPrice(late, definition, catalog);
+      const price = codePrice(late, definition, catalog);
       expect(price).toBeGreaterThan(expected * 0.9);
       expect(price).toBeLessThan(expected * 1.1);
     }
@@ -54,17 +54,17 @@ describe('capacity cards (agents, compute, reviewers)', () => {
     const early = createRun(4, 'r');
     for (const id of CAPACITY) {
       const definition = card(id);
-      expect(offerPrice(early, definition, catalog)).toBe(definition.basePrice);
+      expect(codePrice(early, definition, catalog)).toBe(definition.basePrice);
       expect(definition.priceGrowth).toBeGreaterThan(1);
       expect(definition.priceGrowth).toBeLessThanOrEqual(1.25);
       const owned = { ...early, upgradeLevels: { ...early.upgradeLevels, [id]: 12 } };
       const floor = upgradePrice(definition, 12);
-      expect(offerPrice(owned, definition, catalog)).toBeGreaterThan(floor * 0.95);
-      expect(offerPrice(owned, definition, catalog)).toBeLessThan(floor * 1.05);
+      expect(codePrice(owned, definition, catalog)).toBeGreaterThan(floor * 0.95);
+      expect(codePrice(owned, definition, catalog)).toBeLessThan(floor * 1.05);
     }
   });
 
-  it('can be bought well past eight levels', () => {
+  it('compute (bought with money) can be bought well past eight levels', () => {
     let run = era(TO_LOCAL_SERVERS);
     for (let i = 0; i < 20; i += 1) {
       const bought = applyCommand(

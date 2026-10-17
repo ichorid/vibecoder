@@ -20,10 +20,26 @@
  * - 7 → 8: Code a demo. Runs get `demos: []` and a demo RNG stream derived from the run ID.
  * - 8 → 9: designing demos. Each demo gets `pick: null` (the judge chose it) and the run
  *   `demoPick: null` (no design for the next one yet).
+ * - 9 → 10: projects and money (docs/feature_projects.md, docs/feature_money.md). Code is no
+ *   longer banked: the bank goes into the release project, up to the next release's price
+ *   (`RELEASE_PRICES_V10`); the rest is dropped. `revenue` becomes `money`. The run gets one
+ *   build slot on the release, empty gigs/rent/job state, gig and rent RNG streams derived from
+ *   the run ID, `frugal: 1`, and silent market History entries for the eras it already passed
+ *   (`MARKET_ERAS_V10`), so a loaded run does not replay old market updates.
  */
 import { deriveSeed } from '../game/random';
 
-export const CURRENT_SCHEMA_VERSION = 9;
+export const CURRENT_SCHEMA_VERSION = 10;
+
+/** Release prices at schema 10 (v0.1 … v3.0, then ×6 each): where an old bank goes. */
+const RELEASE_PRICES_V10 = [2000, 12_000, 75_000, 450_000, 2_700_000];
+/** Technologies that started each market era at schema 10 (era 1, 2, …). */
+const MARKET_ERAS_V10 = [
+  'ralph-loop',
+  'context-management',
+  'custom-harness',
+  'self-driving-repositories',
+];
 
 /** 6 tokens/s × 300 s: what one old supply level gave over five minutes. */
 export const TOKENS_PER_OLD_SUPPLY_LEVEL = 1800;
@@ -181,6 +197,57 @@ function v8ToV9(envelope: Record<string, unknown>): MigrationResult {
   };
 }
 
+function v9ToV10(envelope: Record<string, unknown>): MigrationResult {
+  const run = envelope.run;
+  if (
+    !isRecord(run) ||
+    !isRecord(run.economy) ||
+    !isRecord(run.stats) ||
+    !isRecord(run.rng) ||
+    typeof run.id !== 'string'
+  ) {
+    return { ok: false, unsupported: false, reason: 'v9 save without run economy' };
+  }
+  const { output, revenue, ...economy } = run.economy;
+  const bank = typeof output === 'number' && Number.isFinite(output) ? Math.max(0, output) : 0;
+  const shipped = Array.isArray(run.releases) ? run.releases.length : 0;
+  const authored = RELEASE_PRICES_V10[shipped];
+  const last = RELEASE_PRICES_V10[RELEASE_PRICES_V10.length - 1] ?? 0;
+  const price = authored ?? last * 6 ** (shipped - RELEASE_PRICES_V10.length + 1);
+  const activeMs = typeof run.activeMs === 'number' ? run.activeMs : 0;
+  const unlocked: unknown[] = Array.isArray(run.unlockedTechnologyIds)
+    ? (run.unlockedTechnologyIds as unknown[])
+    : [];
+  const history: unknown[] = Array.isArray(run.history) ? (run.history as unknown[]) : [];
+  const eras = MARKET_ERAS_V10.flatMap((tech, i) =>
+    unlocked.includes(tech) ? [{ kind: 'market', era: i + 1, activeMs }] : [],
+  );
+  const seed = deriveSeed(0, run.id);
+  return {
+    ok: true,
+    value: {
+      ...envelope,
+      schemaVersion: 10,
+      run: {
+        ...run,
+        rng: { ...run.rng, gigs: deriveSeed(seed, 'gigs'), rent: deriveSeed(seed, 'rent') },
+        economy: { ...economy, codeRate: 0, money: typeof revenue === 'number' ? revenue : 0 },
+        stats: { ...run.stats, taxedCode: 0, gigCode: 0 },
+        history: [...history, ...eras],
+        frugal: 1,
+        projects: bank > 0 ? { release: { code: Math.min(bank, price), price } } : {},
+        slots: [{ target: 'release', by: 'player', sinceMs: activeMs }],
+        gigs: { offer: null, search: null, paid: 0, botMs: 0 },
+        rent: { movedOut: false, month: 0, nextDueMs: null, missedStreak: 0, missedTotal: 0 },
+        rentWheels: [],
+        rentWheelsSeen: 0,
+        job: { offer: null, employed: null, awayMs: 0, cooldownUntilMs: null, fired: 0 },
+        notices: [],
+      },
+    },
+  };
+}
+
 const STEPS: Record<number, (envelope: Record<string, unknown>) => MigrationResult> = {
   1: v1ToV2,
   2: v2ToV3,
@@ -190,6 +257,7 @@ const STEPS: Record<number, (envelope: Record<string, unknown>) => MigrationResu
   6: v6ToV7,
   7: v7ToV8,
   8: v8ToV9,
+  9: v9ToV10,
 };
 
 export function migrate(envelope: Record<string, unknown>): MigrationResult {

@@ -4,6 +4,7 @@ import {
   RELEASE_OUTCOME_IDS,
   MAX_RELEASES,
   MAX_DEMOS,
+  RENT_OUTCOME_IDS,
   TECHNOLOGY_IDS,
   type ReleaseWindow,
   UPGRADE_IDS,
@@ -20,7 +21,10 @@ import {
   type RunStats,
   type HistoryEntry,
   type LogEntry,
+  type Notice,
+  type ProjectKey,
   type ReleaseRecord,
+  type RentRecord,
   type RunState,
 } from '../game/types';
 
@@ -168,7 +172,7 @@ function decodeLastCare(value: unknown, path: string): CatState['lastCare'] {
 
 /** Every economy and statistics field is a finite, nonnegative number. */
 const ECONOMY_FIELDS = [
-  'output',
+  'codeRate',
   'pendingManualWork',
   'tokens',
   'tasks',
@@ -176,7 +180,7 @@ const ECONOMY_FIELDS = [
   'debt',
   'delegation',
   'optimization',
-  'revenue',
+  'money',
   'revenuePerSecond',
   'costPerSecond',
   'autoRefills',
@@ -194,6 +198,8 @@ const STATS_FIELDS = [
   'positiveMarginMs',
   'negativeMarginMs',
   'refillDisasters',
+  'taxedCode',
+  'gigCode',
 ] as const satisfies readonly (keyof RunStats)[];
 
 // Compile-time proof that the field lists cover the whole state shape.
@@ -212,8 +218,8 @@ function decodeNumbers<K extends string>(
 ): Record<K, number> {
   const result = {} as Record<K, number>;
   for (const field of fields) {
-    // The bank may be in the red (a credit line), never anything else.
-    const range = field === 'revenue' ? { min: -1e18 } : nonNegative;
+    // Money may be in the red (rent, a credit line), never anything else.
+    const range = field === 'money' ? { min: -1e18 } : nonNegative;
     result[field] = num(raw[field], `${path}.${field}`, range);
   }
   return result;
@@ -344,6 +350,10 @@ function decodeHistoryEntry(value: unknown, path: string): HistoryEntry {
     'ending',
     'release',
     'demo',
+    'market',
+    'job',
+    'milestone',
+    'money',
   ] as const);
   switch (kind) {
     case 'cat':
@@ -369,7 +379,160 @@ function decodeHistoryEntry(value: unknown, path: string): HistoryEntry {
         number: num(raw.number, `${path}.number`, { min: 1, max: MAX_DEMOS, integer: true }),
         activeMs,
       };
+    case 'market':
+      return {
+        kind,
+        era: num(raw.era, `${path}.era`, { min: 1, max: 50, integer: true }),
+        activeMs,
+      };
+    case 'job':
+      return {
+        kind,
+        event: oneOf(raw.event, `${path}.event`, ['hired', 'fired'] as const),
+        activeMs,
+      };
+    case 'milestone':
+      return { kind, id: oneOf(raw.id, `${path}.id`, ['permanent-contract'] as const), activeMs };
+    case 'money':
+      return {
+        kind,
+        id: oneOf(raw.id, `${path}.id`, ['moved-out', 'company-pays-rent'] as const),
+        activeMs,
+      };
   }
+}
+
+const PROJECT_KEYS: readonly ProjectKey[] = [...UPGRADE_IDS, 'release', 'demo', 'gig', 'job'];
+const SLOT_BY = ['player', 'system', 'fallback'] as const;
+
+function decodeProjects(value: unknown, path: string): RunState['projects'] {
+  const raw = record(value, path);
+  const projects: RunState['projects'] = {};
+  for (const [key, entry] of Object.entries(raw)) {
+    const id = oneOf(key, `${path}.${key}`, PROJECT_KEYS);
+    const e = record(entry, `${path}.${key}`);
+    const price = num(e.price, `${path}.${key}.price`, { min: 0, max: 1e18 });
+    const code = num(e.code, `${path}.${key}.code`, { min: 0, max: 1e18 });
+    if (code > price + 1e-6) fail(`${path}.${key}`, 'more code than its price');
+    projects[id] = { code, price };
+  }
+  return projects;
+}
+
+function decodeSlot(value: unknown, path: string): RunState['slots'][number] {
+  const raw = record(value, path);
+  return {
+    target: oneOf(raw.target, `${path}.target`, PROJECT_KEYS),
+    by: oneOf(raw.by, `${path}.by`, SLOT_BY),
+    sinceMs: num(raw.sinceMs, `${path}.sinceMs`, nonNegative),
+  };
+}
+
+function decodeGigs(value: unknown, path: string): RunState['gigs'] {
+  const raw = record(value, path);
+  const offer =
+    raw.offer === null
+      ? null
+      : (() => {
+          const o = record(raw.offer, `${path}.offer`);
+          return {
+            size: num(o.size, `${path}.offer.size`, { min: 1, max: 1e18 }),
+            pay: num(o.pay, `${path}.offer.pay`, { min: 0, max: 1e18 }),
+            tier: oneOf(o.tier, `${path}.offer.tier`, ['normal', 'tip', 'ghost'] as const),
+            payMin: num(o.payMin, `${path}.offer.payMin`, { min: 0, max: 1e18 }),
+            payMax: num(o.payMax, `${path}.offer.payMax`, { min: 0, max: 1e18 }),
+            clientId: str(o.clientId, `${path}.offer.clientId`, 40),
+            paymentId: str(o.paymentId, `${path}.offer.paymentId`, 40),
+          };
+        })();
+  const search =
+    raw.search === null
+      ? null
+      : (() => {
+          const q = record(raw.search, `${path}.search`);
+          return {
+            done: num(q.done, `${path}.search.done`, { min: 0, max: 100, integer: true }),
+            needed: num(q.needed, `${path}.search.needed`, { min: 1, max: 100, integer: true }),
+          };
+        })();
+  if (offer && search) fail(path, 'a gig and a search at once');
+  return {
+    offer,
+    search,
+    paid: num(raw.paid, `${path}.paid`, { min: 0, integer: true }),
+    botMs: num(raw.botMs, `${path}.botMs`, nonNegative),
+  };
+}
+
+function decodeRent(value: unknown, path: string): RunState['rent'] {
+  const raw = record(value, path);
+  return {
+    movedOut: bool(raw.movedOut, `${path}.movedOut`),
+    month: num(raw.month, `${path}.month`, { min: 0, integer: true }),
+    nextDueMs: nullableNum(raw.nextDueMs, `${path}.nextDueMs`, nonNegative),
+    missedStreak: num(raw.missedStreak, `${path}.missedStreak`, { min: 0, integer: true }),
+    missedTotal: num(raw.missedTotal, `${path}.missedTotal`, { min: 0, integer: true }),
+  };
+}
+
+const RENT_RESULTS = [...RENT_OUTCOME_IDS, 'evicted'] as const;
+
+function decodeRentRecord(value: unknown, path: string): RentRecord {
+  const raw = record(value, path);
+  return {
+    month: num(raw.month, `${path}.month`, { min: 0, integer: true }),
+    outcome: oneOf(raw.outcome, `${path}.outcome`, RENT_RESULTS),
+    hazard: num(raw.hazard, `${path}.hazard`, { min: 0, max: 1 }),
+    rent: num(raw.rent, `${path}.rent`, { min: 0, max: 1e12 }),
+    catAlive: bool(raw.catAlive, `${path}.catAlive`),
+    activeMs: num(raw.activeMs, `${path}.activeMs`, nonNegative),
+  };
+}
+
+function decodeJob(value: unknown, path: string): RunState['job'] {
+  const raw = record(value, path);
+  const offer =
+    raw.offer === null
+      ? null
+      : (() => {
+          const o = record(raw.offer, `${path}.offer`);
+          return {
+            salary: num(o.salary, `${path}.offer.salary`, { min: 0, max: 1e15 }),
+            expiresAtMs: num(o.expiresAtMs, `${path}.offer.expiresAtMs`, nonNegative),
+          };
+        })();
+  const employed =
+    raw.employed === null
+      ? null
+      : (() => {
+          const e = record(raw.employed, `${path}.employed`);
+          return {
+            salary: num(e.salary, `${path}.employed.salary`, { min: 0, max: 1e15 }),
+            monthEmployedMs: num(
+              e.monthEmployedMs,
+              `${path}.employed.monthEmployedMs`,
+              nonNegative,
+            ),
+            paydays: num(e.paydays, `${path}.employed.paydays`, { min: 0, integer: true }),
+            permanent: bool(e.permanent, `${path}.employed.permanent`),
+          };
+        })();
+  if (offer && employed) fail(path, 'an offer while employed');
+  return {
+    offer,
+    employed,
+    awayMs: num(raw.awayMs, `${path}.awayMs`, nonNegative),
+    cooldownUntilMs: nullableNum(raw.cooldownUntilMs, `${path}.cooldownUntilMs`, nonNegative),
+    fired: num(raw.fired, `${path}.fired`, { min: 0, integer: true }),
+  };
+}
+
+function decodeNotice(value: unknown, path: string): Notice {
+  const raw = record(value, path);
+  const kind = oneOf(raw.kind, `${path}.kind`, ['market', 'milestone'] as const);
+  return kind === 'market'
+    ? { kind, era: num(raw.era, `${path}.era`, { min: 1, max: 50, integer: true }) }
+    : { kind, id: oneOf(raw.id, `${path}.id`, ['permanent-contract'] as const) };
 }
 
 function decodeLogEntry(value: unknown, path: string): LogEntry {
@@ -406,6 +569,8 @@ export function decodeRun(value: unknown, path = 'run'): RunState {
       narrative: num(rng.narrative, `${path}.rng.narrative`, uint32),
       release: num(rng.release, `${path}.rng.release`, uint32),
       demo: num(rng.demo, `${path}.rng.demo`, uint32),
+      gigs: num(rng.gigs, `${path}.rng.gigs`, uint32),
+      rent: num(rng.rent, `${path}.rng.rent`, uint32),
     },
     visualSeed: num(raw.visualSeed, `${path}.visualSeed`, uint32),
     economy: decodeNumbers(economy, ECONOMY_FIELDS, `${path}.economy`),
@@ -436,8 +601,21 @@ export function decodeRun(value: unknown, path = 'run'): RunState {
     demoPick: decodePick(raw.demoPick, `${path}.demoPick`),
     plant: decodePlant(raw.plant, `${path}.plant`),
     experience: num(raw.experience, `${path}.experience`, { min: 0, max: 100 }),
+    frugal: num(raw.frugal, `${path}.frugal`, { min: 0.01, max: 1 }),
+    projects: decodeProjects(raw.projects, `${path}.projects`),
+    slots: list(raw.slots, `${path}.slots`, decodeSlot, 4),
+    gigs: decodeGigs(raw.gigs, `${path}.gigs`),
+    rent: decodeRent(raw.rent, `${path}.rent`),
+    rentWheels: list(raw.rentWheels, `${path}.rentWheels`, decodeRentRecord, 1000),
+    rentWheelsSeen: num(raw.rentWheelsSeen, `${path}.rentWheelsSeen`, { min: 0, integer: true }),
+    job: decodeJob(raw.job, `${path}.job`),
+    notices: list(raw.notices, `${path}.notices`, decodeNotice, 20),
     ending: raw.ending === null ? null : decodeEnding(raw.ending, `${path}.ending`),
   };
+  if (run.slots.length === 0) fail(`${path}.slots`, 'a run needs at least one build slot');
+  if (run.rentWheelsSeen > run.rentWheels.length) {
+    fail(`${path}.rentWheelsSeen`, 'more wheels seen than spun');
+  }
   if ((run.status === 'ended') !== (run.ending !== null))
     fail(`${path}.ending`, 'status and ending disagree');
   if (run.catPlay && !run.cat.alive) fail(`${path}.catPlay`, 'play session with a dead cat');

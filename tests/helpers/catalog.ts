@@ -1,6 +1,7 @@
 import { attentionBalance, balance, catBalance, catPlayBalance } from '../../src/content/balance';
 import { catText } from '../../src/content/catText';
 import { demos } from '../../src/content/demos';
+import { money } from '../../src/content/money';
 import { releases } from '../../src/content/releases';
 import type { Catalog } from '../../src/game/catalog';
 
@@ -14,6 +15,7 @@ export function createTestCatalog(): Catalog {
     achievements: [],
     releases: { ...releases, windows: [] },
     demos,
+    money,
 
     catText,
     balance: {
@@ -40,6 +42,10 @@ export function createTestCatalog(): Catalog {
       chatter: balance.chatter,
       money: balance.money,
       plant: balance.plant,
+      projects: balance.projects,
+      gigs: balance.gigs,
+      rent: balance.rent,
+      job: balance.job,
     },
     primaryActionLabels: {
       writeCode: 'WRITE CODE',
@@ -50,11 +56,11 @@ export function createTestCatalog(): Catalog {
       observe: 'OBSERVE',
     },
     statLabels: {
-      output: 'Code',
+      code: 'Code/s',
       tokens: 'Tokens',
       debt: 'Debt',
       automation: 'Automation',
-      revenue: 'Revenue',
+      money: '$',
       margin: 'Margin',
       quality: 'Quality',
       team: 'Team',

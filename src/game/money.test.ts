@@ -7,7 +7,7 @@ import { stepRun } from './simulation';
 import type { RunState } from './types';
 
 /** The finished company, after expanding into every market: costs far above revenue. */
-function expanded(revenue = 0): RunState {
+function expanded(money = 0): RunState {
   const ids = catalog.technologies.map((t) => t.id);
   const run = createRun(2, 'money');
   return {
@@ -15,7 +15,7 @@ function expanded(revenue = 0): RunState {
     unlockedTechnologyIds: ids,
     upgradeLevels: Object.fromEntries(ids.map((id) => [id, 1])),
     history: ids.map((id) => ({ kind: 'technology' as const, id, activeMs: 0 })),
-    economy: { ...run.economy, revenue, tokens: 1e9, tasks: 60 },
+    economy: { ...run.economy, money, tokens: 1e9, tasks: 60 },
     choices: { 'expand-anyway': { atActiveMs: 0, manualActions: 0, overhead: 5000 } },
   };
 }
@@ -30,7 +30,7 @@ const steps = (start: RunState, count: number) => {
 describe('the credit line', () => {
   it('lets the bank go into the red and keeps the agents working on borrowed money', () => {
     const run = steps(expanded(0), 20);
-    expect(run.economy.revenue).toBeLessThan(0);
+    expect(run.economy.money).toBeLessThan(0);
     const rates = deriveRates(run, catalog);
     const flows = economyFlows(run.economy, rates, 0.1, catalog.balance);
     expect(flows.activeAgents).toBe(flows.runnable);

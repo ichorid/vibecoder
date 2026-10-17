@@ -22,7 +22,7 @@ const TO_REVIEWER: TechnologyId[] = [
 
 function era(extra: TechnologyId[], patch: Partial<RunState['economy']> = {}): RunState {
   const run = withTechnologies(createRun(4, 'r'), [...TO_REVIEWER, ...extra], catalog);
-  return { ...run, economy: { ...run.economy, tokens: 300, tasks: 40, output: 0, ...patch } };
+  return { ...run, economy: { ...run.economy, tokens: 300, tasks: 40, ...patch } };
 }
 
 describe('parallel agents and coordination', () => {
@@ -46,14 +46,14 @@ describe('parallel agents and coordination', () => {
     const three = steps(more, 10, catalog);
     // Three active agents but capacity to manage one: barely more useful output (the floor),
     // 3× the tokens.
-    const gain = (r: typeof run) => r.economy.output - run.economy.output;
+    const gain = (r: typeof run) => r.stats.lifetimeOutput - run.stats.lifetimeOutput;
     expect(gain(three)).toBeLessThan(gain(one) * 3 * COORDINATION_FLOOR + 0.5);
     expect(run.economy.tokens - three.economy.tokens).toBeGreaterThan(
       2.5 * (run.economy.tokens - one.economy.tokens),
     );
     // Easing coordination (DELEGATE) turns the same compute into real output.
     const delegated = steps({ ...more, economy: { ...more.economy, delegation: 3 } }, 10, catalog);
-    expect(delegated.economy.output).toBeGreaterThan(one.economy.output * 1.8);
+    expect(delegated.stats.lifetimeOutput).toBeGreaterThan(one.stats.lifetimeOutput * 1.8);
   });
 
   it('worktrees and the manager ease coordination without multiplying everything', () => {
@@ -89,7 +89,7 @@ describe('parallel agents and coordination', () => {
 
 describe('repeatable upgrades', () => {
   it('shows the progression card, the choice, then the card for what binds, at most three', () => {
-    const run = era(['parallel-agents'], { tokens: 0, output: 50 });
+    const run = era(['parallel-agents'], { tokens: 0 });
     const ids = selectGame(run, catalog).offers.map((o) => o.id);
     expect(ids).toEqual(['worktrees', 'keep-manual', 'token-supply']);
   });

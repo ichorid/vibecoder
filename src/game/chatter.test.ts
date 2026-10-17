@@ -14,8 +14,8 @@ function withTechnologies(ids: readonly TechnologyId[], seed = 5): RunState {
     unlockedTechnologyIds: [...ids],
     upgradeLevels: Object.fromEntries(ids.map((id) => [id, 1])),
     history: ids.map((id) => ({ kind: 'technology' as const, id, activeMs: 0 })),
-    // Plenty of tokens and output so no other narrative event competes for the log.
-    economy: { ...run.economy, tokens: 1e9, output: 1e6 },
+    // Plenty of tokens and money so no other narrative event competes for the log.
+    economy: { ...run.economy, tokens: 1e9, money: 1e6 },
   };
 }
 

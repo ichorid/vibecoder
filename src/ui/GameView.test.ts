@@ -48,7 +48,7 @@ describe('Game controls', () => {
   it('sends exactly one command per primary press', async () => {
     const t = setup();
     await t.write(1);
-    expect(t.latest()?.run.economy.output).toBe(1);
+    expect(t.latest()?.run.stats.lifetimeOutput).toBe(1);
   });
 
   it('floats the real gain of each accepted press up from the button', async () => {
@@ -67,19 +67,22 @@ describe('Game controls', () => {
     );
   });
 
-  it('shows a disabled price that cannot spend output', async () => {
+  it('a tap picks a card to build; it shows BUILDING and fills with every press', async () => {
     const t = setup();
     await t.write(6);
     const card = screen.getByRole<HTMLButtonElement>('button', { name: /Autocomplete/ });
-    expect(card.disabled).toBe(true);
+    expect(card.disabled).toBe(false);
     await fireEvent.click(card);
-    expect(t.latest()?.run.economy.output).toBe(6);
+    expect(t.latest()?.run.slots[0]).toMatchObject({ target: 'autocomplete', by: 'player' });
+    expect(within(card).getByTestId('project-badge').textContent).toBe('BUILDING');
+    await t.write(3);
+    expect(t.latest()?.run.projects.autocomplete?.code).toBe(3);
     expect(t.latest()?.run.upgradeLevels).toEqual({});
   });
 
   it('shows the fixed price on Ship It and the demo strip, not what is left to earn', () => {
     const run = progressedRun(4, false);
-    const ui = createUiGame({ ...run, economy: { ...run.economy, output: 1 } });
+    const ui = createUiGame(run);
     let latest: GameSnapshot | undefined;
     ui.game.api.subscribe((s) => {
       latest = s;
@@ -102,13 +105,15 @@ describe('Game controls', () => {
     expect(`${ship} ${code}`).not.toContain('to go');
   });
 
-  it('removes a bought card, never shows more than three, and leaks no future title', async () => {
+  it('removes a built card, never shows more than three, and leaks no future title', async () => {
     const t = setup();
-    await t.write(AUTOCOMPLETE_PRICE);
+    await t.write(5);
     expect(
       within(screen.getByRole('list', { name: 'Upgrades' })).getAllByRole('listitem').length,
     ).toBeLessThanOrEqual(3);
     await fireEvent.click(screen.getByRole('button', { name: /Autocomplete/ }));
+    await t.write(AUTOCOMPLETE_PRICE);
+    expect(t.latest()?.run.upgradeLevels.autocomplete).toBe(1);
     expect(screen.queryByRole('list', { name: 'Upgrades' })).toBeNull();
     const text = allDomText();
     expect(text).not.toMatch(/Generated snippets|AI-native IDE|generated-snippets/);
@@ -116,8 +121,9 @@ describe('Game controls', () => {
 
   it('keeps CAT and HISTORY usable during an announcement', async () => {
     const t = setup();
-    await t.write(AUTOCOMPLETE_PRICE);
+    await t.write(5);
     await fireEvent.click(screen.getByRole('button', { name: /Autocomplete/ }));
+    await t.write(AUTOCOMPLETE_PRICE);
     expect(screen.getByTestId('announcement')).toBeTruthy();
     await fireEvent.click(screen.getByRole('button', { name: 'HISTORY' }));
     expect(screen.getByRole('heading', { name: 'HISTORY' })).toBeTruthy();
@@ -126,9 +132,11 @@ describe('Game controls', () => {
 
   it('defers an announcement made while Cat is open until Game returns', async () => {
     const t = setup();
-    await t.write(AUTOCOMPLETE_PRICE);
+    await t.write(5);
+    await fireEvent.click(screen.getByRole('button', { name: /Autocomplete/ }));
+    await t.write(AUTOCOMPLETE_PRICE - 1);
     await fireEvent.click(screen.getByRole('button', { name: /^Cat\./ }));
-    t.game.api.dispatch({ type: 'buyUpgrade', id: 'autocomplete' });
+    t.game.api.dispatch({ type: 'primaryAction' });
     t.tick(5000);
     expect(t.latest()?.run.pendingUnlockIds).toEqual(['autocomplete']);
     expect(screen.queryByRole('heading', { name: 'Autocomplete' })).toBeNull();

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { headerStat, loadSave } from './helpers';
+import { builtCode, loadSave } from './helpers';
 import { progressedRun, saveText } from './fixtures';
 
 const canvas = (page: Page) => page.getByTestId('world-canvas');
@@ -44,12 +44,12 @@ test('a drag that starts on the poster pans instead of pressing it', async ({ pa
   const box = await canvas(page).boundingBox();
   if (!box) throw new Error('no canvas');
   const [x = 0, y = 0] = value.split(',').map(Number);
-  const stat = await headerStat(page);
+  const stat = await builtCode(page);
   await page.mouse.move(box.x + x, box.y + y);
   await page.mouse.down();
   await page.mouse.move(box.x + x + 50, box.y + y + 20, { steps: 6 });
   await page.mouse.up();
   await expect(canvas(page)).toHaveAttribute('data-view', 'adjusted');
   await page.waitForTimeout(300);
-  expect(await headerStat(page)).toBe(stat);
+  expect(await builtCode(page)).toBe(stat);
 });

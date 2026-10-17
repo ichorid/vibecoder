@@ -125,6 +125,19 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   comments repeat only after all were used. Save: release number 1–999 (`MAX_RELEASES`). The
   always-ship-and-save strategy became degenerate; replaced by "upgrades first, ship when
   affordable": company at 33.9 min, releases at 11, 20, 28, 33 min (seed 1).
+- D30 (user, 2026-10-17) Projects and money (docs/feature_projects.md, docs/feature_money.md)
+  replace the code bank. Deviations from the specs, decided while building and tuning:
+  token packs and compute are money purchases (money spec supersedes projects §5.6); both
+  worktrees may build the same project (tapping a build again doubles up; automation helps the
+  other worktree instead of drifting to the release — otherwise worktrees halved progress);
+  automation leaves a ready release/demo at once (no 5 s wait) and re-checks its release pick
+  every 5 s; Workflow Optimization never overrules the release, a gig or the job;
+  auto-freelancing keeps two rents (the token part of the threshold is not implemented);
+  nobody stays at their parents' forever: the first market update (Ralph Loop) moves a player
+  out who never finished a gig; money shows from the first gig with $150 savings; the
+  landlord wheel reuses the release wheel (red special slice). Prices: progression ×0.7 from
+  Terminal Agent, act 1 30/120/400, Self-Driving Repositories 200K (the freeze-features window),
+  company cards ×0.78. Schema 10 (bank → release progress).
 - D5 (P02) App-level commands (`retrySave`, `setTheme`) go through the same public
   `dispatch` as game commands, so UI still sees only `{subscribe, dispatch}`.
 
@@ -541,4 +554,15 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
 - 2026-10-16: (user) diversity restored: per-seed kind and tube family, first demo = first viable
   draw with score ≥ 0, fewer dotted tubes and swarms, framing to the 90th-percentile extent,
   viability 7 % / 3.5 %. `tools/demoStats.ts` reports the spread of first demos.
+- 2026-10-17: projects + money built end to end (user goal: simulate first, 20–30 min game,
+  then build it all). Harness: `projectPlayer` policy (react delay, freelance threshold, job
+  taker), metrics taxed share / gig share by act / rent missed / eviction minute; `tune.ts
+  --react --freelance --job --frugal`. Measured (3 cps, seeds 1/7/42/101/2024): company
+  26.1–28.3 min; acts ≈ 1.1 / 6.8 / 12 / 16.5 / 20 / 27.5; money act 4.7–6.1 min; taxed share
+  1 % (react 1 s), 6 % (5 s), 19 % (15 s, +4–6 min); gigs take 21–29 % of code in acts 2–3;
+  freelancer misses no rent; careless (gigs only in debt) evicted 3/5 at 15–21 min; ignoring
+  money evicted 5/5. Contract tests restated (economy-shape, money-shape); coordination
+  pressure dropped to 3–5 % (the second worktree builds the capacity) — now a todo. Found: the
+  strategies route loop spun forever once a run ended (eviction freezes time) — fixed; a
+  10 cps masher must search before mashing (search taps share the tap budget).
 

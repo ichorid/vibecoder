@@ -65,7 +65,7 @@ export function strayRun(seed = 33): RunState {
 import { selectGame } from '../../src/game/selectors';
 
 /**
- * Play the ordinary loop (one click per second, buy the first affordable offer, acknowledge
+ * Play the ordinary loop (one click per second, the baseline builder and freelancer, acknowledge
  * reveals, feed/pet/PLAY on the baseline schedule) until `count` technologies are unlocked.
  * `leavePending` stops right after the last purchase so its reveal is still pending.
  */
@@ -82,9 +82,9 @@ export function progressedRun(count: number, leavePending = false, seed = 41): R
     if (run.activeMs % 1000 === 0) {
       run = applyCommand(run, { type: 'primaryAction' }, run.activeMs, catalog).run;
     }
-    const offer = selectGame(run, catalog).offers.find((o) => o.kind === 'upgrade' && o.affordable);
-    if (offer?.kind === 'upgrade') {
-      run = applyCommand(run, { type: 'buyUpgrade', id: offer.id }, run.activeMs, catalog).run;
+    // The ordinary builder: next technology first, gigs when money runs low, packs when needed.
+    for (const command of baselineBuyer({ run, catalog })) {
+      run = applyCommand(run, command, run.activeMs, catalog).run;
     }
     if (run.activeMs % CARE.feedMs === 0 && run.cat.fullness < 70) {
       run = applyCommand(run, { type: 'feedCat' }, run.activeMs, catalog).run;
@@ -145,4 +145,30 @@ export function saveWithProfile(run: RunState, endings: DiscoveredEnding[]): str
     profile: { ...createProfile(), endings },
     run,
   });
+}
+
+import { nextDemo } from '../../src/game/demos';
+import { releaseAt } from '../../src/game/releases';
+
+/** The next release or demo fully built (fixture shortcut: ready to SHIP or RUN). */
+export function withBuilt(run: RunState, key: 'release' | 'demo'): RunState {
+  const price =
+    key === 'release'
+      ? releaseAt(catalog.releases, run.releases.length + 1).price
+      : (nextDemo(run, catalog)?.price ?? 0);
+  return { ...run, projects: { ...run.projects, [key]: { code: price, price } } };
+}
+
+import { projectPrice } from '../../src/game/projects';
+import type { ProjectKey } from '../../src/game/types';
+
+/** A build one line of code from done, on the first slot (one press finishes it). */
+export function nearlyBuilt(run: RunState, id: ProjectKey): RunState {
+  const price = projectPrice(run, id, catalog) ?? 1;
+  const slot = { target: id, by: 'player' as const, sinceMs: run.activeMs };
+  return {
+    ...run,
+    projects: { ...run.projects, [id]: { code: price - 1, price } },
+    slots: [slot, ...run.slots.slice(1)],
+  };
 }

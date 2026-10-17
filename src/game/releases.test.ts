@@ -11,19 +11,27 @@ import type { RunState } from './types';
 
 const windows = catalog.releases.windows;
 
-/** A run that has unlocked `ids` (in order) at `at`, with plenty of code to spend. */
-function withTechnologies(ids: readonly TechnologyId[], at = 0, output = 1e9): RunState {
+/** Code built into the next release (capped at its price: a full release waits for SHIP). */
+function built(run: RunState, code = Infinity): RunState {
+  const price = releaseAt(catalog.releases, run.releases.length + 1).price;
+  return { ...run, projects: { ...run.projects, release: { code: Math.min(code, price), price } } };
+}
+
+/** A run that has unlocked `ids` (in order) at `at`, with `code` built into the release. */
+function withTechnologies(ids: readonly TechnologyId[], at = 0, code = Infinity): RunState {
   const run = createRun(7, 'release-test');
-  return {
-    ...run,
-    activeMs: at,
-    unlockedTechnologyIds: [...ids],
-    // Owning a technology means its progression upgrade was bought (same IDs).
-    upgradeLevels: Object.fromEntries(ids.map((id) => [id, 1])),
-    history: ids.map((id) => ({ kind: 'technology' as const, id, activeMs: at })),
-    economy: { ...run.economy, output },
-    stats: { ...run.stats, lifetimeOutput: output },
-  };
+  return built(
+    {
+      ...run,
+      activeMs: at,
+      unlockedTechnologyIds: [...ids],
+      // Owning a technology means its progression upgrade was bought (same IDs).
+      upgradeLevels: Object.fromEntries(ids.map((id) => [id, 1])),
+      history: ids.map((id) => ({ kind: 'technology' as const, id, activeMs: at })),
+      stats: { ...run.stats, lifetimeOutput: 1e9 },
+    },
+    code,
+  );
 }
 
 const ship = (run: RunState, cat: Catalog = catalog) =>
@@ -89,17 +97,18 @@ describe('shipping a release', () => {
     expect(ship(run).result).toBe('unaffordable');
     const rich = withTechnologies(['terminal-agent']);
     const shipped = ship(rich, withWeights([0])).run;
-    // The next release is on offer at once; it just needs code again.
+    // The next release is on offer at once; it has to be built again.
     expect(nextRelease(shipped, catalog)?.version).toBe('v0.2');
+    expect(shipped.projects.release).toBeUndefined();
     expect(ship(shipped).result).toBe('unaffordable');
     expect(ship({ ...rich, status: 'ended' }).result).toBe('unavailable');
   });
 
-  it('spends ALL the code (not just the minimum) and leaves lifetime output alone', () => {
+  it('consumes what was built into the release and leaves lifetime output alone', () => {
     const run = withTechnologies(['terminal-agent'], 0, 5000);
     const shipped = ship(run, withWeights([0]));
     expect(shipped.result).toBe('applied');
-    expect(shipped.run.economy.output).toBe(0);
+    expect(shipped.run.projects.release).toBeUndefined();
     expect(shipped.run.stats.lifetimeOutput).toBe(run.stats.lifetimeOutput);
     expect(shipped.run.releases).toHaveLength(1);
     expect(shipped.facts[0]).toMatchObject({ type: 'releaseShipped', window: 1 });
@@ -120,7 +129,7 @@ describe('shipping a release', () => {
     const noJackpot = withWeights([0, 0, 0, 0, 0]);
     let run = withTechnologies(['terminal-agent']);
     for (let i = 0; i < 5; i += 1) {
-      run = ship({ ...run, economy: { ...run.economy, output: 1e9 } }, noJackpot).run;
+      run = ship(built(run), noJackpot).run;
     }
     expect(run.releases.map((r) => r.window)).toEqual([1, 2, 3, 4, 5]);
     expect(new Set(run.releases.map((r) => r.outcome)).size).toBe(5);
@@ -159,7 +168,7 @@ describe('shipping a release', () => {
     expect(selectRelease(shipped, only, 0)?.result.text).not.toMatch(/cat/i);
   });
 
-  it('the release has its own strip, outside the three cards, with price and shortfall', () => {
+  it('the release has its own strip, outside the three cards, with progress and shortfall', () => {
     const run = withTechnologies(
       ['autocomplete', 'generated-snippets', 'ai-native-ide', 'terminal-agent'],
       0,
@@ -172,6 +181,8 @@ describe('shipping a release', () => {
       price: 2000,
       affordable: false,
       shortfall: 1900,
+      shippable: true,
+      project: { code: 100, progress: 0.05, ready: false },
     });
     expect(game.release?.retireChance).toBeCloseTo(0.002, 9);
   });

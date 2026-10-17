@@ -47,7 +47,7 @@ describe('infrastructure (13–17)', () => {
       }
     }
     const finance = selectGame(through('finance'), catalog).stats.map((s) => s.id);
-    expect(finance.slice(0, 5)).toEqual(['output', 'tokens', 'debt', 'revenue', 'margin']);
+    expect(finance.slice(0, 5)).toEqual(['code', 'tokens', 'debt', 'money', 'margin']);
     // The progress meter's slot, unless QUALITY or TEAM hurts right now (E2).
     expect(['automation', 'quality', 'team']).toContain(finance[5]);
   });
@@ -91,27 +91,27 @@ describe('recursive automation (18–22)', () => {
 });
 
 describe('organizations (23–28)', () => {
-  it('hides revenue until product management, then earns it from useful output', () => {
+  it('earns no revenue until product management, then earns it from useful output', () => {
     const before = steps(through('self-driving-repositories'), 50, catalog);
-    expect(before.economy.revenue).toBe(0);
-    expect(selectGame(before, catalog).stats.map((s) => s.id)).not.toContain('revenue');
+    expect(before.economy.revenuePerSecond).toBe(0);
     const after = steps(through('product-management'), 50, catalog);
-    expect(after.economy.revenue).toBeGreaterThan(0);
-    expect(selectGame(after, catalog).stats.map((s) => s.id)).toContain('revenue');
+    expect(after.economy.revenuePerSecond).toBeGreaterThan(0);
+    expect(after.economy.money).toBeGreaterThan(before.economy.money);
+    expect(selectGame(after, catalog).stats.map((s) => s.id)).toContain('money');
   });
 
   it('subtracts operating costs after finance and tracks the margin', () => {
-    const run = steps(through('finance', { revenue: 1000 }), 50, catalog);
+    const run = steps(through('finance', { money: 1000 }), 50, catalog);
     expect(run.economy.costPerSecond).toBeGreaterThan(0);
     expect(selectGame(run, catalog).stats.map((s) => s.id)).toContain('margin');
   });
 
   it('idles unfunded capacity when revenue runs out, never going negative', () => {
-    const run = through('finance', { revenue: 0 });
+    const run = through('finance', { money: 0 });
     const starved = { ...run, upgradeLevels: { ...run.upgradeLevels, 'additional-agent': 8 } };
     const later = steps(starved, 200, catalog);
-    expect(later.economy.revenue).toBeGreaterThanOrEqual(0);
-    expect(Number.isFinite(later.economy.output)).toBe(true);
+    expect(later.economy.money).toBeGreaterThanOrEqual(0);
+    expect(Number.isFinite(later.stats.lifetimeOutput)).toBe(true);
   });
 
   it('OBSERVE produces no manual output and the cat keeps its own state', () => {

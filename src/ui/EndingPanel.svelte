@@ -41,6 +41,18 @@
       {/if}
     </p>
   {/if}
+  {#if ending.frugal}
+    <p class="lesson" data-testid="ending-frugal">
+      {#if ending.frugal.repeat}
+        🏠 Lesson already learned. You still live frugal: rent −{Math.round(
+          (1 - ending.frugal.factor) * 100,
+        )}% in your next runs.
+      {:else}
+        🏠 Lesson learned: live frugal. Rent −{Math.round((1 - ending.frugal.factor) * 100)}% in
+        every later run.
+      {/if}
+    </p>
+  {/if}
 </section>
 
 <style>

@@ -6,41 +6,45 @@ import { createRun } from './createRun';
 
 const SEED = 20261016;
 
-describe('WRITE CODE and first purchases', () => {
-  it('turns one accepted WRITE CODE into +1 output after the next step', () => {
+describe('WRITE CODE and first builds', () => {
+  it('turns one accepted WRITE CODE into +1 code in the original project after the next step', () => {
     const run = clickAndSettle(createRun(SEED, 'r'), 1, catalog);
-    expect(run.economy.output).toBe(1);
-    expect(steps(run, 3, catalog).economy.output).toBe(1);
+    expect(run.stats.lifetimeOutput).toBe(1);
+    expect(run.projects.release?.code).toBe(1);
+    expect(steps(run, 3, catalog).stats.lifetimeOutput).toBe(1);
   });
 
-  it('rejects an unaffordable visible purchase without changing balances', () => {
+  it('code cards are built, never bought', () => {
     const run = clickAndSettle(createRun(SEED, 'r'), 9, catalog);
     const result = applyCommand(run, { type: 'buyUpgrade', id: 'autocomplete' }, 0, catalog);
-    expect(result.result).toBe('unaffordable');
+    expect(result.result).toBe('unavailable');
     expect(result.run).toBe(run);
   });
 
-  it('rejects a purchase that is not currently offered', () => {
+  it('rejects a project that is not currently offered', () => {
     const run = clickAndSettle(createRun(SEED, 'r'), 40, catalog);
-    const result = applyCommand(run, { type: 'buyUpgrade', id: 'ai-native-ide' }, 0, catalog);
+    const result = applyCommand(run, { type: 'selectProject', id: 'ai-native-ide' }, 0, catalog);
     expect(result.result).toBe('unavailable');
-    expect(result.run.economy.output).toBe(40);
+    expect(result.run).toBe(run);
   });
 
-  it('accepts a purchase at exactly its price and keeps lifetime output', () => {
-    const run = clickAndSettle(createRun(SEED, 'r'), AUTOCOMPLETE_PRICE, catalog);
-    const result = applyCommand(run, { type: 'buyUpgrade', id: 'autocomplete' }, 0, catalog);
-    expect(result.result).toBe('applied');
-    expect(result.run.economy.output).toBe(0);
-    expect(result.run.stats.lifetimeOutput).toBe(AUTOCOMPLETE_PRICE);
-    expect(result.run.upgradeLevels.autocomplete).toBe(1);
+  it('completes a build at exactly its price and consumes its code', () => {
+    let run = clickAndSettle(createRun(SEED, 'r'), 5, catalog);
+    run = act(run, { type: 'selectProject', id: 'autocomplete' }, catalog);
+    run = clickAndSettle(run, AUTOCOMPLETE_PRICE - 1, catalog);
+    expect(run.upgradeLevels.autocomplete).toBeUndefined();
+    expect(run.projects.autocomplete?.code).toBe(AUTOCOMPLETE_PRICE - 1);
+    run = clickAndSettle(run, 1, catalog);
+    expect(run.upgradeLevels.autocomplete).toBe(1);
+    expect(run.projects.autocomplete).toBeUndefined();
+    expect(run.stats.lifetimeOutput).toBe(5 + AUTOCOMPLETE_PRICE);
   });
 
-  it('cannot buy a one-time upgrade twice', () => {
-    let run = clickAndSettle(createRun(SEED, 'r'), AUTOCOMPLETE_PRICE + 5, catalog);
-    run = act(run, { type: 'buyUpgrade', id: 'autocomplete' }, catalog);
-    const again = applyCommand(run, { type: 'buyUpgrade', id: 'autocomplete' }, 0, catalog);
+  it('cannot build a one-time upgrade twice', () => {
+    let run = clickAndSettle(createRun(SEED, 'r'), 5, catalog);
+    run = act(run, { type: 'selectProject', id: 'autocomplete' }, catalog);
+    run = clickAndSettle(run, AUTOCOMPLETE_PRICE, catalog);
+    const again = applyCommand(run, { type: 'selectProject', id: 'autocomplete' }, 0, catalog);
     expect(again.result).toBe('unavailable');
-    expect(again.run.economy.output).toBe(5);
   });
 });

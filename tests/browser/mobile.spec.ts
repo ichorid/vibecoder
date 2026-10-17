@@ -156,7 +156,7 @@ for (const width of [320, 360]) {
     const run = progressedRun(28);
     await loadSave(
       page,
-      saveText({ ...run, economy: { ...run.economy, output: run.economy.output + 1e7 } }),
+      saveText({ ...run, economy: { ...run.economy, money: run.economy.money + 1e7 } }),
     );
     for (const open of [null, 'offers-toggle'] as const) {
       if (open) await page.getByTestId(open).click();
@@ -187,7 +187,7 @@ test('the stats panel and the upgrades button keep their height while numbers ch
 }) => {
   await page.setViewportSize({ width: 320, height: 640 });
   const run = progressedRun(9);
-  await loadSave(page, saveText({ ...run, economy: { ...run.economy, output: 990 } }));
+  await loadSave(page, saveText(run));
   const heights = new Set<string>();
   for (let i = 0; i < 12; i += 1) {
     await page.getByTestId('primary-action').click();

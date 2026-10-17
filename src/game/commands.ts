@@ -12,6 +12,8 @@ import {
 import { waterPlant } from './plant';
 import { shipRelease } from './releases';
 import { designDemo, makeDemo } from './demos';
+import { searchStep } from './gigs';
+import { selectProject } from './projects';
 import { appendLog } from './log';
 import type { Transition } from './simulation';
 import type { GameCommand, RunState } from './types';
@@ -36,6 +38,14 @@ export function applyCommand(
   activeTimestamp: number,
   catalog: Catalog,
 ): CommandTransition {
+  // The last landlord wheel can still be watched after an eviction ended the run.
+  if (command.type === 'acknowledgeRentWheel' && run.rentWheelsSeen < run.rentWheels.length) {
+    return {
+      run: { ...run, rentWheelsSeen: run.rentWheelsSeen + 1 },
+      facts: [],
+      result: 'applied',
+    };
+  }
   if (run.status !== 'playing') return reject(run, 'unavailable');
   switch (command.type) {
     case 'primaryAction':
@@ -49,6 +59,35 @@ export function applyCommand(
       };
     case 'buyUpgrade':
       return buyUpgrade(run, command.id, catalog);
+    case 'selectProject': {
+      const selected = selectProject(run, command.id, catalog);
+      if (!selected) return reject(run, 'unavailable');
+      return {
+        run: { ...selected.run, cat: noteMeaningfulAction(selected.run.cat) },
+        facts: selected.facts,
+        result: 'applied',
+      };
+    }
+    case 'searchJob': {
+      if (!run.gigs.search || run.job.employed) return reject(run, 'unavailable');
+      // A search press spends a primary-action charge: searching costs coding.
+      if (run.economy.actionCharges < 1) return { run, facts: [], result: 'applied' };
+      const charged: RunState = {
+        ...run,
+        economy: { ...run.economy, actionCharges: run.economy.actionCharges - 1 },
+      };
+      return { run: searchStep(charged, catalog), facts: [], result: 'applied' };
+    }
+    case 'acknowledgeNotice':
+      if (run.notices.length === 0) return reject(run, 'unavailable');
+      return { run: { ...run, notices: run.notices.slice(1) }, facts: [], result: 'applied' };
+    case 'acknowledgeRentWheel':
+      if (run.rentWheelsSeen >= run.rentWheels.length) return reject(run, 'unavailable');
+      return {
+        run: { ...run, rentWheelsSeen: run.rentWheelsSeen + 1 },
+        facts: [],
+        result: 'applied',
+      };
     case 'startCatPlay': {
       if (!run.cat.alive || run.catPlay !== null) return reject(run, 'unavailable');
       const session = startSession(sessionOf(run), activeTimestamp, catalog.balance.catPlay);
@@ -126,12 +165,15 @@ export function applyCommand(
     case 'feedCat': {
       const fed = feedCat(run.cat, run.rng.cat, activeTimestamp, catalog.balance.cat);
       if (!fed.accepted) return reject(run, fed.reason);
+      // After moving out the food costs money; feeding is never refused for it (it goes on debt).
+      const food = run.rent.movedOut ? catalog.balance.rent.foodPerFeed : 0;
       return {
         run: {
           ...run,
           cat: fed.cat,
           rng: { ...run.rng, cat: fed.rng },
           stats: { ...run.stats, feeds: run.stats.feeds + 1 },
+          economy: { ...run.economy, money: roundAmount(run.economy.money - food) },
         },
         facts: [{ type: 'catCared', kind: 'feed' }],
         result: 'applied',
@@ -154,29 +196,31 @@ export function applyCommand(
   }
 }
 
+/** Money buys things (tokens, compute, the company's cards); code-priced cards are projects. */
 function buyUpgrade(run: RunState, id: string, catalog: Catalog): CommandTransition {
   const upgrade = findUpgrade(catalog, id);
-  if (!upgrade || !isUpgradeOffered(run, upgrade)) return reject(run, 'unavailable');
+  if (!upgrade || upgrade.currency !== 'money' || !isUpgradeOffered(run, upgrade)) {
+    return reject(run, 'unavailable');
+  }
   const level = upgradeLevel(run, upgrade.id);
   const price = offerPrice(run, upgrade, catalog);
-  const balance = upgrade.currency === 'revenue' ? run.economy.revenue : run.economy.output;
-  if (balance < price) return reject(run, 'unaffordable');
+  if (run.economy.money < price) return reject(run, 'unaffordable');
   if (upgrade.pack === 'tokens') {
-    // A consumable: code becomes tokens; there is no level and the card stays on offer.
+    // A consumable: money becomes tokens; there is no level and the card stays on offer.
     const pack = tokenPack(run, catalog);
     const bought: RunState = {
       ...run,
       cat: noteMeaningfulAction(run.cat),
       economy: {
         ...run.economy,
-        output: roundAmount(run.economy.output - price),
+        money: roundAmount(run.economy.money - price),
         tokens: roundAmount(run.economy.tokens + pack.tokens),
       },
     };
     return {
       run: appendLog(
         bought,
-        `🪙 Bought ${Math.round(pack.tokens)} tokens for ${Math.round(price)} code.`,
+        `🪙 Bought ${Math.round(pack.tokens)} tokens for $${Math.round(price)}.`,
         catalog,
       ),
       facts: [{ type: 'purchased', id: upgrade.id }],
@@ -186,7 +230,7 @@ function buyUpgrade(run: RunState, id: string, catalog: Catalog): CommandTransit
   const bought: RunState = {
     ...run,
     cat: noteMeaningfulAction(run.cat),
-    economy: { ...run.economy, [upgrade.currency]: roundAmount(balance - price) },
+    economy: { ...run.economy, money: roundAmount(run.economy.money - price) },
     upgradeLevels: { ...run.upgradeLevels, [upgrade.id]: level + 1 },
   };
   // The terminal answers every purchase; a discovery prints its own "unlocked" line instead.

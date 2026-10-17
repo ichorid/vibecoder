@@ -2,6 +2,7 @@ import type {
   ChoiceId,
   EndingId,
   ReleaseOutcomeId,
+  RentOutcomeId,
   ReleaseWindow,
   TechnologyId,
   UpgradeId,
@@ -26,10 +27,15 @@ export interface RngStreams {
   release: number;
   /** Consumed only by coding demos: one seed per demo. */
   demo: number;
+  /** Gigs and the enterprise job: offers, searches, pay, layoffs. */
+  gigs: number;
+  /** Consumed only by missed rent (the landlord wheel). */
+  rent: number;
 }
 
 export interface EconomyState {
-  output: number;
+  /** Code per second, smoothed over a few seconds (ETAs, gig sizes, salaries). */
+  codeRate: number;
   /** Manual work queued by accepted commands since the previous step; consumed once. */
   pendingManualWork: number;
   /** Token stock consumed by agent work. */
@@ -44,8 +50,8 @@ export interface EconomyState {
   delegation: number;
   /** Temporary efficiency from OPTIMIZE (bounded, decays). */
   optimization: number;
-  /** Spendable revenue (never negative). */
-  revenue: number;
+  /** The player's money: gigs, salary and (later) company revenue. Negative = debt. */
+  money: number;
   /** Revenue earned and operating costs over the last step, per second (for margin). */
   revenuePerSecond: number;
   costPerSecond: number;
@@ -71,8 +77,12 @@ export interface RunStats {
   lowDebtMs: number;
   positiveMarginMs: number;
   negativeMarginMs: number;
-  /** Times auto-refill v1 spent code on tokens that never arrived. */
+  /** Times auto-refill v1 spent money on tokens that never arrived. */
   refillDisasters: number;
+  /** Code lost to the fallback tax and to polish (never built into anything). */
+  taxedCode: number;
+  /** Code built into gigs (it became money). */
+  gigCode: number;
 }
 
 /** Last accepted care, for contextual Cat messages; cosmetic responses are not stored. */
@@ -110,7 +120,13 @@ export type HistoryEntry =
   | { kind: 'achievement'; id: string; activeMs: number }
   | { kind: 'ending'; id: EndingId; activeMs: number }
   | { kind: 'release'; window: ReleaseWindow; outcome: ReleaseResult; activeMs: number }
-  | { kind: 'demo'; number: number; activeMs: number };
+  | { kind: 'demo'; number: number; activeMs: number }
+  | { kind: 'market'; era: number; activeMs: number }
+  | { kind: 'job'; event: 'hired' | 'fired'; activeMs: number }
+  | { kind: 'milestone'; id: MilestoneId; activeMs: number }
+  | { kind: 'money'; id: 'moved-out' | 'company-pays-rent'; activeMs: number };
+
+export type MilestoneId = 'permanent-contract';
 
 export interface PlantState {
   /** 0 = bone dry; above the drown line it rots. */
@@ -215,6 +231,89 @@ export interface LogEntry {
   activeMs: number;
 }
 
+/** Anything code can be built into (docs/feature_projects.md §5.1). */
+export type ProjectKey = UpgradeId | 'release' | 'demo' | 'gig' | 'job';
+
+/** Code built into a project so far; the price is frozen when its first code arrives. */
+export interface ProjectProgress {
+  code: number;
+  price: number;
+}
+
+/** Who chose a slot's target: the player, the system (automation), or nobody (fallback). */
+export type SlotBy = 'player' | 'system' | 'fallback';
+
+export interface SlotState {
+  target: ProjectKey;
+  by: SlotBy;
+  /** Active time the target was set (tap rule, overrule timer). */
+  sinceMs: number;
+}
+
+/** A gig on the board: its size and pay are drawn when it is offered. */
+export interface GigOffer {
+  /** Code it takes. */
+  size: number;
+  /** Money it pays when done. */
+  pay: number;
+  tier: 'normal' | 'tip' | 'ghost';
+  /** The honest range shown on the card (common case). */
+  payMin: number;
+  payMax: number;
+  clientId: string;
+  paymentId: string;
+}
+
+export interface GigState {
+  offer: GigOffer | null;
+  /** No gig: SEARCH presses done of needed (null while a gig is offered or before any). */
+  search: { done: number; needed: number } | null;
+  paid: number;
+  /** Active time accumulated toward the job-search bot's next step. */
+  botMs: number;
+}
+
+export interface RentState {
+  movedOut: boolean;
+  /** Months since moving out (the rent creeps up by one step per month). */
+  month: number;
+  nextDueMs: number | null;
+  missedStreak: number;
+  missedTotal: number;
+}
+
+/** What the landlord wheel landed on: a slice or eviction. */
+export type RentResult = RentOutcomeId | 'evicted';
+
+export interface RentRecord {
+  month: number;
+  outcome: RentResult;
+  /** Chance of eviction on this spin (shown as the red slice). */
+  hazard: number;
+  rent: number;
+  catAlive: boolean;
+  activeMs: number;
+}
+
+export interface JobState {
+  offer: { salary: number; expiresAtMs: number } | null;
+  employed: {
+    salary: number;
+    /** Employed time in the current month (pro-rated pay). */
+    monthEmployedMs: number;
+    /** Paydays survived in this job (the tryout bar). */
+    paydays: number;
+    permanent: boolean;
+  } | null;
+  /** Time another project has been the target while employed (fired after the grace). */
+  awayMs: number;
+  cooldownUntilMs: number | null;
+  fired: number;
+}
+
+/** A pending full-panel notice besides technology discoveries (market updates, milestones). */
+export type Notice = { kind: 'market'; era: number } | { kind: 'milestone'; id: MilestoneId };
+
 export interface RunState {
   id: string;
   status: RunStatus;
@@ -250,6 +349,20 @@ export interface RunState {
   plant: PlantState;
   /** Experience carried in from earlier runs' endings: +this much code yield (0.1 = +10 %). */
   experience: number;
+  /** Rent factor carried in from earlier runs (0.9 after AI Got My Job). */
+  frugal: number;
+  /** Code built into projects so far (docs/feature_projects.md). */
+  projects: Partial<Record<ProjectKey, ProjectProgress>>;
+  /** Build slots: one, two from Worktrees. */
+  slots: SlotState[];
+  gigs: GigState;
+  rent: RentState;
+  /** Landlord wheel results in order; `rentWheelsSeen` of them were shown. */
+  rentWheels: RentRecord[];
+  rentWheelsSeen: number;
+  job: JobState;
+  /** Market updates and milestones waiting for their panel. */
+  notices: Notice[];
   ending: EndingRecord | null;
 }
 
@@ -258,6 +371,10 @@ export type ReadonlyRun = DeepReadonly<RunState>;
 export type GameCommand =
   | { type: 'primaryAction' }
   | { type: 'buyUpgrade'; id: UpgradeId }
+  | { type: 'selectProject'; id: ProjectKey }
+  | { type: 'searchJob' }
+  | { type: 'acknowledgeNotice' }
+  | { type: 'acknowledgeRentWheel' }
   | { type: 'acknowledgeUnlock'; id: TechnologyId }
   | { type: 'shipRelease' }
   | { type: 'makeDemo' }
@@ -282,6 +399,11 @@ export type GameFact =
   | { type: 'demoDesigned' }
   | { type: 'catCared'; kind: 'feed' | 'pet' | 'play' }
   | { type: 'purchased'; id: UpgradeId }
+  | { type: 'projectBuilt'; id: ProjectKey }
+  | { type: 'gigPaid'; amount: number }
+  | { type: 'hired' }
+  | { type: 'fired'; reasonId: string; finalPay: number }
+  | { type: 'rentMissed'; outcome: RentResult }
   | { type: 'technologyDiscovered'; id: TechnologyId };
 
 export function assertNever(value: never): never {

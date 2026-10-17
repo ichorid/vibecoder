@@ -1,12 +1,13 @@
 import { expect, test, type Page } from '@playwright/test';
 import { loadSave } from './helpers';
-import { progressedRun, saveText } from './fixtures';
+import { progressedRun, saveText, withBuilt } from './fixtures';
+import { catalog } from '../../src/content/catalog';
+import { demoPrice } from '../../src/game/demos';
 import type { RunState } from '../../src/game/types';
 
-/** A run at the Terminal Agent with code for a demo (and some left over). */
+/** A run at the Terminal Agent with its first demo built. */
 function readyForDemo(seed: number): RunState {
-  const run = progressedRun(4, false, seed);
-  return { ...run, economy: { ...run.economy, output: run.economy.output + 5000 } };
+  return withBuilt(progressedRun(4, false, seed), 'demo');
 }
 
 /** How many canvas pixels are not black (the picture really is drawn). */
@@ -31,7 +32,7 @@ test('code a demo: depacking, a drawn picture, the title card; History plays it 
   await expect(page.getByTestId('demo-design')).toHaveCount(0); // designing is on the demo screen
   const strip = page.getByTestId('demo-strip');
   await expect(strip).toContainText('DEMO #1');
-  await strip.click();
+  await page.getByTestId('demo-go').click();
   const demo = page.getByTestId('demo-screen');
   await expect(demo).toBeVisible();
   await expect(demo).toHaveAttribute('data-phase', 'play', { timeout: 5000 });
@@ -55,7 +56,7 @@ test('code a demo: depacking, a drawn picture, the title card; History plays it 
 test('the demo fits a 390 px screen without horizontal scrolling', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 700 });
   await loadSave(page, saveText(readyForDemo(41)));
-  await page.getByTestId('demo-strip').click();
+  await page.getByTestId('demo-go').click();
   await expect(page.getByTestId('demo-screen')).toHaveAttribute('data-phase', 'play', {
     timeout: 5000,
   });
@@ -76,7 +77,7 @@ test('the demo screen offers the next demo: the picked preview is what gets code
   page,
 }) => {
   await loadSave(page, saveText(readyForDemo(41)));
-  await page.getByTestId('demo-strip').click();
+  await page.getByTestId('demo-go').click();
   const demo = page.getByTestId('demo-screen');
   await expect(demo).toHaveAttribute('data-phase', 'play', { timeout: 5000 });
   const variant = demo.getByTestId('demo-variant-2');
@@ -85,9 +86,22 @@ test('the demo screen offers the next demo: the picked preview is what gets code
   await variant.click();
   await expect(variant).toHaveAttribute('aria-checked', 'true');
   await page.getByRole('button', { name: 'CLOSE' }).click();
-  // a reload keeps the design
+  // a reload keeps the design; the next demo is built in the save before the app starts (as if
+  // the code had flowed in), after the page's own last save on the way out
+  await page.addInitScript(
+    (price) => {
+      if (sessionStorage.getItem('vibe-demo-built')) return;
+      sessionStorage.setItem('vibe-demo-built', '1');
+      const save = JSON.parse(localStorage.getItem('vibe-coder.save') ?? '{}') as {
+        run: { projects: Record<string, unknown> };
+      };
+      save.run.projects.demo = { code: price, price };
+      localStorage.setItem('vibe-coder.save', JSON.stringify(save));
+    },
+    demoPrice(catalog.demos, 2),
+  );
   await page.reload();
-  await page.getByTestId('demo-strip').click();
+  await page.getByTestId('demo-go').click();
   await expect(demo).toHaveAttribute('data-phase', 'play', { timeout: 5000 });
   await expect(demo).toHaveAttribute('data-fingerprint', wanted ?? '');
   await expect(demo.getByTestId('demo-designer')).toContainText('DESIGN DEMO #3');

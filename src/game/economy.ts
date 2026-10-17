@@ -46,6 +46,8 @@ export interface DerivedRates {
   /** Owned auto-refill version (0 = none; the highest wins). */
   readonly autoRefill: 0 | 1 | 2;
   readonly autoReview: boolean;
+  /** The company exists (Product Management): its credit line and interest apply. */
+  readonly company: boolean;
 }
 
 /** Quality efficiency from debt, with a positive floor. */
@@ -218,6 +220,7 @@ export function deriveRates(run: ReadonlyRun, catalog: Catalog): DerivedRates {
     tokensPerCode: balance.tokens.perCodeBase * (1 + run.economy.tokenReviewBonus),
     autoRefill,
     autoReview,
+    company: run.unlockedTechnologyIds.includes('product-management'),
   };
 }
 
@@ -229,7 +232,7 @@ export function tokenDemandPerSecond(rates: DerivedRates): number {
 }
 
 /** Two significant digits, so packs read as round numbers (6 480 → 6 500). */
-function roundNice(value: number): number {
+export function roundNice(value: number): number {
   if (value <= 0) return 0;
   const magnitude = 10 ** Math.max(0, Math.floor(Math.log10(value)) - 1);
   return Math.round(value / magnitude) * magnitude;
@@ -247,8 +250,32 @@ export function tokenPack(run: ReadonlyRun, catalog: Catalog): { tokens: number;
   return { tokens, price: Math.ceil(tokens / rates.tokensPerCode) };
 }
 
-/** The price shown and charged for an offer at its current level. */
+/** The gig market: money per line of code in the current era (docs/feature_money.md §5.3). */
+export function marketEra(run: ReadonlyRun, catalog: Catalog): number {
+  let era = 0;
+  catalog.money.eras.forEach((e, i) => {
+    if (e.from === null || run.unlockedTechnologyIds.includes(e.from)) era = i;
+  });
+  return era;
+}
+
+export function marketRate(run: ReadonlyRun, catalog: Catalog): number {
+  return catalog.money.eras[marketEra(run, catalog)]?.rate ?? 0;
+}
+
+/**
+ * The price shown and charged for an offer at its current level, in the card's currency.
+ * Market-priced cards (tokens, compute) are worth their code price at the current market rate.
+ */
 export function offerPrice(run: ReadonlyRun, upgrade: UpgradeDefinition, catalog: Catalog): number {
+  const code = codePrice(run, upgrade, catalog);
+  if (!upgrade.marketPriced) return code;
+  const markup = upgrade.pack === 'tokens' ? catalog.balance.gigs.tokenMarkup : 1;
+  return Math.max(1, roundNice(code * marketRate(run, catalog) * markup));
+}
+
+/** What an offer is worth in code (its own price, or what a market-priced card replaces). */
+export function codePrice(run: ReadonlyRun, upgrade: UpgradeDefinition, catalog: Catalog): number {
   if (upgrade.pack === 'tokens') return tokenPack(run, catalog).price;
   if (upgrade.priceRule) {
     return roundNice(
@@ -277,6 +304,8 @@ export interface EconomyStep {
   readonly economy: EconomyState;
   /** Output added this step (manual + passive + useful agent work). */
   readonly produced: number;
+  /** The manual part of `produced` (it goes to the first build slot). */
+  readonly manual: number;
 }
 
 /**
@@ -329,7 +358,7 @@ export function economyFlows(
   const credit = creditLimit(costRate, balance);
   const affordable =
     costRate > 0
-      ? Math.min(1, (economy.revenue + economy.revenuePerSecond * dt + credit) / (costRate * dt))
+      ? Math.min(1, (economy.money + economy.revenuePerSecond * dt + credit) / (costRate * dt))
       : 1;
   const activeAgents = runnable * Math.max(0, affordable);
   const supplied = economy.tokens + rates.tokenSupplyPerSecond * dt;
@@ -370,7 +399,10 @@ export function economyFlows(
     earned: useful * rates.monetization,
     spent: costRate * Math.max(0, affordable) * dt,
     creditLimit: credit,
-    interest: Math.max(0, -economy.revenue) * balance.money.interestPerSecond * dt,
+    // Only the company's bank charges interest; personal debt is the landlord's problem.
+    interest: rates.company
+      ? Math.max(0, -economy.money) * balance.money.interestPerSecond * dt
+      : 0,
   };
 }
 
@@ -396,9 +428,14 @@ export function stepEconomy(
   );
   return {
     produced,
+    manual: roundAmount(Math.min(produced, economy.pendingManualWork)),
     economy: {
       ...economy,
-      output: roundAmount(economy.output + produced),
+      // Smoothed code per second (what the cards' ETAs, gig sizes and salaries read).
+      codeRate: roundAmount(
+        economy.codeRate +
+          (produced / dt - economy.codeRate) * Math.min(1, dt / balance.projects.codeRateSeconds),
+      ),
       pendingManualWork: 0,
       tokens: roundAmount(tokens),
       tasks: roundAmount(Math.max(0, queued - usedTasks)),
@@ -415,7 +452,13 @@ export function stepEconomy(
         0,
         roundAmount(economy.optimization - balance.optimizeDecayPerSecond * dt),
       ),
-      revenue: roundAmount(Math.max(-f.creditLimit, economy.revenue + earned - spent - f.interest)),
+      // Operating costs never borrow past the credit line; debt from rent or food stays as it is.
+      money: roundAmount(
+        Math.max(
+          Math.min(economy.money, -f.creditLimit),
+          economy.money + earned - spent - f.interest,
+        ),
+      ),
       revenuePerSecond: roundAmount(earned / dt),
       // Costs owed, even when only part could be paid: the margin shows the real loss.
       costPerSecond: roundAmount(costRate),

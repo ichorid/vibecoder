@@ -4,6 +4,7 @@
  * never a grave: if there is no cat, there is no cat.
  */
 import { createCanvas, type PixelCanvas } from '../lib/canvas';
+import { text } from '../lib/font';
 import { ellipse, outline, stroke } from '../lib/shapes';
 import { light } from '../palette';
 import { catSprites } from '../sprites/cat';
@@ -181,5 +182,151 @@ export function infiniteWeekend(withCat: boolean): PixelCanvas {
     // The cat, asleep on the programmer's chest. Neither of them checks the metrics.
     c.blit(catFrame('cat-sleep'), WEEKEND_CAT.x, WEEKEND_CAT.y);
   }
+  return c;
+}
+
+/** Where the cat's cardboard box stands at the programmer's feet (for the art tests). */
+export const STREET_BOX = { x: 74, y: 70, w: 26, h: 18 } as const;
+
+/**
+ * AI Got My Job: a brick wall, a pavement, the programmer sitting on a folded blanket with a
+ * beard and a cardboard sign. With the cat, a box at their feet with the cat asleep inside;
+ * without it, nothing there at all.
+ */
+export function aiGotMyJob(withCat: boolean): PixelCanvas {
+  const p = light;
+  const c = createCanvas(ILLUSTRATION.w, ILLUSTRATION.h);
+  // Brick wall.
+  c.rect(0, 0, 128, 62, p.wallShade);
+  for (let row = 0; row < 12; row += 1) {
+    const y = row * 5;
+    c.rect(0, y, 128, 1, p.wall);
+    for (let x = (row % 2) * 6; x < 128; x += 12) c.rect(x, y, 1, 5, p.wall);
+  }
+  c.dither(0, 52, 128, 10, p.wallShade, p.metalDark);
+  // A shop window, dark, with a "WE ARE HIRING (AGENTS)" sticker.
+  c.rect(84, 6, 40, 34, p.screenDark);
+  c.rect(84, 6, 40, 2, p.metalDark);
+  c.rect(86, 30, 36, 8, p.paper);
+  text(c, 'HIRING', 92, 31, p.ledRed);
+  // Pavement.
+  c.rect(0, 62, 128, 34, p.metal);
+  c.rect(0, 62, 128, 1, p.metalDark);
+  for (let x = 0; x < 128; x += 16) c.rect(x, 62, 1, 34, p.metalDark);
+  c.rect(0, 80, 128, 1, p.metalDark);
+  // A paper cup with a coin.
+  c.rect(60, 82, 6, 7, p.paper);
+  c.rect(60, 82, 6, 1, p.paperShade);
+  c.rect(62, 83, 2, 1, p.gold);
+
+  // The programmer: sitting against the wall on a blanket, beard, hoodie, knees up.
+  const body = createCanvas(128, 96);
+  body.rect(14, 76, 40, 6, p.rugDark);
+  body.rect(14, 76, 40, 1, p.rug);
+  ellipse(body, 30, 66, 9, 10, p.hoodie);
+  ellipse(body, 30, 70, 8, 6, p.hoodieDark);
+  stroke(
+    body,
+    [
+      [24, 76],
+      [38, 70],
+      [46, 77],
+    ],
+    2,
+    p.jeans,
+  );
+  body.rect(45, 76, 4, 2, p.chairDark);
+  body.disc(30, 50, 6, p.skin);
+  ellipse(body, 30, 45, 6, 3, p.hair);
+  // The beard: a lot of it.
+  ellipse(body, 30, 55, 6, 4, p.hair);
+  body.rect(26, 52, 9, 2, p.hair);
+  body.rect(28, 49, 1, 1, p.eye);
+  body.rect(32, 49, 1, 1, p.eye);
+  outline(body, p.outline);
+  c.blit(body, 0, 0);
+
+  // The cardboard sign, held up in both hands.
+  c.rect(4, 56, 62, 16, p.food);
+  c.rect(4, 56, 62, 1, p.woodLight);
+  c.rect(4, 71, 62, 1, p.woodDark);
+  c.rect(4, 56, 1, 16, p.woodDark);
+  c.rect(65, 56, 1, 16, p.woodDark);
+  text(c, 'AI GOT MY JOB', 10, 58, p.outline);
+  text(c, 'PLZ HLP', 22, 65, p.outline);
+  // Hands on the sign's edges, clear of the words.
+  c.rect(2, 61, 3, 3, p.skin);
+  c.rect(65, 61, 3, 3, p.skin);
+
+  if (withCat) {
+    // A cardboard box at their feet; the cat asleep inside. Nobody asked it to leave.
+    const b = STREET_BOX;
+    c.rect(b.x, b.y + 6, b.w, b.h - 6, p.food);
+    c.rect(b.x, b.y + 6, b.w, 1, p.woodDark);
+    c.rect(b.x - 2, b.y + 4, 6, 3, p.woodLight);
+    c.rect(b.x + b.w - 4, b.y + 4, 6, 3, p.woodLight);
+    c.blit(catFrame('cat-sleep'), b.x + 4, b.y - 6);
+    c.rect(b.x, b.y + 9, b.w, b.h - 9, p.food);
+    c.rect(b.x, b.y + 9, b.w, 1, p.woodDark);
+  }
+  return c;
+}
+
+/**
+ * The permanent contract (a historic milestone): a document headed PERMANENT CONTRACT, a red
+ * wax seal, a confident signature, and a block of fine print nobody can read.
+ */
+export function permanentContract(): PixelCanvas {
+  const p = light;
+  const c = createCanvas(ILLUSTRATION.w, ILLUSTRATION.h);
+  c.rect(0, 0, 128, 96, p.woodDark);
+  c.dither(0, 0, 128, 96, p.woodDark, p.wood);
+  // The document, slightly tilted by a shadow.
+  c.rect(26, 6, 78, 88, p.outline);
+  c.rect(24, 4, 78, 88, p.paper);
+  c.rect(24, 4, 78, 1, p.star);
+  // The soulless swoosh logo of Enterprise Solutions Inc.
+  stroke(
+    c,
+    [
+      [30, 14],
+      [36, 10],
+      [44, 12],
+    ],
+    1,
+    p.ledBlue,
+  );
+  text(c, 'ESI', 48, 9, p.metalDark);
+  text(c, 'PERMANENT', 30, 20, p.outline);
+  text(c, 'CONTRACT', 30, 27, p.outline);
+  // Fine print: a grey block of tiny lines.
+  for (let y = 36; y < 72; y += 2) {
+    for (let x = 30; x < 96; x += 1) if ((x * 7 + y * 3) % 5 !== 0) c.set(x, y, p.paperShade);
+    for (let x = 30; x < 96; x += 3) if ((x + y) % 4 === 0) c.set(x, y, p.metalDark);
+  }
+  // "Until further notice", in slightly bigger fine print.
+  c.rect(30, 66, 40, 1, p.metalDark);
+  // The signature.
+  stroke(
+    c,
+    [
+      [32, 82],
+      [36, 76],
+      [40, 84],
+      [44, 77],
+      [50, 82],
+      [58, 79],
+    ],
+    0,
+    p.ledBlue,
+  );
+  c.rect(30, 86, 34, 1, p.metalDark);
+  // The red wax seal, with a ribbon.
+  c.rect(82, 76, 3, 14, p.ledRed);
+  c.rect(88, 78, 3, 14, p.rugDark);
+  c.disc(85, 76, 8, p.rugDark);
+  c.disc(85, 76, 7, p.ledRed);
+  c.disc(84, 75, 3, p.pink);
+  outline(c, p.outline);
   return c;
 }

@@ -20,8 +20,13 @@ export async function pressPrimary(page: Page, count: number): Promise<void> {
   }
 }
 
-export async function headerStat(page: Page): Promise<string> {
-  return (await page.getByTestId('stats').locator('dd').first().textContent()) ?? '';
+/**
+ * Code built into the original project so far, as its strip shows it ("The project · 7/2K"):
+ * what the presses add while nothing else is being built.
+ */
+export async function builtCode(page: Page): Promise<string> {
+  const text = (await page.getByTestId('ship-strip').textContent()) ?? '';
+  return /([\d.]+[KMB]?)\//.exec(text)?.[1] ?? '';
 }
 
 /** Install a save envelope before any app script runs (only on the first navigation). */
@@ -49,4 +54,39 @@ export async function openUpgrades(page: Page): Promise<void> {
 export async function closeUpgrades(page: Page): Promise<void> {
   const sheet = page.getByTestId('offers-sheet');
   if (await sheet.isVisible()) await sheet.getByRole('button', { name: '← BACK TO CODE' }).click();
+}
+
+/**
+ * Build a card: pick it (in the popup on phones), then write by hand until its discovery is
+ * announced (or `presses` run out). Code is never banked: the build fills as you press.
+ */
+export async function buildCard(page: Page, name: RegExp, presses = 400): Promise<void> {
+  await openUpgrades(page);
+  await page.getByRole('button', { name }).click();
+  await closeUpgrades(page);
+  const button = page.getByTestId('primary-action');
+  const announcement = page.getByTestId('announcement');
+  for (let i = 0; i < presses && (await announcement.count()) === 0; i += 1) {
+    await expect(button).toHaveAttribute('data-ready', 'true');
+    await button.click();
+  }
+}
+
+/** Press until a card with this name is on offer (cards appear before they are built). */
+export async function pressUntilOffered(page: Page, name: RegExp, limit = 400): Promise<void> {
+  const button = page.getByTestId('primary-action');
+  const toggle = page.getByTestId('offers-toggle');
+  const card = page.getByRole('button', { name });
+  for (let i = 0; i < limit; i += 1) {
+    if ((await card.count()) > 0) return;
+    if ((await toggle.count()) > 0) {
+      await toggle.click();
+      const found = (await card.count()) > 0;
+      await closeUpgrades(page);
+      if (found) return;
+    }
+    await expect(button).toHaveAttribute('data-ready', 'true');
+    await button.click();
+  }
+  throw new Error(`${name} never offered`);
 }

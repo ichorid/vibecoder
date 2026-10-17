@@ -69,6 +69,18 @@ export const assetManifest = {
       file: 'endings/infinite-weekend-nocat.png',
       placeholder: false,
     },
+    { id: 'ending-ai-got-my-job', file: 'endings/ai-got-my-job.png', placeholder: false },
+    {
+      id: 'ending-ai-got-my-job-nocat',
+      file: 'endings/ai-got-my-job-nocat.png',
+      placeholder: false,
+    },
+    // Historic milestones (History can reopen them).
+    {
+      id: 'permanent-contract',
+      file: 'milestones/permanent-contract.png',
+      placeholder: false,
+    },
   ],
   memorial: [
     { id: 'memorial-keyboard', file: 'memorial/keyboard.png' },

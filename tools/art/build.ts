@@ -3,7 +3,7 @@ import { createCanvas } from '../../art/lib/canvas';
 import { pack } from '../../art/lib/pack';
 import { encodePng } from '../../art/lib/png';
 import { ILLUSTRATIONS, renderIllustration } from '../../art/illustrations';
-import { infiniteWeekend } from '../../art/illustrations/endings';
+import { aiGotMyJob, infiniteWeekend, permanentContract } from '../../art/illustrations/endings';
 import { keyboardPhoto, lapPhoto } from '../../art/illustrations/memorial';
 import { THEMES } from '../../art/palette';
 import { allSprites } from '../../art/sprites';
@@ -62,6 +62,9 @@ export function outputs(): Map<string, Buffer> {
   files.set('memorial/lap.png', encodePng(lapPhoto()));
   files.set('endings/infinite-weekend.png', encodePng(infiniteWeekend(true)));
   files.set('endings/infinite-weekend-nocat.png', encodePng(infiniteWeekend(false)));
+  files.set('endings/ai-got-my-job.png', encodePng(aiGotMyJob(true)));
+  files.set('endings/ai-got-my-job-nocat.png', encodePng(aiGotMyJob(false)));
+  files.set('milestones/permanent-contract.png', encodePng(permanentContract()));
   // Link previews and icons, referenced from index.html.
   files.set('social/og.png', encodePng(socialCard()));
   files.set('social/apple-touch-icon.png', encodePng(socialIcon(180)));

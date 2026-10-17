@@ -308,9 +308,11 @@ export const endings: readonly EndingDefinition[] = [
     // The credit line is used up: the creditors close the company, chosen or not.
     automatic: {
       priority: 50,
+      // Only the company has a credit line; personal debt before it is the landlord's business.
       when: (run) =>
-        run.economy.revenue < 0 &&
-        run.economy.revenue <=
+        has(run, 'product-management') &&
+        run.economy.money < 0 &&
+        run.economy.money <=
           -Math.max(0, run.economy.costPerSecond) * balance.money.creditSeconds + 1,
     },
     text: {
@@ -398,6 +400,31 @@ export const endings: readonly EndingDefinition[] = [
         'You sold it before anyone asked what it does.',
         'Now there is a beach, a hammock, and no roadmap.',
         'The hammock has room for two.',
+      ],
+    },
+  },
+  {
+    id: 'ai-got-my-job',
+    title: 'AI Got My Job',
+    // A lesson of another kind: live frugal, rent −10 % in every later run.
+    frugal: 0.9,
+    illustrationId: 'ai-got-my-job',
+    text: {
+      alive: [
+        'The AI took the gigs. Then the landlord took the flat.',
+        'The sign says AI GOT MY JOB, PLZ HLP. People take photos of it for their decks.',
+        'You kept the cat. The cat kept you warm.',
+      ],
+      dead: [
+        'The AI took the gigs. Then the landlord took the flat.',
+        'The sign says AI GOT MY JOB, PLZ HLP. People take photos of it for their decks.',
+        'The sign is new. The handwriting is yours.',
+      ],
+      // No cat means no cat, in text and picture alike.
+      stray: [
+        'The AI took the gigs. Then the landlord took the flat.',
+        'The sign says AI GOT MY JOB, PLZ HLP. People take photos of it for their decks.',
+        'The sign is new. The handwriting is yours.',
       ],
     },
   },

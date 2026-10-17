@@ -21,7 +21,7 @@ export function createCat(): CatState {
 }
 
 /** Seed and run ID come from app composition; game code never reads clocks or crypto. */
-export function createRun(seed: number, runId: string, experience = 0): RunState {
+export function createRun(seed: number, runId: string, experience = 0, frugal = 1): RunState {
   return {
     id: runId,
     status: 'playing',
@@ -32,10 +32,12 @@ export function createRun(seed: number, runId: string, experience = 0): RunState
       narrative: deriveSeed(seed, 'narrative'),
       release: deriveSeed(seed, 'release'),
       demo: deriveSeed(seed, 'demo'),
+      gigs: deriveSeed(seed, 'gigs'),
+      rent: deriveSeed(seed, 'rent'),
     },
     visualSeed: deriveSeed(seed, 'visual'),
     economy: {
-      output: 0,
+      codeRate: 0,
       pendingManualWork: 0,
       tokens: 0,
       tasks: 0,
@@ -44,7 +46,7 @@ export function createRun(seed: number, runId: string, experience = 0): RunState
       debt: 0,
       delegation: 0,
       optimization: 0,
-      revenue: 0,
+      money: 0,
       revenuePerSecond: 0,
       costPerSecond: 0,
       autoRefills: 0,
@@ -62,6 +64,8 @@ export function createRun(seed: number, runId: string, experience = 0): RunState
       positiveMarginMs: 0,
       negativeMarginMs: 0,
       refillDisasters: 0,
+      taxedCode: 0,
+      gigCode: 0,
     },
     cat: createCat(),
     history: [],
@@ -80,6 +84,16 @@ export function createRun(seed: number, runId: string, experience = 0): RunState
     demoPick: null,
     plant: { water: 60, alive: true, diedAtActiveMs: null, cause: null, warned: false },
     experience,
+    frugal,
+    // The run starts on the original project: the player's own choice, at full speed.
+    projects: {},
+    slots: [{ target: 'release', by: 'player', sinceMs: 0 }],
+    gigs: { offer: null, search: null, paid: 0, botMs: 0 },
+    rent: { movedOut: false, month: 0, nextDueMs: null, missedStreak: 0, missedTotal: 0 },
+    rentWheels: [],
+    rentWheelsSeen: 0,
+    job: { offer: null, employed: null, awayMs: 0, cooldownUntilMs: null, fired: 0 },
+    notices: [],
     ending: null,
   };
 }

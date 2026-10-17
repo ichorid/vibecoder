@@ -36,3 +36,17 @@ export function describeLevel(value: number): string {
   if (value < 70) return 'fair';
   return 'good';
 }
+
+/** A build's time to done: "~40 s", "~3 min", "~1 h", or "—" when nothing flows into it. */
+export function formatEta(seconds: number | null): string {
+  if (seconds === null || !Number.isFinite(seconds)) return '—';
+  if (seconds < 1) return 'now';
+  if (seconds < 90) return `~${Math.ceil(seconds)} s`;
+  if (seconds < 90 * 60) return `~${Math.round(seconds / 60)} min`;
+  return `~${Math.round(seconds / 3600)} h`;
+}
+
+/** Seconds as m:ss for countdowns (rent, an expiring offer). */
+export function formatCountdown(seconds: number): string {
+  return formatActiveTime(Math.max(0, seconds) * 1000);
+}

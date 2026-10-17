@@ -9,13 +9,26 @@ import { cardEffects, effectText } from './effectText';
 import { creditState, type CreditState } from './money';
 import type { PrimaryActionId, TechnologyId, UpgradeId } from './ids';
 import { currentPrimaryAction } from './progression';
-import type { ReadonlyRun } from './types';
+import type { ProjectKey, ReadonlyRun, SlotBy } from './types';
 
 /** What currently holds production back, most fundamental first. */
 export type SetupLimit =
   'manual' | 'compute' | 'tasks' | 'tokens' | 'coordination' | 'debt' | 'costs';
 
+/** One build slot: what it builds, who chose it, and its share of the code. */
+export interface SetupBuildViewModel {
+  readonly title: string;
+  readonly by: SlotBy;
+  /** Share of the agents' code this slot gets (after the drift tax), 0–1. */
+  readonly share: number;
+  readonly code: number;
+  /** null: it never completes (the job). */
+  readonly price: number | null;
+}
+
 export interface SetupViewModel {
+  /** The build slots (docs/feature_projects.md §7.1). */
+  readonly builds: readonly SetupBuildViewModel[];
   readonly technologies: readonly {
     readonly id: TechnologyId;
     readonly title: string;
@@ -137,6 +150,33 @@ function pressEffect(
   }
 }
 
+const BUILD_TITLES: Partial<Record<ProjectKey, string>> = {
+  release: 'The original project',
+  demo: 'A demo',
+  gig: 'A gig',
+  job: 'Enterprise Solutions Inc.',
+};
+
+function selectBuilds(run: ReadonlyRun, catalog: Catalog): SetupBuildViewModel[] {
+  const taxed = !run.unlockedTechnologyIds.includes('manager-agent');
+  const employed = run.job.employed !== null;
+  return run.slots.map((slot, i) => {
+    const factor = slot.by === 'fallback' && taxed ? catalog.balance.projects.fallbackFactor : 1;
+    const working = !employed || (i === 0 && slot.target === 'job');
+    const progress = run.projects[slot.target];
+    return {
+      title:
+        BUILD_TITLES[slot.target] ??
+        catalog.upgrades.find((u) => u.id === slot.target)?.title ??
+        slot.target,
+      by: slot.by,
+      share: working ? (employed ? 1 : factor / run.slots.length) : 0,
+      code: progress?.code ?? 0,
+      price: slot.target === 'job' ? null : (progress?.price ?? null),
+    };
+  });
+}
+
 export function selectSetup(run: ReadonlyRun, catalog: Catalog): SetupViewModel {
   const rates = deriveRates(run, catalog);
   const f = economyFlows(run.economy, rates, STEP_S, catalog.balance);
@@ -146,7 +186,7 @@ export function selectSetup(run: ReadonlyRun, catalog: Catalog): SetupViewModel 
   const money =
     rates.monetization > 0 || f.costRate > 0
       ? {
-          revenue: run.economy.revenue,
+          revenue: run.economy.money,
           perCode: rates.monetization,
           basePerCode: activeEffects(run, catalog)
             .filter((e) => e.kind === 'monetization')
@@ -175,6 +215,7 @@ export function selectSetup(run: ReadonlyRun, catalog: Catalog): SetupViewModel 
   }
 
   return {
+    builds: selectBuilds(run, catalog),
     technologies: run.unlockedTechnologyIds.flatMap((id) => {
       const technology = catalog.technologies.find((t) => t.id === id);
       const card = catalog.upgrades.find((u) => u.discovers === id);

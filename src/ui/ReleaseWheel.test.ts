@@ -85,6 +85,7 @@ describe('ending picture', () => {
     paragraphs: ['One release, out of nowhere, took off.'],
     illustrationId,
     experience: null,
+    frugal: null,
   });
 
   it('shows the variant the selector chose, and nothing for endings without a picture', () => {

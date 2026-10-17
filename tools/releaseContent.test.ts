@@ -77,7 +77,7 @@ describe('release content check', () => {
 
   it('rejects an ending without a route scenario or with too few endings', () => {
     expect(text({ scenarioText: '' })).toMatch(/no route scenario/);
-    expect(text({ requiredEndings: 11 })).toMatch(/11/);
+    expect(text({ requiredEndings: 12 })).toMatch(/12/);
   });
 
   it('rejects placements outside their framing envelope', () => {

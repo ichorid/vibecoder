@@ -67,17 +67,17 @@ describe('autosave', () => {
     expect(t.storage.writes).toBe(0);
   });
 
-  it('writes immediately after a purchase that discovers a technology', () => {
+  it('writes immediately when a build discovers a technology', () => {
     const t = setup();
-    click(t, AUTOCOMPLETE_PRICE);
-    // Earning the price takes longer than the periodic save; the purchase still writes at once.
+    click(t, 5);
+    expect(t.game.api.dispatch({ type: 'selectProject', id: 'autocomplete' })).toBe('applied');
+    click(t, AUTOCOMPLETE_PRICE - 1);
+    // Building takes longer than the periodic save; the discovery still writes at once.
+    t.game.api.dispatch({ type: 'primaryAction' });
     const writes = t.storage.writes;
-    const revision = stored(t.storage).revision;
-    expect(t.game.api.dispatch({ type: 'buyUpgrade', id: 'autocomplete' })).toBe('applied');
+    t.tick(100);
     expect(t.storage.writes).toBe(writes + 1);
-    const save = stored(t.storage);
-    expect(save.run.unlockedTechnologyIds).toEqual(['autocomplete']);
-    expect(save.revision).toBe(revision + 1);
+    expect(stored(t.storage).run.unlockedTechnologyIds).toEqual(['autocomplete']);
   });
 
   it('does not write again on a tick right after a save', () => {
@@ -91,8 +91,9 @@ describe('autosave', () => {
   it('keeps the in-memory run and reports failure when storage refuses writes', () => {
     const t = setup();
     t.storage.failWrites = true;
+    click(t, 5);
+    t.game.api.dispatch({ type: 'selectProject', id: 'autocomplete' });
     click(t, AUTOCOMPLETE_PRICE);
-    t.game.api.dispatch({ type: 'buyUpgrade', id: 'autocomplete' });
     expect(t.latest()?.save.status).toBe('failed');
     expect(t.latest()?.run.unlockedTechnologyIds).toEqual(['autocomplete']);
     t.storage.failWrites = false;
@@ -110,17 +111,18 @@ describe('autosave', () => {
 
   it('does not reapply purchase effects after reload', () => {
     const first = setup();
+    click(first, 5);
+    first.game.api.dispatch({ type: 'selectProject', id: 'autocomplete' });
     click(first, AUTOCOMPLETE_PRICE);
-    first.game.api.dispatch({ type: 'buyUpgrade', id: 'autocomplete' });
     first.game.dispose();
     const second = setup(first.storage);
     const run = second.latest()?.run;
     expect(run?.unlockedTechnologyIds).toEqual(['autocomplete']);
     expect(run?.history.filter((e) => e.kind === 'technology')).toHaveLength(1);
-    expect(run?.economy.output).toBe(0);
+    const before = run?.stats.lifetimeOutput ?? 0;
     second.game.api.dispatch({ type: 'primaryAction' });
     second.tick(100);
-    expect(second.latest()?.run.economy.output).toBe(2);
+    expect(second.latest()?.run.stats.lifetimeOutput).toBe(before + 2);
   });
 });
 
@@ -128,21 +130,22 @@ describe('passive output and pause', () => {
   it('produces no IDE output while the page is hidden', () => {
     const t = setup();
     const buy = (id: 'autocomplete' | 'generated-snippets' | 'ai-native-ide', clicks: number) => {
+      expect(t.game.api.dispatch({ type: 'selectProject', id })).toBe('applied');
       click(t, clicks);
-      expect(t.game.api.dispatch({ type: 'buyUpgrade', id })).toBe('applied');
       t.game.api.dispatch({ type: 'acknowledgeUnlock', id });
     };
+    click(t, 5);
     buy('autocomplete', AUTOCOMPLETE_PRICE);
     buy('generated-snippets', Math.ceil(SNIPPETS_PRICE / 2));
     buy('ai-native-ide', Math.ceil(IDE_PRICE / 4));
     t.tick(1000);
-    const before = t.latest()?.run.economy.output ?? 0;
+    const before = t.latest()?.run.stats.lifetimeOutput ?? 0;
     expect(before).toBeGreaterThan(0);
     t.game.suspend('hidden');
     t.tick(60_000);
     t.game.resume('hidden');
-    expect(t.latest()?.run.economy.output).toBe(before);
+    expect(t.latest()?.run.stats.lifetimeOutput).toBe(before);
     t.tick(1000);
-    expect(t.latest()?.run.economy.output).toBeCloseTo(before + 1, 6);
+    expect(t.latest()?.run.stats.lifetimeOutput).toBeCloseTo(before + 1, 6);
   });
 });

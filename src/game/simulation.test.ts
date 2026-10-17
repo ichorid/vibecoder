@@ -22,11 +22,11 @@ describe('stepRun', () => {
 
   it('turns queued manual work into output exactly once', () => {
     let run = applyCommand(createRun(1, 'r'), { type: 'primaryAction' }, 0, catalog).run;
-    expect(run.economy.output).toBe(0);
+    expect(run.stats.lifetimeOutput).toBe(0);
     run = stepRun(run, 100, catalog).run;
-    expect(run.economy.output).toBe(1);
+    expect(run.stats.lifetimeOutput).toBe(1);
     run = stepRun(run, 100, catalog).run;
-    expect(run.economy.output).toBe(1);
+    expect(run.stats.lifetimeOutput).toBe(1);
   });
 });
 

@@ -1,12 +1,12 @@
 import { expect, test } from '@playwright/test';
-import { freshGame, headerStat, pressPrimary } from './helpers';
+import { freshGame, builtCode, pressPrimary } from './helpers';
 
 test('settings panel: theme, sound switch, music submenu, Music Lab link, focus return', async ({
   page,
 }) => {
   await freshGame(page);
   await pressPrimary(page, 3);
-  await expect.poll(() => headerStat(page)).toBe('3');
+  await expect.poll(() => builtCode(page)).toBe('3');
   const opener = page.getByTestId('settings-button');
   await opener.click();
   const dialog = page.getByRole('dialog', { name: 'Settings' });
@@ -33,5 +33,5 @@ test('settings panel: theme, sound switch, music submenu, Music Lab link, focus 
 
   expect(new URL(page.url()).pathname).toBe('/');
   await expect(page.getByTestId('primary-action')).toBeVisible();
-  expect(await headerStat(page)).toBe('3');
+  expect(await builtCode(page)).toBe('3');
 });

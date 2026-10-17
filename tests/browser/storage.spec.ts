@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { freshGame, headerStat, openUpgrades, pressPrimary } from './helpers';
+import { buildCard, builtCode, freshGame, pressPrimary } from './helpers';
 import { saveWithProfile, untilChoice } from './fixtures';
 
 test('unavailable storage: the game runs for this visit and says so', async ({ page }) => {
@@ -15,7 +15,7 @@ test('unavailable storage: the game runs for this visit and says so', async ({ p
   await expect(page.getByTestId('primary-action')).toBeVisible();
   await expect(page.getByTestId('save-warning')).toContainText('only for this visit');
   await pressPrimary(page, 3);
-  await expect.poll(() => headerStat(page)).toBe('3');
+  await expect.poll(() => builtCode(page)).toBe('3');
 });
 
 test('a full quota keeps the run in memory and RETRY saves it once space is back', async ({
@@ -34,12 +34,11 @@ test('a full quota keeps the run in memory and RETRY saves it once space is back
       Storage.prototype.setItem = original;
     };
   });
-  // Buying a technology forces an immediate save, which now fails.
-  await pressPrimary(page, 16);
-  await openUpgrades(page);
-  await page.getByRole('button', { name: /Autocomplete/ }).click();
+  // Building a technology forces an immediate save, which now fails.
+  await pressPrimary(page, 5);
+  await buildCard(page, /Autocomplete/);
   await expect(page.getByTestId('save-warning')).toContainText('could not be saved');
-  const stat = await headerStat(page);
+  const stat = await builtCode(page);
   // RETRY while storage is still full keeps the warning (and the run in memory).
   await page.getByTestId('save-warning').getByRole('button', { name: 'RETRY' }).click();
   await expect(page.getByTestId('save-warning')).toContainText('could not be saved');
@@ -59,7 +58,7 @@ test('a full quota keeps the run in memory and RETRY saves it once space is back
     run: { unlockedTechnologyIds: string[] };
   };
   expect(saved.run.unlockedTechnologyIds).toContain('autocomplete');
-  expect(Number(await headerStat(page))).toBeGreaterThanOrEqual(Number(stat));
+  expect(Number(await builtCode(page))).toBeGreaterThanOrEqual(Number(stat));
 });
 
 test('a corrupt save is left untouched; a new run keeps independently valid endings', async ({

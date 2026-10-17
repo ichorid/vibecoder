@@ -33,7 +33,7 @@ describe('lifecycle recovery', () => {
     const after = t.run();
     expect(after.status).toBe('ended');
     expect(after.ending).toEqual(before.ending);
-    expect(after.economy.output).toBe(before.economy.output);
+    expect(after.stats.lifetimeOutput).toBe(before.stats.lifetimeOutput);
     expect(after.cat.fullness).toBe(before.cat.fullness);
   });
 

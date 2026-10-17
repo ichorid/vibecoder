@@ -45,8 +45,9 @@ describe('App navigation', () => {
 
   it('opens History with only current entries and returns to Game', async () => {
     const t = setup();
-    await clickTimes('WRITE CODE', AUTOCOMPLETE_PRICE, t.tick);
+    await clickTimes('WRITE CODE', 5, t.tick);
     await fireEvent.click(screen.getByRole('button', { name: /Autocomplete/ }));
+    await clickTimes('WRITE CODE', AUTOCOMPLETE_PRICE, t.tick);
     await fireEvent.click(screen.getByRole('button', { name: 'HISTORY' }));
     expect(screen.getByRole('heading', { name: 'HISTORY' })).toBeTruthy();
     const items = screen.getAllByRole('listitem').map((li) => li.textContent ?? '');

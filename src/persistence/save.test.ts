@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { catalog } from '../content/catalog';
 import { createMemoryStorage } from '../../tests/helpers/memoryStorage';
-import { act, AUTOCOMPLETE_PRICE, clickAndSettle } from '../../tests/helpers/run';
+import { build, clickAndSettle } from '../../tests/helpers/run';
 import { createRun } from '../game/createRun';
 import type { RunState } from '../game/types';
 import {
@@ -15,8 +15,8 @@ import {
 } from './save';
 
 function progressedRun(): RunState {
-  const run = clickAndSettle(createRun(5, 'run-a'), AUTOCOMPLETE_PRICE + 2, catalog);
-  return act(run, { type: 'buyUpgrade', id: 'autocomplete' }, catalog);
+  const run = clickAndSettle(createRun(5, 'run-a'), 7, catalog);
+  return build(run, 'autocomplete', catalog);
 }
 
 function envelope(run: RunState = progressedRun()): SaveData {
@@ -62,20 +62,39 @@ describe('save envelope', () => {
   it.each([
     ['not an object', () => 'hello'],
     [
-      'NaN output',
-      () => corrupt((r) => ((r.run as { economy: { output: unknown } }).economy.output = 'NaN')),
+      'NaN code rate',
+      () =>
+        corrupt((r) => ((r.run as { economy: { codeRate: unknown } }).economy.codeRate = 'NaN')),
     ],
     [
-      'infinite output',
+      'infinite money',
       () =>
         corrupt(
           (r) =>
-            ((r.run as { economy: { output: number } }).economy.output = Number.POSITIVE_INFINITY),
+            ((r.run as { economy: { money: number } }).economy.money = Number.POSITIVE_INFINITY),
         ),
     ],
     [
-      'negative output',
-      () => corrupt((r) => ((r.run as { economy: { output: number } }).economy.output = -1)),
+      'negative code rate',
+      () => corrupt((r) => ((r.run as { economy: { codeRate: number } }).economy.codeRate = -1)),
+    ],
+    [
+      'more code in a project than its price',
+      () =>
+        corrupt(
+          (r) => ((r.run as { projects: object }).projects = { release: { code: 10, price: 5 } }),
+        ),
+    ],
+    ['no build slot', () => corrupt((r) => ((r.run as { slots: unknown[] }).slots = []))],
+    [
+      'an unknown project in a slot',
+      () =>
+        corrupt(
+          (r) =>
+            ((r.run as { slots: unknown[] }).slots = [
+              { target: 'rocket', by: 'player', sinceMs: 0 },
+            ]),
+        ),
     ],
     [
       'mood above range',

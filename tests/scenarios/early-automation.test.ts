@@ -71,7 +71,7 @@ function play(seed: number, target: string, limitMs: number, extra: Policy[] = [
     ) {
       debtOrCoordinationLimitedMs += 100;
     }
-    expect(Number.isFinite(run.economy.output)).toBe(true);
+    expect(Number.isFinite(run.stats.lifetimeOutput)).toBe(true);
   }
   return {
     run,
@@ -104,10 +104,11 @@ describe('early automation route', () => {
     console.info(
       `tokens short ${result.tokenShortMs / 1000}s (${result.packs} packs bought), debt/coordination-limited ${result.debtOrCoordinationLimitedMs / 1000}s`,
     );
-    // Tokens are bought with code: the constraint shows as time with tokens running short
-    // (a purchase is due) and as repeated purchases, not as agents idling at zero.
-    expect(result.tokenShortMs).toBeGreaterThan(20_000);
+    // Tokens are bought with money, money comes from gigs: the constraint shows as repeated
+    // purchases and as code spent freelancing, not as agents idling at zero.
     expect(result.packs).toBeGreaterThanOrEqual(3);
+    expect(result.run.stats.gigCode).toBeGreaterThan(0.1 * result.run.stats.lifetimeOutput);
+    expect(result.tokenLimitedMs).toBeLessThan(60_000);
     expect(result.debtOrCoordinationLimitedMs).toBeGreaterThan(20_000);
   });
 
@@ -125,7 +126,7 @@ describe('recovery from a temporarily bad decision', () => {
     const base = play(7, 'reviewer', 20 * 60_000).run;
     const broke: RunState = {
       ...base,
-      economy: { ...base.economy, tokens: 0, debt: 120, output: 0 },
+      economy: { ...base.economy, tokens: 0, debt: 120, money: 0 },
     };
     let run = broke;
     for (let i = 0; i < 1200; i += 1) {
@@ -133,7 +134,7 @@ describe('recovery from a temporarily bad decision', () => {
         run = applyCommand(run, { type: 'primaryAction' }, run.activeMs, catalog).run;
       run = stepRun(run, 100, catalog).run;
     }
-    expect(run.economy.output).toBeGreaterThan(100);
+    expect(run.stats.lifetimeOutput - broke.stats.lifetimeOutput).toBeGreaterThan(100);
     expect(run.economy.debt).toBeLessThan(120);
   });
 });

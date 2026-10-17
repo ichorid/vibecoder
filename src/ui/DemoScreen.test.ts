@@ -5,7 +5,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { progressedRun } from '../../tests/browser/fixtures';
 import { createUiGame, nullRenderer } from '../../tests/helpers/uiGame';
 import App from '../app/App.svelte';
+import { catalog } from '../content/catalog';
+import { nextDemo } from '../game/demos';
 import type { DemoViewModel } from '../game/selectors';
+import type { RunState } from '../game/types';
 import DemoScreen from './DemoScreen.svelte';
 
 /** Animation frames run by hand. */
@@ -26,6 +29,12 @@ beforeEach(() => {
   // jsdom has no 2D canvas; the demo must still show its texts
   vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
 });
+/** The next demo fully built (a shortcut: the price is in the demo project, ready to run). */
+function withDemoBuilt(run: RunState): RunState {
+  const price = nextDemo(run, catalog)?.price ?? 0;
+  return { ...run, projects: { ...run.projects, demo: { code: price, price } } };
+}
+
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
@@ -71,7 +80,7 @@ describe('the demo popup', () => {
 
   it('is coded from its strip next to Ship It, and History can play it again', async () => {
     const run = progressedRun(4, false);
-    const ui = createUiGame({ ...run, economy: { ...run.economy, output: 50_000 } });
+    const ui = createUiGame(withDemoBuilt(run));
     render(App, {
       props: {
         api: ui.game.api,
@@ -82,7 +91,7 @@ describe('the demo popup', () => {
     });
     const strip = screen.getByTestId('demo-strip');
     expect(strip.textContent).toContain('DEMO #1');
-    await fireEvent.click(strip);
+    await fireEvent.click(screen.getByTestId('demo-go'));
     expect(screen.getByTestId('demo-screen')).toBeTruthy();
     expect(screen.getByTestId('demo-strip').textContent).toContain('DEMO #2');
     await fireEvent.click(screen.getByRole('button', { name: 'CLOSE' }));
@@ -96,7 +105,12 @@ describe('the demo popup', () => {
 
   it("the demo screen offers the next demo's design; the picked preview is what gets coded", async () => {
     const run = progressedRun(4, false);
-    const ui = createUiGame({ ...run, economy: { ...run.economy, output: 50_000 } });
+    // Plenty of tokens, so the agents keep building the next demo while time passes.
+    const ui = createUiGame(withDemoBuilt({ ...run, economy: { ...run.economy, tokens: 1e6 } }));
+    let built = false;
+    ui.game.api.subscribe((s) => {
+      built = s.game.demo?.affordable ?? false;
+    });
     render(App, {
       props: {
         api: ui.game.api,
@@ -107,7 +121,7 @@ describe('the demo popup', () => {
     });
     // the choice lives on the demo screen only
     expect(screen.queryByTestId('demo-designer')).toBeNull();
-    await fireEvent.click(screen.getByTestId('demo-strip'));
+    await fireEvent.click(screen.getByTestId('demo-go'));
     await fireEvent.click(screen.getByTestId('demo-depack')); // skip the intro
     runFrames(400);
     const first = screen.getByTestId('demo-screen');
@@ -122,7 +136,13 @@ describe('the demo popup', () => {
     await fireEvent.click(variant);
     expect(variant.getAttribute('aria-checked')).toBe('true');
     await fireEvent.click(screen.getByRole('button', { name: 'CLOSE' }));
-    await fireEvent.click(screen.getByTestId('demo-strip'));
+    // Build the next demo: tap its strip, then let the code flow in.
+    await fireEvent.click(screen.getByTestId('demo-build'));
+    for (let i = 0; i < 3000 && !built; i += 1) {
+      ui.game.api.dispatch({ type: 'primaryAction' });
+      ui.tick(400);
+    }
+    await fireEvent.click(screen.getByTestId('demo-go'));
     await fireEvent.click(screen.getByTestId('demo-depack'));
     runFrames(400);
     const second = screen.getByTestId('demo-screen');

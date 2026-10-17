@@ -4,6 +4,7 @@
   import { formatActiveTime } from './format';
   import { flagIcon, palmIcon, trophyIcon } from './icons';
   import PixelIcon from './PixelIcon.svelte';
+  import UnlockAnnouncement from './UnlockAnnouncement.svelte';
   import { catCandle, catSunset, type PixelMap } from './pixelArt';
 
   interface Props {
@@ -15,6 +16,8 @@
   }
 
   const { history, onReturn, illustrationUrl = () => null, onWatch }: Props = $props();
+  /** A historic milestone reopened from its entry (its panel, as when it happened). */
+  let viewing = $state<NonNullable<HistoryViewModel['entries'][number]['milestone']> | null>(null);
 
   const SYMBOLS: Record<Extract<HistoryIconViewModel, { kind: 'symbol' }>['id'], PixelMap> = {
     'cat-died': catCandle,
@@ -79,9 +82,26 @@
               onclick={() => onWatch(number)}>WATCH</button
             >
           {/if}
+          {#if entry.milestone}
+            {@const milestone = entry.milestone}
+            <button
+              type="button"
+              class="watch"
+              aria-label="View {milestone.title}"
+              onclick={() => (viewing = milestone)}>VIEW</button
+            >
+          {/if}
         </li>
       {/each}
     </ol>
+  {/if}
+  {#if viewing}
+    <UnlockAnnouncement
+      announcement={{ title: viewing.title, description: viewing.text }}
+      kicker="HISTORIC MILESTONE"
+      illustrationUrl={illustrationUrl(viewing.illustrationId)}
+      onAcknowledge={() => (viewing = null)}
+    />
   {/if}
 </section>
 
@@ -98,6 +118,7 @@
     cursor: pointer;
   }
   .history {
+    position: relative;
     height: 100%;
     overflow-y: auto;
     padding: 10px 12px max(16px, env(safe-area-inset-bottom));

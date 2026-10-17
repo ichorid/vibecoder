@@ -5,10 +5,10 @@
 import { applyCommand, type CommandResult } from '../../src/game/commands';
 import type { Catalog } from '../../src/game/catalog';
 import { playPhase, playPosition } from '../../src/game/catPlaySession';
-import { deriveRates, tokenDemandPerSecond } from '../../src/game/economy';
+import { deriveRates, offerPrice, tokenDemandPerSecond } from '../../src/game/economy';
 import { selectCat, selectGame } from '../../src/game/selectors';
 import { stepRun } from '../../src/game/simulation';
-import type { GameCommand, GameFact, RunState } from '../../src/game/types';
+import type { GameCommand, GameFact, ProjectKey, RunState } from '../../src/game/types';
 import { CAT_INTENSITY } from '../../src/content/balance';
 
 /**
@@ -81,10 +81,17 @@ export const pressPrimary: Policy = () => [{ type: 'primaryAction' }];
 export const acknowledgeReveals: Policy = ({ run }) =>
   run.pendingUnlockIds.slice(0, 1).map((id) => ({ type: 'acknowledgeUnlock', id }));
 
-/** Buy the first currently offered, affordable card. */
+/** Build or buy the first card on offer (a project is picked; a money card bought if affordable). */
 export const buyFirstAffordable: Policy = ({ run, catalog }) => {
-  const offer = selectGame(run, catalog).offers.find((o) => o.kind === 'upgrade' && o.affordable);
-  return offer?.kind === 'upgrade' ? [{ type: 'buyUpgrade', id: offer.id }] : [];
+  const offer = selectGame(run, catalog).offers.find(
+    (o) => o.kind === 'upgrade' && !o.internal && o.affordable,
+  );
+  if (offer?.kind !== 'upgrade') return [];
+  return offer.currency === 'money'
+    ? [{ type: 'buyUpgrade', id: offer.id }]
+    : run.slots.some((s) => s.target === offer.id && s.by !== 'fallback')
+      ? []
+      : [{ type: 'selectProject', id: offer.id }];
 };
 
 /** Baseline care: feed below 70 every `CARE.feedMs`, pet every `CARE.petMs`. */
@@ -95,37 +102,184 @@ export const baselineCare: Policy[] = [
   every(CARE.petMs, () => [{ type: 'petCat' }], CARE.petMs / 2),
 ];
 
-/**
- * Baseline purchasing, as a sensible player: buy the current progression card when affordable;
- * buy a token pack when tokens would last less than the refill window; buy token automation
- * (auto-refill, auto-reviewer) when it costs at most half the visible progression price;
- * otherwise the cheapest affordable optional card under a quarter of that price. Current offers
- * only.
- */
 /** A sensible player buys a pack by hand when tokens would last under this many seconds. */
 const MANUAL_PACK_BELOW_SECONDS = 20;
-const AUTOMATION_CARDS = new Set(['auto-refill-v1', 'auto-refill-v2', 'auto-reviewer']);
-export const baselineBuyer: Policy = ({ run, catalog }) => {
-  const offers = selectGame(run, catalog).offers.flatMap((o) => (o.kind === 'upgrade' ? [o] : []));
-  const progression = offers.find((o) => catalog.upgrades.find((u) => u.id === o.id)?.discovers);
-  if (progression?.affordable) return [{ type: 'buyUpgrade', id: progression.id }];
-  const pack = offers.find((o) => o.id === 'token-supply');
+const AUTOMATION_CARDS = new Set([
+  'auto-refill-v1',
+  'auto-refill-v2',
+  'auto-reviewer',
+  'job-search-bot',
+  'auto-freelancing',
+]);
+const CAPACITY = new Set(['compute-slot', 'additional-agent', 'review-capacity']);
+
+export interface BuyerOptions {
+  /** Seconds the player takes to pick the next build after one completes (fallback). */
+  readonly reactSeconds?: number;
+  /** Take a gig when money falls below this many rents (0: never freelance). */
+  readonly freelanceBelowRents?: number;
+  /** Capacity: 'cheap' (≤ ¼ of the next technology), 'greedy' (whenever offered), 'none'. */
+  readonly capacity?: 'cheap' | 'greedy' | 'none' | 'seer';
+  /** Accept enterprise job offers and never leave. */
+  readonly takeJob?: boolean;
+}
+
+/** Money the player wants in reserve: a few rents plus a minute of token packs. */
+function wantsMoney(context: ScenarioContext, rents: number): boolean {
+  const { run, catalog } = context;
+  // Careless (negative): only once in debt. Zero: never.
+  if (rents < 0) return run.economy.money < 0 && !run.job.employed;
+  if (rents === 0) return false;
+  const game = selectGame(run, catalog);
+  if (!game.money || game.money.employed) return false;
+  const rent = game.money.rent ?? catalog.balance.rent.base;
   const rates = deriveRates(run, catalog);
   const demand = tokenDemandPerSecond(rates);
-  if (pack?.affordable && demand > 0 && run.economy.tokens < demand * MANUAL_PACK_BELOW_SECONDS) {
-    return [{ type: 'buyUpgrade', id: pack.id }];
-  }
-  const half = progression ? progression.price / 2 : Infinity;
-  const automation = offers.find(
-    (o) => AUTOMATION_CARDS.has(o.id) && o.affordable && o.price <= half,
+  const pack = catalog.upgrades.find((u) => u.pack === 'tokens');
+  const packPrice = pack ? offerPrice(run, pack, catalog) : 0;
+  const tokenMoney = demand > 0 ? packPrice : 0;
+  return run.economy.money < rents * rent + tokenMoney;
+}
+
+/**
+ * The ordered builds a player wants now: a gig when money runs low, cheap automation, the
+ * capacity the cards suggest (by `capacity`), then the next technology; the release last.
+ */
+function wantedBuilds(context: ScenarioContext, options: BuyerOptions): string[] {
+  const { run, catalog } = context;
+  const game = selectGame(run, catalog);
+  const cards = game.offers.flatMap((o) =>
+    o.kind === 'upgrade' && !o.internal && o.currency === 'output' ? [o] : [],
   );
-  if (automation) return [{ type: 'buyUpgrade', id: automation.id }];
-  const limit = progression ? progression.price / 4 : Infinity;
-  const optional = offers
-    .filter((o) => o !== progression && o !== pack && o.affordable && o.price <= limit)
-    .sort((a, b) => a.price - b.price)[0];
-  return optional ? [{ type: 'buyUpgrade', id: optional.id }] : [];
-};
+  const progression = cards.find((o) => catalog.upgrades.find((u) => u.id === o.id)?.discovers);
+  const wanted: string[] = [];
+  if (game.money?.gig && wantsMoney(context, options.freelanceBelowRents ?? 1.5))
+    wanted.push('gig');
+  const half = progression ? progression.price / 2 : Infinity;
+  for (const card of cards) {
+    if (AUTOMATION_CARDS.has(card.id) && card.price <= half) wanted.push(card.id);
+  }
+  const capacity = options.capacity ?? 'cheap';
+  const quarter = progression ? progression.price / 4 : Infinity;
+  const capacityCards = cards.filter((o) => CAPACITY.has(o.id));
+  if (capacity === 'greedy') {
+    const first = capacityCards[0];
+    if (first) wanted.push(first.id);
+  } else if (capacity === 'seer') {
+    const want = seerWant(context);
+    if (want && capacityCards.some((o) => o.id === want)) wanted.push(want);
+  } else if (capacity === 'cheap') {
+    const cheap = [...capacityCards].sort((a, b) => a.price - b.price)[0];
+    if (cheap && cheap.price <= quarter) wanted.push(cheap.id);
+  }
+  if (progression) wanted.push(progression.id);
+  // With a second slot, the capacity the cards show (they only show what helps) beats the
+  // release, unless the player never builds capacity.
+  if (run.slots.length > 1 && capacity !== 'none') {
+    for (const card of capacityCards) if (!wanted.includes(card.id)) wanted.push(card.id);
+  }
+  // Fewer builds than slots: both worktrees on the best one (tap it again).
+  const first = wanted[0];
+  if (first && first !== 'gig' && wanted.length < run.slots.length) wanted.push(first);
+  wanted.push('release');
+  return wanted;
+}
+
+function seerWant(context: ScenarioContext): string | null {
+  const { run, catalog } = context;
+  const rates = deriveRates(run, catalog);
+  return rates.compute < rates.agents
+    ? 'compute-slot'
+    : run.economy.debt > 20
+      ? 'review-capacity'
+      : rates.managed >= rates.agents
+        ? 'additional-agent'
+        : null;
+}
+
+/**
+ * A sensible player with projects and money: searches when the gig board is empty, takes a gig
+ * when money runs low, buys token packs, compute and the company's cards with money, and keeps
+ * the slots on what it wants (reacting `reactSeconds` after a build falls back). Current
+ * offers only.
+ */
+export function projectPlayer(options: BuyerOptions = {}): Policy {
+  const react = (options.reactSeconds ?? 1) * 1000;
+  return (context) => {
+    const { run, catalog } = context;
+    const game = selectGame(run, catalog);
+    const commands: GameCommand[] = [];
+    if (options.takeJob && game.job && !game.job.employed) {
+      return [{ type: 'selectProject', id: 'job' }];
+    }
+    if (run.job.employed) return [];
+    if (
+      game.money?.search &&
+      (options.freelanceBelowRents ?? 1.5) !== 0 &&
+      wantsMoney(
+        context,
+        (options.freelanceBelowRents ?? 1.5) < 0 ? -1 : (options.freelanceBelowRents ?? 1.5) + 1,
+      )
+    ) {
+      commands.push({ type: 'searchJob' });
+    }
+    // Money cards: token packs when low, compute when it is what binds, the company's cards.
+    const money = game.offers.flatMap((o) =>
+      o.kind === 'upgrade' && o.currency === 'money' && o.affordable ? [o] : [],
+    );
+    const rates = deriveRates(run, catalog);
+    const demand = tokenDemandPerSecond(rates);
+    const pack = money.find((o) => o.id === 'token-supply');
+    if (pack && demand > 0 && run.economy.tokens < demand * MANUAL_PACK_BELOW_SECONDS) {
+      commands.push({ type: 'buyUpgrade', id: pack.id });
+    } else {
+      const company = money.find((o) => catalog.upgrades.find((u) => u.id === o.id)?.discovers);
+      const compute = money.find((o) => o.id === 'compute-slot');
+      const capacity = options.capacity ?? 'cheap';
+      const rent = game.money?.rent ?? 0;
+      // Keep two rents and a token pack in reserve before buying compute.
+      const packPrice = catalog.upgrades.find((u) => u.pack === 'tokens');
+      const reserve =
+        2 * rent + (demand > 0 && packPrice ? offerPrice(run, packPrice, catalog) : 0);
+      const spare = run.economy.money - reserve;
+      if (company) commands.push({ type: 'buyUpgrade', id: company.id });
+      else if (
+        compute &&
+        capacity !== 'none' &&
+        compute.price <= spare &&
+        (capacity === 'greedy' || rates.compute < rates.agents)
+      ) {
+        commands.push({ type: 'buyUpgrade', id: compute.id });
+      }
+    }
+    // Builds: keep every slot on something wanted (one tap per step, like a player).
+    const wanted = wantedBuilds(context, options);
+    const slots = run.slots;
+    for (let i = 0; i < slots.length; i += 1) {
+      const slot = slots[i];
+      if (!slot || slot.target === 'job') continue;
+      if (slot.by === 'fallback' && run.activeMs - slot.sinceMs < react) continue;
+      const others = slots
+        .filter((s, j) => j !== i && s.by !== 'fallback')
+        .map((s) => s.target as string);
+      const count = (list: readonly string[], id: string) => list.filter((x) => x === id).length;
+      // The first wanted build that has fewer worktrees than wanted (duplicates double up).
+      const want = wanted.find((id) => count(others, id) < count(wanted, id));
+      if (!want) continue;
+      const current = slot.by === 'fallback' ? null : (slot.target as string);
+      if (current === want) continue;
+      const keep =
+        current !== null && current !== 'release' && wanted.includes(current) && want !== 'gig';
+      if (keep) continue;
+      commands.push({ type: 'selectProject', id: want as ProjectKey });
+      break;
+    }
+    return commands;
+  };
+}
+
+/** Baseline purchasing: the sensible project player (react 1 s, freelance below 1.5 rents). */
+export const baselineBuyer: Policy = projectPlayer();
 
 /**
  * Presses due in this 100 ms step at `rate` per second, counted from `since` (stateless, so one
@@ -183,63 +337,23 @@ export function playEvery(
   };
 }
 
-/** Ship a release whenever the next one is affordable. */
+/** Ship a release whenever the next one is built. */
 export const shipWhenAffordable: Policy = ({ run, catalog }) =>
   selectGame(run, catalog).release?.affordable ? [{ type: 'shipRelease' }] : [];
 
 /**
- * A player who ships every release: while a launch window is open and unaffordable, they save
- * for it and buy only token packs (so the agents keep working); otherwise `buyer` decides.
+ * A player who ships every release: keeps building the release when nothing else is wanted
+ * and ships as soon as it is ready; otherwise `buyer` decides.
  */
 export function savingForReleases(buyer: Policy): Policy {
-  return (context) => {
-    const release = selectGame(context.run, context.catalog).release;
-    const commands = buyer(context);
-    if (!release || release.affordable) return commands;
-    return commands.filter((c) => c.type !== 'buyUpgrade' || c.id === 'token-supply');
-  };
+  return (context) => [...buyer(context), ...shipWhenAffordable(context)];
 }
 
-const CAPACITY = new Set(['compute-slot', 'additional-agent', 'review-capacity']);
+/** Progression first; capacity the cards put first whenever offered. */
+export const greedyCapacityBuyer: Policy = projectPlayer({ capacity: 'greedy' });
 
-/**
- * Progression first; then, as soon as it is affordable, the capacity card the game puts first
- * (no hidden knowledge: only what the cards show).
- */
-export const greedyCapacityBuyer: Policy = (context) => {
-  const base = baselineBuyer(context);
-  if (base.length > 0) return base;
-  const card = selectGame(context.run, context.catalog).offers.find(
-    (o) => o.kind === 'upgrade' && CAPACITY.has(o.id),
-  );
-  return card?.kind === 'upgrade' && card.affordable ? [{ type: 'buyUpgrade', id: card.id }] : [];
-};
+/** Progression and money only: never builds or buys capacity. */
+export const progressionOnlyBuyer: Policy = projectPlayer({ capacity: 'none' });
 
-/** Progression and token packs only: never buys capacity. */
-export const progressionOnlyBuyer: Policy = (context) =>
-  baselineBuyer(context).filter((c) => c.type !== 'buyUpgrade' || !CAPACITY.has(c.id));
-
-/**
- * The "seer": progression first, then the capacity card that relieves the binding constraint
- * (compute when agents idle, review when debt hurts, an agent when agents bind) — it knows the
- * hidden couplings the player cannot see.
- */
-export const seerBuyer: Policy = (context) => {
-  const base = baselineBuyer(context).filter((c) => c.type !== 'buyUpgrade' || !CAPACITY.has(c.id));
-  if (base.length > 0) return base;
-  const { run, catalog } = context;
-  const rates = deriveRates(run, catalog);
-  const want =
-    rates.compute < rates.agents
-      ? 'compute-slot'
-      : run.economy.debt > 20
-        ? 'review-capacity'
-        : rates.managed >= rates.agents
-          ? 'additional-agent'
-          : null;
-  if (!want) return [];
-  const card = selectGame(run, catalog).offers.find(
-    (o) => o.kind === 'upgrade' && o.id === want && o.affordable,
-  );
-  return card ? [{ type: 'buyUpgrade', id: want }] : [];
-};
+/** The "seer": capacity that relieves the hidden binding constraint. */
+export const seerBuyer: Policy = projectPlayer({ capacity: 'seer' });

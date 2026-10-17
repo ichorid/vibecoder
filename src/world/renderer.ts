@@ -42,6 +42,14 @@ import { hopPosition, planCatPath, type PathStep } from './catPath';
 import { coversCat } from './catDepth';
 import { clipToBox } from './linkGeometry';
 import {
+  genericSiteRect,
+  leanToward,
+  planSites,
+  revealedRect,
+  SITE_COLOR,
+  type SitePlan,
+} from './sites';
+import {
   clampView,
   IDENTITY_VIEW,
   isAdjusted,
@@ -75,6 +83,19 @@ interface Cluster {
   readonly covers: readonly { placement: Placement; original: AnimatedSprite; copy: Sprite }[];
   lod: ClusterLod | null;
   revealStart: number | null;
+}
+
+/** A construction site: a masked silhouette, girders, a crane, and a dot when far away. */
+interface Site {
+  plan: SitePlan;
+  readonly group: Container;
+  readonly silhouette: Container;
+  readonly mask: Graphics;
+  readonly girders: Graphics;
+  readonly crane: Graphics;
+  readonly dot: Graphics;
+  readonly bounds: { x: number; y: number; w: number; h: number };
+  lod: ClusterLod | null;
 }
 
 interface Signal {
@@ -134,13 +155,15 @@ export async function createPixiRenderer(
   const root = new Container();
   const links = new Graphics();
   const clusterLayer = new Container();
+  // Builds in progress: scaffolding over where the next additions will stand.
+  const siteLayer = new Container();
   const signalLayer = new Container();
   const catLayer = new Container();
   // Tap targets on the room (poster, cat bowl) sit under the cat, so the cat wins a shared tap.
   const hitLayer = new Container();
   // Room sprites the cat can walk behind (the programmer, for a cat on the desk) are mirrored here.
   const frontLayer = new Container();
-  root.addChild(links, clusterLayer, signalLayer, hitLayer, catLayer, frontLayer);
+  root.addChild(links, clusterLayer, siteLayer, signalLayer, hitLayer, catLayer, frontLayer);
   app.stage.addChild(root);
 
   const sheets = new Map<WorldProjection['theme'], Promise<LoadedSheet>>();
@@ -233,6 +256,152 @@ export async function createPixiRenderer(
       lod: null,
       revealStart: reveal ? now : null,
     });
+  }
+
+  // ---- The rent notice taped to the room wall (none, a bill, or a red one when overdue). ----
+  const rentNotice = new Graphics();
+  siteLayer.addChild(rentNotice);
+  let noticeDrawn: WorldProjection['rentNotice'] | null = null;
+  function drawRentNotice(): void {
+    const look = projection?.rentNotice ?? 'none';
+    if (look === noticeDrawn) return;
+    noticeDrawn = look;
+    rentNotice.clear();
+    if (look === 'none') return;
+    const paper = look === 'overdue' ? 0xe8483c : 0xfbf4e2;
+    const ink = look === 'overdue' ? 0xfbf4e2 : 0x5f677a;
+    rentNotice.rect(-72, -6, 7, 9).fill(paper).stroke({ width: 0.5, color: 0x2b1d14 });
+    rentNotice
+      .rect(-71, -4, 5, 1)
+      .fill(ink)
+      .rect(-71, -2, 4, 1)
+      .fill(ink)
+      .rect(-71, 0, 5, 1)
+      .fill(ink);
+    rentNotice.rect(-69, -7, 1, 2).fill(0x9aa3b5);
+  }
+
+  // ---- Construction sites. ----
+  const sites = new Map<string, Site>();
+  let framedSiteKey: string | null = null;
+
+  function buildSite(plan: SitePlan): Site {
+    const group = new Container();
+    const silhouette = new Container();
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    for (const placement of plan.placements) {
+      const sprite = makeSprite(placement.sprite);
+      if (!sprite) continue;
+      const scale = placement.scale ?? 1;
+      sprite.position.set(placement.x, placement.y);
+      sprite.scale.set(scale);
+      sprite.tint = SITE_COLOR;
+      sprite.alpha = 0.55;
+      silhouette.addChild(sprite);
+      minX = Math.min(minX, placement.x);
+      minY = Math.min(minY, placement.y);
+      maxX = Math.max(maxX, placement.x + sprite.width);
+      maxY = Math.max(maxY, placement.y + sprite.height);
+    }
+    const bounds = Number.isFinite(minX)
+      ? { x: minX, y: minY, w: maxX - minX, h: maxY - minY }
+      : genericSiteRect(plan.at);
+    const mask = new Graphics();
+    silhouette.mask = mask;
+    const girders = new Graphics();
+    const crane = new Graphics();
+    const dot = new Graphics();
+    dot.rect(-0.5, -0.5, 1, 1).fill(SITE_COLOR);
+    dot.position.set(bounds.x + bounds.w / 2, bounds.y + bounds.h / 2);
+    group.addChild(girders, silhouette, mask, crane, dot);
+    siteLayer.addChild(group);
+    const site: Site = { plan, group, silhouette, mask, girders, crane, dot, bounds, lod: null };
+    drawSite(site);
+    return site;
+  }
+
+  /** Girders over the whole site, the silhouette revealed bottom-up to its progress. */
+  function drawSite(site: Site): void {
+    const { bounds, plan } = site;
+    const built = revealedRect(bounds, plan.progress);
+    site.mask.clear().rect(built.x, built.y, built.w, built.h).fill(0xffffff);
+    const g = site.girders.clear();
+    g.rect(bounds.x, bounds.y, bounds.w, bounds.h).stroke({
+      width: 0.5,
+      color: SITE_COLOR,
+      alpha: 0.7,
+    });
+    for (let x = bounds.x + 4; x < bounds.x + bounds.w; x += 4) {
+      g.moveTo(x, bounds.y).lineTo(x, bounds.y + bounds.h);
+    }
+    for (let y = bounds.y + bounds.h; y > bounds.y; y -= 4) {
+      g.moveTo(bounds.x, y).lineTo(bounds.x + bounds.w, y);
+    }
+    g.stroke({ width: 0.25, color: SITE_COLOR, alpha: 0.35 });
+  }
+
+  /** The crane rides the fill line; it works while the site is built, idles while it drifts. */
+  function drawCrane(site: Site): void {
+    const { bounds, plan } = site;
+    const y = revealedRect(bounds, plan.progress).y;
+    const speed = plan.active ? (plan.half ? 0.5 : 1) : 0;
+    const swing = (Math.sin((now / 700) * speed) + 1) / 2;
+    const hook = bounds.x + 2 + swing * Math.max(0, bounds.w - 4);
+    const mast = bounds.x + bounds.w + 2;
+    site.crane
+      .clear()
+      .moveTo(mast, bounds.y + bounds.h)
+      .lineTo(mast, y - 6)
+      .lineTo(bounds.x, y - 6)
+      .moveTo(hook, y - 6)
+      .lineTo(hook, y - 1)
+      .stroke({ width: 0.75, color: SITE_COLOR });
+  }
+
+  function reconcileSites(): void {
+    const plans = projection ? planSites(projection.sites, projection.technologyIds) : [];
+    const keep = new Set(plans.map((p) => p.key));
+    for (const [key, site] of sites) {
+      if (keep.has(key)) continue;
+      site.group.destroy({ children: true });
+      sites.delete(key);
+    }
+    for (const plan of plans) {
+      const site = sites.get(plan.key);
+      if (!site) {
+        sites.set(plan.key, buildSite(plan));
+        continue;
+      }
+      const moved = site.plan.progress !== plan.progress;
+      site.plan = plan;
+      if (moved) drawSite(site);
+    }
+    // The camera leans toward a technology that has been built for a while (no bouncing).
+    const framed = plans.find((p) => p.kind === 'addition' && p.framed)?.key ?? null;
+    if (framed !== framedSiteKey) {
+      framedSiteKey = framed;
+      if (!projection?.reducedMotion) transition = { from: camera, startedAt: now };
+      else camera = targetCamera();
+    }
+  }
+
+  function updateSites(): void {
+    for (const site of sites.values()) {
+      const size = projectedSize(Math.max(site.bounds.w, site.bounds.h), shown().zoom);
+      site.lod = clusterLod(size, site.lod);
+      const detail = site.lod === 'detail';
+      site.silhouette.visible = detail;
+      site.girders.visible = detail;
+      site.crane.visible = detail;
+      site.dot.visible = !detail;
+      site.dot.scale.set(2 / shown().zoom);
+      // A far-away site blinks, so the eye finds it among the other dots.
+      site.dot.alpha = detail ? 1 : 0.5 + 0.5 * Math.round((now / 500) % 1);
+      if (detail) drawCrane(site);
+    }
   }
 
   function anchorOf(id: string): { x: number; y: number } {
@@ -458,7 +627,11 @@ export async function createPixiRenderer(
       const cluster = clusters.get(a.id);
       return cluster ? [cluster.bounds] : [];
     });
-    return fitEnvelope(hugBounds(rects) ?? sceneEnvelope(envelopeIds), viewport());
+    const base = fitEnvelope(hugBounds(rects) ?? sceneEnvelope(envelopeIds), viewport());
+    const site = framedSiteKey ? sites.get(framedSiteKey) : undefined;
+    if (!site) return base;
+    const withSite = fitEnvelope(hugBounds([...rects, site.bounds]) ?? site.bounds, viewport());
+    return leanToward(base, withSite);
   }
 
   function applyCamera(): void {
@@ -660,6 +833,8 @@ export async function createPixiRenderer(
       if (addition) buildCluster(addition, !projection.reducedMotion);
     }
     if (plan.build.length > 0 || plan.reveal) rebuildLinks();
+    reconcileSites();
+    drawRentNotice();
     const firstFraming = envelopeIds.length === 0 && clusters.size <= plan.build.length + 1;
     const changed = plan.envelopeIds.join() !== envelopeIds.join();
     envelopeIds = plan.envelopeIds;
@@ -691,6 +866,9 @@ export async function createPixiRenderer(
     data.releaseFrames = String(framesBuilt);
     data.computeSlots = String(computeBuilt);
     data.plant = plantBuilt;
+    data.sites = [...sites.keys()].join(',');
+    data.rentNotice = noticeDrawn ?? 'none';
+    data.framedSite = framedSiteKey ?? '';
     // Screen centres of the tap targets (CSS px on the canvas), empty when not tappable.
     const at = (x: number, y: number) => {
       const p = root.toGlobal(new Point(x, y));
@@ -734,6 +912,7 @@ export async function createPixiRenderer(
     }
     applyCamera();
     updateClusters();
+    updateSites();
     updateCat(ticker.deltaMS);
     updateCatCover();
     publishState();
@@ -758,6 +937,9 @@ export async function createPixiRenderer(
       if (addition) buildCluster(addition, false);
     }
     rebuildLinks();
+    for (const site of sites.values()) site.group.destroy({ children: true });
+    sites.clear();
+    reconcileSites();
     catTag = '';
   }
 

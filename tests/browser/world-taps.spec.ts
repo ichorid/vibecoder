@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { freshGame, headerStat } from './helpers';
+import { freshGame, builtCode } from './helpers';
 
 /** Tap a world object at the screen position the renderer publishes for it. */
 async function tapWorld(
@@ -22,7 +22,7 @@ test('the room is tappable: monitor works, poster/shelf/window joke, bowl feeds,
   await expect(page.getByTestId('world-canvas')).toHaveAttribute('data-ticker', 'running');
 
   await tapWorld(page, 'Monitor');
-  await expect.poll(() => headerStat(page)).toBe('1');
+  await expect.poll(() => builtCode(page)).toBe('1');
   await expect(page.getByTestId('floating-gain').filter({ hasText: '+1' }).first()).toBeVisible();
 
   await tapWorld(page, 'Poster');
@@ -35,7 +35,7 @@ test('the room is tappable: monitor works, poster/shelf/window joke, bowl feeds,
   await expect(
     page.getByTestId('floating-gain').filter({ hasText: 'maybe other time' }),
   ).toHaveCount(1);
-  expect(await headerStat(page)).toBe('1');
+  expect(await builtCode(page)).toBe('1');
 
   await tapWorld(page, 'Plant');
   await expect(page.getByTestId('floating-gain').filter({ hasText: 'glug' })).toHaveCount(1);

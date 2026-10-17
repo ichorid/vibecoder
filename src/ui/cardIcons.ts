@@ -5,11 +5,11 @@ import * as icons from './icons';
 import type { PixelMap } from './pixelArt';
 
 export const STAT_ICONS: Readonly<Record<StatId, PixelMap>> = {
-  output: icons.codeIcon,
+  code: icons.codeIcon,
   tokens: icons.tokensIcon,
   debt: icons.debtIcon,
   automation: icons.automationIcon,
-  revenue: icons.revenueIcon,
+  money: icons.revenueIcon,
   margin: icons.marginIcon,
   quality: icons.reviewIcon,
   team: icons.delegateIcon,
@@ -33,6 +33,8 @@ const CARD_ICONS: Partial<Record<UpgradeId, PixelMap>> = {
   'auto-refill-v1': icons.refillV1Icon,
   'auto-refill-v2': icons.refillV2Icon,
   'auto-reviewer': icons.autoReviewerIcon,
+  'job-search-bot': icons.searchIcon,
+  'auto-freelancing': icons.gigIcon,
 };
 
 export function cardIcon(id: UpgradeId): PixelMap {
@@ -42,3 +44,8 @@ export function cardIcon(id: UpgradeId): PixelMap {
 export const DECISION_ICON = icons.decisionIcon;
 export const RELEASE_ICON = icons.releaseIcon;
 export const DEMO_ICON = icons.demoIcon;
+export const GIG_ICON = icons.gigIcon;
+export const JOB_ICON = icons.jobIcon;
+export const SEARCH_ICON = icons.searchIcon;
+export const RENT_ICON = icons.rentIcon;
+export const MONEY_ICON = icons.moneyIcon;

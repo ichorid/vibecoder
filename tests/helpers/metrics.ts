@@ -7,7 +7,7 @@ import { catalog as defaultCatalog } from '../../src/content/catalog';
 import type { Catalog } from '../../src/game/catalog';
 import { applyCommand } from '../../src/game/commands';
 import { createRun } from '../../src/game/createRun';
-import { deriveRates, economyFlows, offerPrice } from '../../src/game/economy';
+import { deriveRates, economyFlows, marketRate, offerPrice } from '../../src/game/economy';
 import { isChoiceOffered } from '../../src/game/endings';
 import type { TechnologyId } from '../../src/game/ids';
 import { isUpgradeOffered } from '../../src/game/progression';
@@ -16,12 +16,9 @@ import { stepRun } from '../../src/game/simulation';
 import type { RunState } from '../../src/game/types';
 import {
   acknowledgeReveals,
-  baselineBuyer,
   baselineCare,
-  greedyCapacityBuyer,
   playEvery,
-  progressionOnlyBuyer,
-  seerBuyer,
+  projectPlayer,
   tapAt,
   type Policy,
 } from './scenario';
@@ -40,6 +37,14 @@ export interface MeasureOptions {
   readonly catalog?: Catalog;
   /** Extra policies (e.g. ending choices) run after the standard ones. */
   readonly extra?: readonly Policy[];
+  /** Seconds to pick the next build after one completes. */
+  readonly react?: number;
+  /** Take a gig below this many rents (0: never). */
+  readonly freelance?: number;
+  /** Accept enterprise job offers and never leave. */
+  readonly takeJob?: boolean;
+  /** Rent factor (0.9 after the frugal lesson). */
+  readonly frugal?: number;
 }
 
 export interface WindowMetrics {
@@ -51,7 +56,7 @@ export interface WindowMetrics {
   readonly coordLow: number;
   readonly twoOffers: number;
   readonly manualShare: number;
-  readonly bank: number;
+  readonly money: number;
   readonly revenue: number;
   readonly cost: number;
 }
@@ -77,6 +82,13 @@ export interface RunMetrics {
   /** Each auto-refill disaster's cost in seconds of output at that moment. */
   readonly disasterSec: readonly number[];
   readonly freezeDelaySec: number | null;
+  /** Share of written code lost to the fallback tax and polish, until Manager Agent. */
+  readonly taxedShareEarly: number;
+  /** Share of written code built into gigs, by act (1–6). */
+  readonly gigShareByAct: readonly number[];
+  readonly rentMissed: number;
+  readonly evictedMin: number | null;
+  readonly gigsPaid: number;
 }
 
 export const ACT_ENDS: readonly TechnologyId[] = [
@@ -101,16 +113,21 @@ const CARD_FOR: Partial<Record<Binding, string>> = {
   tokens: 'token-supply',
 };
 
-function buyerPolicy(buyer: Buyer): Policy {
+function buyerPolicy(buyer: Buyer, options: MeasureOptions): Policy {
+  const player = {
+    reactSeconds: options.react ?? 1,
+    freelanceBelowRents: options.freelance ?? 1.5,
+    takeJob: options.takeJob ?? false,
+  };
   switch (buyer) {
     case 'greedy':
-      return greedyCapacityBuyer;
+      return projectPlayer({ ...player, capacity: 'greedy' });
     case 'seer':
-      return seerBuyer;
+      return projectPlayer({ ...player, capacity: 'seer' });
     case 'saver':
-      return progressionOnlyBuyer;
+      return projectPlayer({ ...player, capacity: 'none' });
     default:
-      return baselineBuyer;
+      return projectPlayer(player);
   }
 }
 
@@ -118,13 +135,14 @@ export function measureRun(seed: number, options: MeasureOptions = {}): RunMetri
   const catalog = options.catalog ?? defaultCatalog;
   const cps = options.cps ?? 3;
   const policies: Policy[] = [
-    tapAt(cps, options.cpsAfter ?? 1 / 3),
-    buyerPolicy(options.buyer ?? 'baseline'),
+    buyerPolicy(options.buyer ?? 'baseline', options),
     acknowledgeReveals,
     ...(options.care === 'none' ? [] : [...baselineCare, playEvery()]),
+    // Taps after the buyer: search presses spend the same charges first.
+    tapAt(cps, options.cpsAfter ?? 1 / 3),
     ...(options.extra ?? []),
   ];
-  let run = createRun(seed, `measure-${seed}`, options.experience ?? 0);
+  let run = createRun(seed, `measure-${seed}`, options.experience ?? 0, options.frugal ?? 1);
   const limitMs = (options.limitMin ?? 60) * 60_000;
   const techMin: Partial<Record<TechnologyId, number>> = {};
   const windows: WindowMetrics[] = [];
@@ -158,7 +176,7 @@ export function measureRun(seed: number, options: MeasureOptions = {}): RunMetri
       coordLow: share(current.coordLow),
       twoOffers: share(current.twoOffers),
       manualShare: current.total > 0 ? current.manual / current.total : 1,
-      bank: run.economy.output,
+      money: run.economy.money,
       revenue: run.economy.revenuePerSecond,
       cost: run.economy.costPerSecond,
     });
@@ -173,6 +191,15 @@ export function measureRun(seed: number, options: MeasureOptions = {}): RunMetri
   let peakDebt = 0;
   const disasterSec: number[] = [];
   let freezeAt: number | null = null;
+  const gigByAct: number[] = [0, 0, 0, 0, 0, 0];
+  const writtenByAct: number[] = [0, 0, 0, 0, 0, 0];
+  let managerAt: number | null = null;
+  let taxedEarly = 0;
+  let writtenEarly = 0;
+  const actOf = (r: RunState) => {
+    const i = ACT_ENDS.findIndex((id) => !r.unlockedTechnologyIds.includes(id));
+    return i < 0 ? 5 : i;
+  };
 
   while (run.activeMs < limitMs && run.status === 'playing') {
     for (const policy of policies) {
@@ -214,7 +241,8 @@ export function measureRun(seed: number, options: MeasureOptions = {}): RunMetri
         definition &&
         !shown &&
         isUpgradeOffered(run, definition) &&
-        offerPrice(run, definition, catalog) <= run.economy.output
+        (definition.currency === 'output' ||
+          offerPrice(run, definition, catalog) <= run.economy.money)
       ) {
         hidden += 0.1;
       }
@@ -237,11 +265,22 @@ export function measureRun(seed: number, options: MeasureOptions = {}): RunMetri
       current.total += manual + flows.useful + rates.passiveOutputPerSecond * 0.1;
     }
     const disastersBefore = run.stats.refillDisasters;
-    const outputBefore = run.economy.output;
-    const perSecond = flows.useful * 10 + rates.passiveOutputPerSecond;
+    const moneyBefore = run.economy.money;
+    const perSecond = run.economy.codeRate * marketRate(run, catalog);
+    const actBefore = actOf(run);
+    const gigBefore = run.stats.gigCode;
+    const writtenBefore = run.stats.lifetimeOutput;
     run = stepRun(run, 100, catalog).run;
+    gigByAct[actBefore] = (gigByAct[actBefore] ?? 0) + run.stats.gigCode - gigBefore;
+    writtenByAct[actBefore] =
+      (writtenByAct[actBefore] ?? 0) + run.stats.lifetimeOutput - writtenBefore;
+    if (managerAt === null && run.unlockedTechnologyIds.includes('manager-agent')) {
+      managerAt = run.activeMs;
+      taxedEarly = run.stats.taxedCode;
+      writtenEarly = run.stats.lifetimeOutput;
+    }
     if (run.stats.refillDisasters > disastersBefore) {
-      disasterSec.push((outputBefore - run.economy.output) / Math.max(1e-9, perSecond));
+      disasterSec.push((moneyBefore - run.economy.money) / Math.max(1e-9, perSecond));
     }
     peakDebt = Math.max(peakDebt, run.economy.debt);
     for (const id of run.unlockedTechnologyIds) {
@@ -301,5 +340,13 @@ export function measureRun(seed: number, options: MeasureOptions = {}): RunMetri
       freezeAt !== null && techMin.evaluations !== undefined
         ? (freezeAt - techMin.evaluations * 60_000) / 1000
         : null,
+    taxedShareEarly:
+      managerAt === null
+        ? run.stats.taxedCode / Math.max(1, run.stats.lifetimeOutput)
+        : taxedEarly / Math.max(1, writtenEarly),
+    gigShareByAct: gigByAct.map((g, i) => g / Math.max(1, writtenByAct[i] ?? 0)),
+    rentMissed: run.rent.missedTotal,
+    evictedMin: run.ending?.id === 'ai-got-my-job' ? run.ending.activeMs / 60_000 : null,
+    gigsPaid: run.gigs.paid,
   };
 }

@@ -16,6 +16,7 @@ import {
   baselineBuyer,
   baselineCare,
   baselinePrimary,
+  buyFirstAffordable,
   every,
   playEvery,
   pressPrimary,
@@ -41,7 +42,11 @@ function route(seed: number, policies: readonly Policy[], label: string): Route 
   let feeds = 0;
   let plays = 0;
   let pets = 0;
-  while (run.activeMs < CAP_MS && !run.unlockedTechnologyIds.includes('autonomous-company')) {
+  while (
+    run.activeMs < CAP_MS &&
+    run.status === 'playing' &&
+    !run.unlockedTechnologyIds.includes('autonomous-company')
+  ) {
     for (const policy of policies) {
       for (const command of policy({ run, catalog })) {
         const result = applyCommand(run, command, run.activeMs, catalog);
@@ -60,7 +65,7 @@ function route(seed: number, policies: readonly Policy[], label: string): Route 
       (o) => `${o.id}${o.kind === 'upgrade' ? ` ${Math.round(o.price)}` : ''}`,
     );
     throw new Error(
-      `${label} stalled at ${run.unlockedTechnologyIds.length}/28 after ${CAP_MS / MINUTE} min; offers: ${offers.join(', ')}; rates: ${JSON.stringify(deriveRates(run, catalog))}`,
+      `${label} stalled at ${run.unlockedTechnologyIds.length}/28 after ${(run.activeMs / MINUTE).toFixed(1)} min (${run.ending?.id ?? 'playing'}); offers: ${offers.join(', ')}; rates: ${JSON.stringify(deriveRates(run, catalog))}`,
     );
   }
   const minutes = run.activeMs / MINUTE;
@@ -85,11 +90,11 @@ describe('player strategies (full catalog)', { timeout: 120_000 }, () => {
   // The design baseline (docs/economy_redesign.md §7): 3 presses per second, then one every 3 s.
   const BASELINE_MIN = new Map<number, number>();
   for (const seed of [1, 7, 42, 101, 2024]) {
-    it(`baseline care reaches the autonomous company in 28–31 active min with a living cat (seed ${seed})`, () => {
+    it(`baseline care reaches the autonomous company in 25–30 active min with a living cat (seed ${seed})`, () => {
       const r = route(seed, baseline, 'baseline');
       BASELINE_MIN.set(seed, r.minutes);
-      expect(r.minutes).toBeGreaterThanOrEqual(28);
-      expect(r.minutes).toBeLessThanOrEqual(31);
+      expect(r.minutes).toBeGreaterThanOrEqual(25);
+      expect(r.minutes).toBeLessThanOrEqual(30);
       expect(r.run.cat.alive).toBe(true);
     });
   }
@@ -99,8 +104,8 @@ describe('player strategies (full catalog)', { timeout: 120_000 }, () => {
     expect(r.run.cat.alive).toBe(false);
     expect(r.diedAtMin).not.toBeNull();
     expect(r.diedAtMin ?? Infinity).toBeLessThan(r.minutes);
-    expect(r.minutes).toBeGreaterThanOrEqual(28);
-    expect(r.minutes).toBeLessThanOrEqual(31);
+    expect(r.minutes).toBeGreaterThanOrEqual(25);
+    expect(r.minutes).toBeLessThanOrEqual(30);
   });
 
   it('the demanding cat needs a meal about every minute: feeding a third less often starves it', () => {
@@ -150,7 +155,8 @@ describe('player strategies (full catalog)', { timeout: 120_000 }, () => {
   it('high-frequency input (10 presses per second) cannot trivialise the route', () => {
     const r = route(
       101,
-      [every(100, pressPrimary), baselineBuyer, acknowledgeReveals, ...baselineCare],
+      // The buyer's SEARCH taps come out of the same tap budget, before the mashing.
+      [baselineBuyer, every(100, pressPrimary), acknowledgeReveals, ...baselineCare],
       'mashing',
     );
     expect(r.minutes).toBeGreaterThanOrEqual(20);
@@ -185,14 +191,9 @@ describe('player strategies (full catalog)', { timeout: 120_000 }, () => {
     expect(r.minutes).toBeLessThanOrEqual(45);
   });
 
-  it('temporarily bad purchases (every affordable optional card for 10 minutes) recover', () => {
-    const greedy: Policy = ({ run, catalog }) => {
-      if (run.activeMs >= 10 * MINUTE) return baselineBuyer({ run, catalog });
-      const offer = selectGame(run, catalog).offers.find(
-        (o) => o.kind === 'upgrade' && o.affordable,
-      );
-      return offer?.kind === 'upgrade' ? [{ type: 'buyUpgrade', id: offer.id }] : [];
-    };
+  it('temporarily bad choices (building whatever card comes first for 10 minutes) recover', () => {
+    const greedy: Policy = (context) =>
+      context.run.activeMs >= 10 * MINUTE ? baselineBuyer(context) : buyFirstAffordable(context);
     const r = route(
       404,
       [baselinePrimary, greedy, acknowledgeReveals, ...baselineCare, playEvery()],
@@ -202,7 +203,7 @@ describe('player strategies (full catalog)', { timeout: 120_000 }, () => {
   });
 
   it('a shipper (upgrades first, then ships whenever the code covers the next release) still reaches the company', () => {
-    // Seed 1 never hits the gold slice. Every release wipes out all of the code.
+    // Seed 1 never hits the gold slice. Every release consumes what was built into it.
     const shipper: Policy[] = [
       baselinePrimary,
       baselineBuyer,

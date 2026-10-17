@@ -7,6 +7,7 @@ import {
   lonelyRun,
   neglectedRun,
   progressedRun,
+  withBuilt,
   saveText,
   strayRun,
 } from '../tests/browser/fixtures';
@@ -19,13 +20,10 @@ type Scene = {
   dark?: boolean;
 };
 
-/** At the Terminal Agent with code for a demo. */
-const demoSave = () => {
-  const run = progressedRun(4);
-  return saveText({ ...run, economy: { ...run.economy, output: run.economy.output + 5000 } });
-};
+/** At the Terminal Agent with a demo built. */
+const demoSave = () => saveText(withBuilt(progressedRun(4), 'demo'));
 const playDemo = async (page: Page) => {
-  await page.getByTestId('demo-strip').click();
+  await page.getByTestId('demo-go').click();
   await page.locator('[data-testid="demo-screen"][data-phase="play"]').waitFor();
   await page
     .locator('[data-testid="demo-variant-0"][data-fingerprint]:not([data-fingerprint=""])')
@@ -109,7 +107,7 @@ const scenes: Record<string, Scene> = {
     height: 640,
     save: () => {
       const run = progressedRun(28);
-      return saveText({ ...run, economy: { ...run.economy, output: run.economy.output + 1e7 } });
+      return saveText({ ...run, economy: { ...run.economy, money: run.economy.money + 1e7 } });
     },
   },
   setup9: {
@@ -197,10 +195,9 @@ const scenes: Record<string, Scene> = {
   },
 };
 
-/** A run at the Terminal Agent with enough code to ship v0.1. */
+/** A run at the Terminal Agent with v0.1 built. */
 function readyToShip(seed: number) {
-  const run = progressedRun(4, false, seed);
-  return { ...run, economy: { ...run.economy, output: run.economy.output + 2500 } };
+  return withBuilt(progressedRun(4, false, seed), 'release');
 }
 
 /** Three framed releases on the wall (synthetic records; the room shows one frame each). */

@@ -19,6 +19,8 @@ const world: WorldProjection = {
   releases: 0,
   computeSlots: 0,
   plant: 'ok',
+  sites: [],
+  rentNotice: 'none',
   theme: 'light',
   reducedMotion: false,
 };

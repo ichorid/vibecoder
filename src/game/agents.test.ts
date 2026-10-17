@@ -34,9 +34,9 @@ describe('the first agent', () => {
   it('produces only with queued tasks and spends one token per work unit', () => {
     // The IDE's passive +1/s continues regardless; agent work is the difference.
     const idle = steps(agentRun({ tasks: 0 }), 10, catalog);
-    expect(idle.economy.output).toBeCloseTo(1, 6);
+    expect(idle.stats.lifetimeOutput).toBeCloseTo(1, 6);
     const busy = steps(agentRun({ tasks: 40 }), 10, catalog);
-    expect(busy.economy.output - idle.economy.output).toBeCloseTo(6, 6);
+    expect(busy.stats.lifetimeOutput - idle.stats.lifetimeOutput).toBeCloseTo(6, 6);
     // 150 + 4 supply − 6 spent.
     expect(busy.economy.tokens).toBeCloseTo(148, 6);
     expect(busy.economy.tasks).toBeCloseTo(39, 6);
@@ -45,7 +45,7 @@ describe('the first agent', () => {
   it('does partial work on partial tokens and never goes negative', () => {
     const run = steps(agentRun({ tasks: 40, tokens: 1 }), 10, catalog);
     // 1 token + 4/s supply over 1 s funds 5 of the 6 possible work units (+1 IDE passive).
-    expect(run.economy.output).toBeCloseTo(5 + 1, 6);
+    expect(run.stats.lifetimeOutput).toBeCloseTo(5 + 1, 6);
     expect(run.economy.tokens).toBeGreaterThanOrEqual(0);
     expect(run.economy.tokens).toBeCloseTo(0, 6);
   });
@@ -63,7 +63,7 @@ describe('the first agent', () => {
     run = act(run, { type: 'primaryAction' }, catalog);
     run = steps(run, 1, catalog);
     // Manual output arrives in full; only the 0.4 supplied tokens fund 0.4 agent work.
-    expect(run.economy.output).toBeCloseTo(manual + 0.1 + 0.4, 6);
+    expect(run.stats.lifetimeOutput).toBeCloseTo(manual + 0.1 + 0.4, 6);
     expect(run.economy.tokens).toBeCloseTo(0, 6);
   });
 
@@ -84,15 +84,15 @@ describe('the first agent', () => {
   it('recovers from zero tokens without any purchase', () => {
     let run = agentRun({ tokens: 0, tasks: 40 });
     run = steps(run, 50, catalog);
-    const before = run.economy.output;
+    const before = run.stats.lifetimeOutput;
     run = steps(run, 50, catalog);
-    expect(run.economy.output - before).toBeGreaterThan(9);
+    expect(run.stats.lifetimeOutput - before).toBeGreaterThan(9);
   });
 
   it('caps manual presses with a refilling action budget', () => {
     let run = createRun(1, 'r');
     for (let i = 0; i < 40; i += 1) run = act(run, { type: 'primaryAction' }, catalog);
     run = steps(run, 1, catalog);
-    expect(run.economy.output).toBe(catalog.balance.actionBurst);
+    expect(run.stats.lifetimeOutput).toBe(catalog.balance.actionBurst);
   });
 });

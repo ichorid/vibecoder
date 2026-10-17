@@ -47,7 +47,7 @@ describe('Fully Automated Bankruptcy', () => {
     run = playUntilOffered(run, baseline, 'close-company');
     expect(run.stats.negativeMarginMs).toBeGreaterThanOrEqual(120_000);
     // Running on the bank's credit line: in the red, but not yet at its limit.
-    expect(run.economy.revenue).toBeLessThan(0);
+    expect(run.economy.money).toBeLessThan(0);
     run = choose(run, 'close-company');
     expectEnding(run, 'fully-automated-bankruptcy');
   });
@@ -62,11 +62,11 @@ describe('Fully Automated Bankruptcy', () => {
   it('pulling out of every market stops the overhead before the money runs out', () => {
     let run = playUntilOffered(newRun(), baseline, 'expand-anyway');
     run = choose(run, 'expand-anyway');
-    run = playUntil(run, baseline, (r) => r.economy.revenue < 0);
+    run = playUntil(run, baseline, (r) => r.economy.money < 0);
     run = choose(run, 'cancel-expansion');
     const later = playUntil(run, baseline, (r) => r.activeMs >= run.activeMs + 5 * 60_000);
     expect(later.status).toBe('playing');
-    expect(later.economy.revenue).toBeGreaterThan(run.economy.revenue);
+    expect(later.economy.money).toBeGreaterThan(run.economy.money);
   });
 });
 

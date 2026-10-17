@@ -2,12 +2,19 @@
   import type { AnnouncementViewModel } from '../game/selectors';
 
   interface Props {
-    announcement: AnnouncementViewModel;
+    announcement: Pick<AnnouncementViewModel, 'title' | 'description'>;
     illustrationUrl: string | null;
     onAcknowledge: () => void;
+    /** What the panel announces (a discovery by default; market updates and milestones too). */
+    kicker?: string;
   }
 
-  const { announcement, illustrationUrl, onAcknowledge }: Props = $props();
+  const {
+    announcement,
+    illustrationUrl,
+    onAcknowledge,
+    kicker = 'NEW TECHNOLOGY',
+  }: Props = $props();
   let failed = $state(false);
 </script>
 
@@ -19,7 +26,7 @@
     aria-labelledby="announcement-title"
     data-testid="announcement"
   >
-    <p class="kicker">NEW TECHNOLOGY</p>
+    <p class="kicker">{kicker}</p>
     <div class="frame">
       {#if illustrationUrl && !failed}
         <img

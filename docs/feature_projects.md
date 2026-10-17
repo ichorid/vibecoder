@@ -1,6 +1,6 @@
 # Feature: Projects — code is built into things, never banked
 
-Status: **proposal, not implemented** (2026-10-17). Owner decisions (2026-10-17) are in §2.
+Status: **implemented** (2026-10-17); deviations are listed in docs/agent_journal.md D30. Owner decisions (2026-10-17) are in §2.
 Every number is a *starting value*; the harness (`tools/tune.ts`, `tests/helpers/metrics.ts`)
 decides, and each phase records its measured result in docs/agent_journal.md. Follow AGENTS.md
 TDD: one behaviour RED → GREEN → refactor per step.

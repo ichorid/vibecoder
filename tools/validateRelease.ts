@@ -93,7 +93,8 @@ export function validateRelease(input: ReleaseInput): string[] {
       problems.push(`${addition.id}: unknown LOD tag "${addition.lodSprite}"`);
   }
   // Endings: enough reachable ones (legacy endings only stay for old profiles), each reached by
-  // a choice, a rule or the release jackpot, each with a route scenario and every cat fate.
+  // a choice, a rule, the release jackpot or the landlord, each with a route scenario and every
+  // cat fate.
   const reachableEndings = catalog.endings.filter((e) => !e.legacy);
   if (reachableEndings.length < input.requiredEndings) {
     problems.push(
@@ -120,7 +121,8 @@ export function validateRelease(input: ReleaseInput): string[] {
     const reachable =
       ending.automatic !== undefined ||
       catalog.choices.some((c) => c.ends === ending.id) ||
-      (ending.jackpot === true && catalog.releases.jackpotEnding === ending.id);
+      (ending.jackpot === true && catalog.releases.jackpotEnding === ending.id) ||
+      catalog.money.evictionEnding === ending.id;
     if (!reachable) problems.push(`ending ${ending.id}: no choice or rule leads to it`);
     if (!input.scenarioText.includes(`'${ending.id}'`)) {
       problems.push(`ending ${ending.id}: no route scenario references it`);

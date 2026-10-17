@@ -1,5 +1,6 @@
 import { catalog } from '../content/catalog';
 import { createRun } from '../game/createRun';
+import { frugalOf } from '../game/experience';
 import {
   createProfile,
   CHECKPOINT_KEY,
@@ -75,7 +76,12 @@ export function bootGame(): Boot {
           contentVersion: 1,
           revision: 0,
           profile: recovered ?? createProfile(),
-          run: createRun(newSeed(), newRunId(), recovered?.experience ?? 0),
+          run: createRun(
+            newSeed(),
+            newRunId(),
+            recovered?.experience ?? 0,
+            recovered ? frugalOf(recovered.endings, catalog) : 1,
+          ),
         });
       },
     };
@@ -95,8 +101,9 @@ export function bootGame(): Boot {
     clock: browserClock,
     scheduler: browserScheduler,
     run: save?.run ?? createRun(newSeed(), newRunId()),
-    // A new run starts with the experience earned so far.
-    newRun: (experience: number) => createRun(newSeed(), newRunId(), experience),
+    // A new run starts with the lessons learned so far.
+    newRun: (experience: number, frugal: number) =>
+      createRun(newSeed(), newRunId(), experience, frugal),
     ...(adapter
       ? {
           persistence: {

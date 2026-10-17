@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { freshGame, headerStat, openUpgrades, pressPrimary } from './helpers';
+import { buildCard, builtCode, freshGame, pressPrimary } from './helpers';
 
 test('a second tab waits without running or writing, then continues from the latest save', async ({
   page,
@@ -22,7 +22,7 @@ test('a second tab waits without running or writing, then continues from the lat
 
   await page.close();
   await expect(second.getByTestId('primary-action')).toBeVisible({ timeout: 10_000 });
-  await expect.poll(() => headerStat(second)).toBe('7');
+  await expect.poll(() => builtCode(second)).toBe('7');
 });
 
 test('without Web Locks, a tab that sees a newer save from another tab stops writing (best effort)', async ({
@@ -43,10 +43,9 @@ test('without Web Locks, a tab that sees a newer save from another tab stops wri
   await second.goto('/');
   await expect(second.getByTestId('primary-action')).toBeVisible();
 
-  // The first tab writes newer progress (a purchase saves immediately).
-  await pressPrimary(first, 20);
-  await openUpgrades(first);
-  await first.getByRole('button', { name: /Autocomplete/ }).click();
+  // The first tab writes newer progress (a discovery saves immediately).
+  await pressPrimary(first, 5);
+  await buildCard(first, /Autocomplete/);
   await expect(second.getByTestId('tab-panel')).toContainText('continued in another tab');
   const saved = await first.evaluate(() => localStorage.getItem('vibe-coder.save'));
   await second.waitForTimeout(800);

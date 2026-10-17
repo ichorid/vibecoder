@@ -4,6 +4,7 @@ import type {
   PrimaryActionId,
   ReleaseOutcomeId,
   ReleaseWindow,
+  RentOutcomeId,
   ResponsibilityId,
   TechnologyId,
   UpgradeId,
@@ -129,6 +130,84 @@ export interface BalanceDefinition {
   readonly chatter: ChatterBalance;
   readonly money: MoneyBalance;
   readonly plant: PlantBalance;
+  readonly projects: ProjectBalance;
+  readonly gigs: GigBalance;
+  readonly rent: RentBalance;
+  readonly job: JobBalance;
+}
+
+/** Projects and build slots (docs/feature_projects.md). */
+export interface ProjectBalance {
+  /** A slot nobody chose (after a build, before Manager Agent) builds at this rate. */
+  readonly fallbackFactor: number;
+  /** Seconds of the smoothed code rate (`economy.codeRate` reacts within a few seconds). */
+  readonly codeRateSeconds: number;
+  /** Automation moves a slot off a ready release/demo after this long. */
+  readonly readyLeaveMs: number;
+  /** Workflow Optimization overrules a weak player pick after this long… */
+  readonly overruleMs: number;
+  /** …when it pays back less than this share of the system's pick. */
+  readonly overruleRatio: number;
+  /** Self-Improvement starts one of its own projects this often… */
+  readonly internalEveryMs: number;
+  /** …sized at this many seconds of code. */
+  readonly internalSeconds: number;
+  /** Auto-selection logs at most one line per this long. */
+  readonly autoLogEveryMs: number;
+}
+
+/** Gigs (docs/feature_money.md §5.2–5.4). */
+export interface GigBalance {
+  /** Starting savings, paid in when money first appears. */
+  readonly savings: number;
+  /** A gig is this many seconds of the current code rate… */
+  readonly seconds: number;
+  /** …but never smaller than this. */
+  readonly minSize: number;
+  readonly payMin: number;
+  readonly payMax: number;
+  readonly tipChance: number;
+  readonly tipFactor: number;
+  readonly ghostChance: number;
+  readonly ghostFactor: number;
+  /** After a paid gig, the next one waits with this chance; otherwise a search is needed. */
+  readonly nextChance: number;
+  readonly searchMin: number;
+  readonly searchMax: number;
+  /** The job-search bot (and auto-freelancing) searches once per this long. */
+  readonly botEveryMs: number;
+  /** Auto-freelancing takes a gig below this many rents… */
+  readonly lowMoneyRents: number;
+  /** …or this many seconds of token spending, whichever is more. */
+  readonly lowMoneyTokenSeconds: number;
+  /** Token packs cost their code value in money times this (the reseller rounds up). */
+  readonly tokenMarkup: number;
+}
+
+/** Rent, upkeep and the landlord (docs/feature_money.md §5.5–5.6). */
+export interface RentBalance {
+  readonly base: number;
+  /** Added every month, quietly. */
+  readonly creep: number;
+  readonly monthMs: number;
+  readonly foodPerFeed: number;
+}
+
+/** The enterprise job (docs/feature_money.md §5.8). */
+export interface JobBalance {
+  readonly offerChance: number;
+  /** No offers before this many months after moving out. */
+  readonly offerFromMonth: number;
+  readonly offerExpiresMs: number;
+  /** Salary: this share of what a month of the current code would earn freelancing. */
+  readonly salaryShare: number;
+  /** Another target for longer than this gets you fired. */
+  readonly fireGraceMs: number;
+  /** The hidden chance of a layoff at every payday. */
+  readonly layoffChance: number;
+  readonly cooldownMonths: number;
+  /** Paydays of tryout before the permanent contract. */
+  readonly tryoutMonths: number;
 }
 
 /** The corner plant: water drains over active time; each watering adds some. */
@@ -250,7 +329,8 @@ type EffectKindsMatch = [Effect['kind']] extends [(typeof EFFECT_KINDS)[number]]
   : never;
 export const effectKindsMatch: EffectKindsMatch = true;
 
-export type Currency = 'output' | 'revenue';
+/** Code is built into projects; money buys things (tokens, compute, the company's cards). */
+export type Currency = 'output' | 'money';
 
 export interface Requirements {
   readonly technologies?: readonly TechnologyId[];
@@ -259,11 +339,11 @@ export interface Requirements {
 
 /** Header statistics a technology may select (at most three are shown). */
 export const STAT_IDS = [
-  'output',
+  'code',
   'tokens',
   'debt',
   'automation',
-  'revenue',
+  'money',
   'margin',
   'quality',
   'team',
@@ -306,6 +386,17 @@ export interface UpgradeDefinition {
    * follow current demand and the tokens-per-code rate (basePrice/priceGrowth are unused).
    */
   readonly pack?: 'tokens';
+  /** Paid in money at the market rate: worth its code price × `marketRate` (tokens, compute). */
+  readonly marketPriced?: boolean;
+  /**
+   * The system's own project (Self-Improvement): never offered as a card; priced at
+   * `balance.projects.internalSeconds` of code when it starts.
+   */
+  readonly internal?: boolean;
+  /** Logged when it is built (instead of "Built …"). */
+  readonly builtText?: string;
+  /** Card lines for what no `Effect` describes (e.g. the job-search bot). */
+  readonly effectLines?: readonly string[];
 }
 
 export interface TechnologyDefinition {
@@ -390,6 +481,8 @@ export interface EndingDefinition {
   readonly jackpot?: boolean;
   /** A lesson learned: reaching it adds this much code yield to every later run (stacks). */
   readonly experience?: number;
+  /** A lesson of another kind: rent in every later run is multiplied by this (live frugal). */
+  readonly frugal?: number;
   /** No longer reachable; kept so old profiles and saves still show it. */
   readonly legacy?: boolean;
   /** Ending picture, exported with the cat (`<id>`) and without it (`<id>-nocat`). */
@@ -468,7 +561,91 @@ export interface DemoContent {
   readonly scroller: readonly CatAwareText[];
 }
 
+/** One era of the gig market: from this technology on, gigs pay `rate` money per line. */
+export interface MarketEra {
+  readonly from: TechnologyId | null;
+  readonly rate: number;
+  /** The market update panel (none for the first era). */
+  readonly title: string;
+  readonly text: string;
+}
+
+export interface FlavourLine {
+  readonly id: string;
+  readonly text: CatAwareText;
+}
+
+export interface RentSliceDefinition {
+  readonly id: RentOutcomeId;
+  readonly label: CatAwareText;
+  readonly text: CatAwareText;
+  /** Money effect as a share of this month's rent (negative: a fee; positive: money in). */
+  readonly rentShare: number;
+}
+
+export interface FiringReason {
+  readonly id: string;
+  readonly text: string;
+  /** Only while the cat is there. */
+  readonly needsCat?: boolean;
+  /** Only after the permanent contract. */
+  readonly afterContract?: boolean;
+}
+
+/** Money: gigs, the market, rent, the landlord wheel and the enterprise job (texts). */
+export interface MoneyContent {
+  readonly eras: readonly MarketEra[];
+  /** "Landing page for a dentist" */
+  readonly clients: readonly FlavourLine[];
+  /** "Paid in exposure, then in cash." */
+  readonly payments: readonly FlavourLine[];
+  readonly rentSlices: readonly RentSliceDefinition[];
+  /** Eviction chance by consecutive missed month (the last one repeats). */
+  readonly evictionHazards: readonly number[];
+  readonly evictedLabel: string;
+  readonly evictionEnding: EndingId;
+  readonly firingReasons: readonly FiringReason[];
+  /** Short log pools; `{…}` placeholders are filled by the game. */
+  readonly lines: {
+    readonly firstGig: string;
+    readonly gigPaid: string;
+    readonly gigTip: string;
+    readonly gigGhost: string;
+    readonly noGigs: string;
+    readonly movedOut: string;
+    /** Moved out without ever finishing a gig (the first market update). */
+    readonly evictedByParents: string;
+    readonly rentPaid: string;
+    readonly rentMissed: string;
+    readonly companyPaysRent: string;
+    readonly gigsEnd: string;
+    readonly bot: readonly string[];
+    readonly freelance: readonly string[];
+    readonly jobOffer: string;
+    readonly jobExpired: string;
+    readonly hired: string;
+    readonly abandonGig: string;
+    readonly fired: string;
+    readonly cooldown: string;
+    readonly payday: string;
+    readonly contract: string;
+    readonly fallback: readonly string[];
+    readonly polish: readonly string[];
+    readonly autoPick: string;
+    readonly overruled: string;
+    readonly deprioritised: string;
+    readonly built: string;
+    readonly feedCost: string;
+  };
+  readonly contract: {
+    readonly title: string;
+    readonly text: string;
+    readonly illustrationId: string;
+  };
+}
+
 export interface Catalog {
+  readonly money: MoneyContent;
   readonly demos: DemoContent;
   /** Random console lines per technology (said once it is unlocked). */
   readonly chatter: Readonly<Partial<Record<TechnologyId, readonly string[]>>>;

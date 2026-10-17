@@ -1,18 +1,20 @@
 import { expect, test } from '@playwright/test';
-import { closeUpgrades, freshGame, headerStat, openUpgrades, pressPrimary } from './helpers';
+import { buildCard, closeUpgrades, freshGame, openUpgrades, pressPrimary } from './helpers';
 
-test('first loop: write, buy, announce, visit Cat, next offer, reload', async ({ page }) => {
+test('first loop: write, build, announce, visit Cat, next offer, reload', async ({ page }) => {
   // 24 real presses at the tap budget: ~35 s on a fast runner, over a minute on a slow one.
   test.setTimeout(120_000);
   await freshGame(page);
   await expect(page.locator('body')).not.toContainText('Generated snippets');
 
-  await pressPrimary(page, 20);
+  // The first presses go into the original project; then the first card appears.
+  await pressPrimary(page, 5);
   await openUpgrades(page);
   const autocomplete = page.getByRole('button', { name: /Autocomplete/ });
   await expect(autocomplete).toBeEnabled();
   await expect(page.locator('body')).not.toContainText('Generated snippets');
-  await autocomplete.click();
+  await closeUpgrades(page);
+  await buildCard(page, /Autocomplete/);
 
   const announcement = page.getByTestId('announcement');
   await expect(announcement).toContainText('NEW TECHNOLOGY');
@@ -29,12 +31,14 @@ test('first loop: write, buy, announce, visit Cat, next offer, reload', async ({
   await openUpgrades(page);
   await expect(page.getByRole('button', { name: /Generated snippets/ })).toBeVisible();
   await closeUpgrades(page);
+  // Nothing picked after the build: presses drift into the original project at half speed.
+  await expect(page.getByTestId('ship-strip')).toContainText('AUTO · ½');
   await pressPrimary(page, 4);
-  await expect.poll(() => headerStat(page)).toBe('8');
+  await expect(page.getByTestId('ship-strip')).toContainText('9/2K');
 
   await page.reload();
   await expect(page.getByTestId('primary-action')).toBeVisible();
-  await expect.poll(() => headerStat(page)).toBe('8');
+  await expect(page.getByTestId('ship-strip')).toContainText('9/2K');
   await openUpgrades(page);
   await expect(page.getByRole('button', { name: /Generated snippets/ })).toBeVisible();
   await expect(page.getByTestId('announcement')).toHaveCount(0);

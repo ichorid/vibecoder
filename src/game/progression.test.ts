@@ -20,9 +20,15 @@ function visibleText(run: RunState): string {
   return JSON.stringify([selectGame(run, catalog), selectHistory(run, catalog)]);
 }
 
+/** Pick a card and write by hand until it is built (one code per press before upgrades). */
+function buildByHand(run: RunState, id: 'autocomplete', presses: number): RunState {
+  return clickAndSettle(act(run, { type: 'selectProject', id }, catalog), presses, catalog);
+}
+
 function buyAutocomplete(): RunState {
-  const run = clickAndSettle(createRun(SEED, 'r'), AUTOCOMPLETE_PRICE, catalog);
-  return act(run, { type: 'buyUpgrade', id: 'autocomplete' }, catalog);
+  // Five presses make the card appear (they go into the original project), then build it.
+  const run = clickAndSettle(createRun(SEED, 'r'), 5, catalog);
+  return buildByHand(run, 'autocomplete', AUTOCOMPLETE_PRICE);
 }
 
 function acknowledge(run: RunState): RunState {
@@ -48,7 +54,7 @@ describe('discovery and visibility', () => {
     expect(offers[0]).toMatchObject({
       id: 'autocomplete',
       price: AUTOCOMPLETE_PRICE,
-      affordable: false,
+      project: { code: 0, progress: 0, badge: null },
     });
   });
 
@@ -62,7 +68,7 @@ describe('discovery and visibility', () => {
     expect(run.pendingUnlockIds).toEqual(['autocomplete']);
     expect(run.history.filter((e) => e.kind === 'technology')).toHaveLength(1);
     const after = clickAndSettle(run, 1, catalog);
-    expect(after.economy.output - run.economy.output).toBe(2);
+    expect(after.stats.lifetimeOutput - run.stats.lifetimeOutput).toBe(2);
     expect(selectGame(run, catalog).announcement?.title).toBe('Autocomplete');
   });
 
@@ -81,7 +87,9 @@ describe('discovery and visibility', () => {
     );
     expect(twice.result).toBe('unavailable');
     expect(twice.run).toBe(acked);
-    expect(clickAndSettle(acked, 1, catalog).economy.output - acked.economy.output).toBe(2);
+    expect(
+      clickAndSettle(acked, 1, catalog).stats.lifetimeOutput - acked.stats.lifetimeOutput,
+    ).toBe(2);
   });
 
   it('withholds the next progression offer until the discovery is acknowledged', () => {
@@ -94,14 +102,14 @@ describe('discovery and visibility', () => {
   it('IDE adds 1 output per second and changes the primary action', () => {
     let run = acknowledge(buyAutocomplete());
     // Two code per press after Autocomplete, four after the snippets.
-    run = clickAndSettle(run, Math.ceil(SNIPPETS_PRICE / 2), catalog);
-    run = acknowledge(act(run, { type: 'buyUpgrade', id: 'generated-snippets' }, catalog));
+    run = act(run, { type: 'selectProject', id: 'generated-snippets' }, catalog);
+    run = acknowledge(clickAndSettle(run, Math.ceil(SNIPPETS_PRICE / 2), catalog));
     expect(selectGame(run, catalog).primaryAction.label).toBe('WRITE CODE');
+    run = act(run, { type: 'selectProject', id: 'ai-native-ide' }, catalog);
     run = clickAndSettle(run, Math.ceil(IDE_PRICE / 4), catalog);
-    run = act(run, { type: 'buyUpgrade', id: 'ai-native-ide' }, catalog);
     expect(selectGame(run, catalog).primaryAction.label).toBe('PROMPT');
-    const before = run.economy.output;
+    const before = run.stats.lifetimeOutput;
     run = steps(run, 10, catalog);
-    expect(run.economy.output - before).toBe(1);
+    expect(run.stats.lifetimeOutput - before).toBeCloseTo(1, 6);
   });
 });

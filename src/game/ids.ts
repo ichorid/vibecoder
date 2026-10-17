@@ -71,6 +71,13 @@ export const UPGRADE_IDS = [
   'finance',
   'executive-agents',
   'autonomous-company',
+  'job-search-bot',
+  'auto-freelancing',
+  // Self-Improvement's own projects (the system starts them; never offered as cards).
+  'rewrite-in-rust',
+  'new-framework',
+  'rename-everything',
+  'microservices',
 ] as const;
 export type UpgradeId = (typeof UPGRADE_IDS)[number];
 
@@ -97,6 +104,7 @@ export const ENDING_IDS = [
   'the-human-approval-api',
   'you-have-been-optimized',
   'the-infinite-weekend',
+  'ai-got-my-job',
 ] as const;
 export type EndingId = (typeof ENDING_IDS)[number];
 
@@ -130,6 +138,17 @@ export const RELEASE_OUTCOME_IDS = [
   'cat-review',
 ] as const;
 export type ReleaseOutcomeId = (typeof RELEASE_OUTCOME_IDS)[number];
+
+/** Slices of the landlord wheel (eviction is `'evicted'`, not a slice). */
+export const RENT_OUTCOME_IDS = [
+  'forgot',
+  'friday',
+  'late-fee',
+  'couch',
+  'roommate',
+  'cat-landlord',
+] as const;
+export type RentOutcomeId = (typeof RENT_OUTCOME_IDS)[number];
 
 /** A release's number in the run (1 = v0.1). There is always a next one. */
 export type ReleaseWindow = number;

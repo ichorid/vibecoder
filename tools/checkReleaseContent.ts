@@ -12,7 +12,7 @@ const problems = validateRelease({
   worldAdditions,
   files: nodeAssetFiles('public/assets'),
   requiredTechnologies: 28,
-  requiredEndings: 10,
+  requiredEndings: 11,
   scenarioText: readdirSync('tests/scenarios/endings')
     .map((file) => readFileSync(`tests/scenarios/endings/${file}`, 'utf8'))
     .join('\n'),

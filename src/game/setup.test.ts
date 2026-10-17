@@ -63,7 +63,10 @@ describe('setup view', () => {
       100,
       catalog,
     ).run;
-    expect((next.economy.output - run.economy.output) * 10).toBeCloseTo(e.totalCodePerSecond, 1);
+    expect((next.stats.lifetimeOutput - run.stats.lifetimeOutput) * 10).toBeCloseTo(
+      e.totalCodePerSecond,
+      1,
+    );
   });
 
   it('names what holds production back', () => {
@@ -99,12 +102,26 @@ describe('setup view', () => {
 
   it('explains money: useful code × $ per code, minus agents × running cost', () => {
     const run = at('finance');
-    const money = selectSetup({ ...run, economy: { ...run.economy, revenue: 1e6 } }, catalog)
-      .economy.money;
+    const money = selectSetup({ ...run, economy: { ...run.economy, money: 1e6 } }, catalog).economy
+      .money;
     if (!money) throw new Error('no money section');
     expect(money.perCode).toBeCloseTo(0.02 * 2 * 1.25, 9);
     expect(money.basePerCode).toBeCloseTo(0.02, 9);
     expect(money.revenuePerSecond).toBeCloseTo(money.usefulCodePerSecond * money.perCode, 6);
     expect(money.costPerSecond).toBeCloseTo(money.runningAgents * money.costPerAgent, 6);
+  });
+});
+
+describe('setup: builds', () => {
+  it('lists each build slot with its share of the code; a drifting one gets half', () => {
+    const run = createRun(1, 'b');
+    expect(selectSetup(run, catalog).builds).toEqual([
+      { title: 'The original project', by: 'player', share: 1, code: 0, price: null },
+    ]);
+    const drifting = {
+      ...run,
+      slots: [{ target: 'release' as const, by: 'fallback' as const, sinceMs: 0 }],
+    };
+    expect(selectSetup(drifting, catalog).builds[0]?.share).toBe(0.5);
   });
 });

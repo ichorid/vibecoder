@@ -15,8 +15,8 @@ describe('experience from earlier runs', () => {
       9,
     );
     const press = (run: typeof plain) =>
-      stepRun(applyCommand(run, { type: 'primaryAction' }, 0, catalog).run, 100, catalog).run
-        .economy.output;
+      stepRun(applyCommand(run, { type: 'primaryAction' }, 0, catalog).run, 100, catalog).run.stats
+        .lifetimeOutput;
     expect(press(seasoned)).toBeCloseTo(press(plain) * 1.3, 9);
   });
 

@@ -438,3 +438,83 @@ export const costIcon: PixelMap = {
   ],
   palette: { Y: '#f6c945', y: '#c99212', k: 'var(--ink)', r: '#e8483c' },
 };
+
+/** A briefcase: a gig. */
+export const gigIcon: PixelMap = {
+  rows: [
+    '.........',
+    '...kkk...',
+    '...k.k...',
+    'kkkkkkkkk',
+    'kbbbbbbbk',
+    'kbbbybbbk',
+    'kkkkkkkkk',
+    'kbbbbbbbk',
+    'kkkkkkkkk',
+  ],
+  palette: { b: '#a0662f', y: '#f6c945', k: 'var(--ink)' },
+};
+
+/** A tie on a shirt: the enterprise job. */
+export const jobIcon: PixelMap = {
+  rows: [
+    '.kk...kk.',
+    'kwwk.kwwk',
+    'kwwwrwwwk',
+    'kwwrrrwwk',
+    'kwwwrwwwk',
+    'kwwrrrwwk',
+    'kwwrrrwwk',
+    'kwwwrwwwk',
+    'kkkkkkkkk',
+  ],
+  palette: { w: '#f4f1e8', r: '#c0392b', k: 'var(--ink)' },
+};
+
+/** A magnifier: search for a job. */
+export const searchIcon: PixelMap = {
+  rows: [
+    '.kkkk....',
+    'k....k...',
+    'k.bb.k...',
+    'k.bb.k...',
+    'k....k...',
+    '.kkkkk...',
+    '.....kk..',
+    '......kk.',
+    '.......kk',
+  ],
+  palette: { b: '#9fd3ff', k: 'var(--ink)' },
+};
+
+/** A house: rent. */
+export const rentIcon: PixelMap = {
+  rows: [
+    '....k....',
+    '...kkk...',
+    '..kkkkk..',
+    '.kkkkkkk.',
+    '.kwwwwwk.',
+    '.kwbwwwk.',
+    '.kwwwrwk.',
+    '.kwwwrwk.',
+    '.kkkkkkk.',
+  ],
+  palette: { w: '#f4f1e8', b: '#59b7ff', r: '#a0662f', k: 'var(--ink)' },
+};
+
+/** A money bag. */
+export const moneyIcon: PixelMap = {
+  rows: [
+    '...kkk...',
+    '....k....',
+    '..kgggk..',
+    '.kgggggk.',
+    'kggkkkggk',
+    'kgggkggkk',
+    'kggkkkggk',
+    '.kgggggk.',
+    '..kkkkk..',
+  ],
+  palette: { g: '#4caf50', k: 'var(--ink)' },
+};

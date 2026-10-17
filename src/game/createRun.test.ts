@@ -8,7 +8,8 @@ describe('createRun', () => {
     expect(run.id).toBe('run-1');
     expect(run.status).toBe('playing');
     expect(run.activeMs).toBe(0);
-    expect(run.economy.output).toBe(0);
+    expect(run.projects).toEqual({});
+    expect(run.economy.money).toBe(0);
     expect(run.stats.lifetimeOutput).toBe(0);
     expect(run.cat).toMatchObject({
       health: 100,

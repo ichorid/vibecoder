@@ -127,7 +127,7 @@
         </li>
       {/if}
       <li>
-        <span class="what">{@render ico(STAT_ICONS.output)}= Useful code from agents</span>
+        <span class="what">{@render ico(STAT_ICONS.code)}= Useful code from agents</span>
         <span class="value">{n(e.usefulCodePerSecond)} code/s</span>
       </li>
     {/if}
@@ -138,10 +138,28 @@
       </li>
     {/if}
     <li class="total">
-      <span class="what">{@render ico(STAT_ICONS.output)}Total</span>
+      <span class="what">{@render ico(STAT_ICONS.code)}Total</span>
       <span class="value" data-testid="setup-total">{n(e.totalCodePerSecond)} code/s</span>
       <span class="note">plus whatever you press</span>
     </li>
+  </ol>
+
+  <h3>Builds</h3>
+  <ol class="flow" data-testid="setup-builds">
+    {#each setup.builds as build, i (i)}
+      <li>
+        <span class="what"
+          >{@render ico(STAT_ICONS.code)}{build.title}{#if build.by !== 'player'}
+            ({build.by === 'system' ? 'auto' : 'auto · ½'}){/if}</span
+        >
+        <span class="value">{pct(build.share)}</span>
+        <span class="note"
+          >{#if build.price !== null}{n(build.code)} / {n(build.price)} code{:else}takes all your
+            code{/if}{#if i === 0}
+            · your presses go here{/if}</span
+        >
+      </li>
+    {/each}
   </ol>
 
   {#if e.uncheckedShare > 0 || e.debt > 0}
@@ -167,7 +185,7 @@
     <h3>Money</h3>
     <ol class="flow">
       <li>
-        <span class="what">{@render ico(STAT_ICONS.revenue)}Revenue</span>
+        <span class="what">{@render ico(STAT_ICONS.money)}Revenue</span>
         <span class="value">+${n(e.money.revenuePerSecond)}/s</span>
         <span class="note" data-testid="setup-revenue-why"
           >{n(e.money.usefulCodePerSecond)} useful code/s × ${n(e.money.perCode)} per line of code{#if e.money.basePerCode > 0 && Math.abs(e.money.perCode - e.money.basePerCode) > 1e-9}

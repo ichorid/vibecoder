@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { freshGame, headerStat, pressPrimary } from './helpers';
+import { freshGame, builtCode, pressPrimary } from './helpers';
 
 test('one real Pixi canvas survives Game → Cat → Game and resizing', async ({ page }) => {
   await freshGame(page);
@@ -22,9 +22,9 @@ test('one real Pixi canvas survives Game → Cat → Game and resizing', async (
       .evaluate((el) => (el as HTMLCanvasElement & { marker?: string }).marker),
   ).toBe('first');
 
-  const before = await headerStat(page);
+  const before = await builtCode(page);
   await page.setViewportSize({ width: 360, height: 640 });
   await page.setViewportSize({ width: 412, height: 860 });
   await expect(page.getByTestId('world-canvas')).toHaveCount(1);
-  expect(await headerStat(page)).toBe(before);
+  expect(await builtCode(page)).toBe(before);
 });
