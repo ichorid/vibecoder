@@ -29,8 +29,13 @@ jobs:
           node-version-file: '.nvmrc'
           cache: npm
       - run: npm ci
+      - id: pages
+        uses: actions/configure-pages@v5
       # Project pages are served from /<repo>/; asset URLs follow import.meta.env.BASE_URL.
+      # Link previews need the absolute site address (e.g. https://<owner>.github.io/<repo>).
       - run: npx vite build --base=/${{ github.event.repository.name }}/
+        env:
+          SITE_URL: ${{ steps.pages.outputs.base_url }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

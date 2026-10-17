@@ -1,7 +1,22 @@
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import path from 'node:path';
 import { version } from './package.json';
+
+/**
+ * Link-preview tags need absolute URLs: the Pages deploy passes the site's public address as
+ * SITE_URL. Without it (dev, local preview) `%SITE_URL%` falls back to the base path.
+ */
+function siteUrl(): Plugin {
+  let url = process.env.SITE_URL?.replace(/\/?$/, '/');
+  return {
+    name: 'site-url',
+    configResolved: (config) => {
+      url ??= config.base;
+    },
+    transformIndexHtml: (html) => html.replaceAll('%SITE_URL%', url ?? '/'),
+  };
+}
 
 export default defineConfig({
   plugins: [
@@ -11,6 +26,7 @@ export default defineConfig({
       name: 'app-version-title',
       transformIndexHtml: (html) => html.replaceAll('%APP_VERSION%', version),
     },
+    siteUrl(),
   ],
   build: {
     // The manifest lets tools/reportSize.ts prove what the game entry can reach.

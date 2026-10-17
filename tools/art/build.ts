@@ -7,6 +7,7 @@ import { infiniteWeekend } from '../../art/illustrations/endings';
 import { keyboardPhoto, lapPhoto } from '../../art/illustrations/memorial';
 import { THEMES } from '../../art/palette';
 import { allSprites } from '../../art/sprites';
+import { socialCard, socialIcon } from '../../art/social';
 import type { AtlasData } from '../../src/content/atlas';
 
 export const OUT_DIR = 'public/assets';
@@ -61,5 +62,9 @@ export function outputs(): Map<string, Buffer> {
   files.set('memorial/lap.png', encodePng(lapPhoto()));
   files.set('endings/infinite-weekend.png', encodePng(infiniteWeekend(true)));
   files.set('endings/infinite-weekend-nocat.png', encodePng(infiniteWeekend(false)));
+  // Link previews and icons, referenced from index.html.
+  files.set('social/og.png', encodePng(socialCard()));
+  files.set('social/apple-touch-icon.png', encodePng(socialIcon(180)));
+  files.set('social/favicon.png', encodePng(socialIcon(32)));
   return files;
 }

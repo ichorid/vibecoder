@@ -14,6 +14,8 @@ npm run art:check    # fails if public/assets/ is stale (part of npm run check:c
 - `sprites/` — world/DOM animations: the cat (poses → frames; `cat-round-*` overfed variants),
   room, programmer, and the reusable machine kit (`kit-*` detailed, `lod-*` compact icons).
 - `illustrations/` — one 128×96 illustration per technology plus the two memorial photos.
+- `social.ts` — link-preview art for `index.html`: the 1200×630 Open Graph card (`social/og.png`)
+  and the cat favicon/apple-touch-icon, composed from the sprites above.
 
 ## Atlas contract (`vibe-atlas/1`)
 
