@@ -10,7 +10,6 @@ import {
   qualityEfficiency,
   tokenPack,
 } from './economy';
-import { moneyShown } from './gigs';
 import { projectCode } from './projects';
 import {
   projectView,
@@ -194,6 +193,15 @@ export interface StatViewModel {
   readonly id: StatId;
   readonly label: string;
   readonly value: number;
+  /** Shown in red (MONEY below zero). */
+  readonly alarm?: boolean;
+  /** MONEY while the player pays rent: the next one, a small line under the balance. */
+  readonly rent?: {
+    readonly amount: number;
+    readonly dueInSeconds: number;
+    /** The money cannot cover it, or one was already missed. */
+    readonly alarm: boolean;
+  };
 }
 
 export interface AnnouncementViewModel {
@@ -221,6 +229,11 @@ export interface GameViewModel {
     readonly gain: PrimaryGainViewModel | null;
     /** A press would count right now (false: over the tap cap, it fizzles). */
     readonly ready: boolean;
+    /**
+     * How overworked the fingers are, in presses: each press adds 1, it cools down by itself,
+     * and a press counts only while `level <= limit - 1` (the last step is the red zone).
+     */
+    readonly strain: { readonly level: number; readonly limit: number };
   };
   readonly stats: readonly StatViewModel[];
   readonly offers: readonly OfferViewModel[];
@@ -352,38 +365,52 @@ function statValue(run: ReadonlyRun, id: StatId, catalog: Catalog): number {
   }
 }
 
+/** Four counters fit one row; the late company's five or six take a second row. */
+const ROW_STATS = 4;
+const MAX_STATS = 6;
+
 /**
- * The current statistics, chosen by the latest technology that sets them: three at most early
- * on; the late company piles up to six numbers on the player (two rows).
+ * The current statistics, chosen by the latest technology that sets them. Money joins once it
+ * matters. The panel takes a second row only when the technology itself lists more than four.
  */
 function headerStats(run: ReadonlyRun, catalog: Catalog): StatViewModel[] {
-  let ids: readonly StatId[] = ['code'];
+  let ids: StatId[] = ['code'];
   for (const id of run.unlockedTechnologyIds) {
     const stats = findTechnology(catalog, id)?.headerStats;
-    if (stats) ids = stats;
+    if (stats) ids = [...stats];
   }
-  // From the first gig the money strip shows the balance (with rent and gigs): not twice.
-  if (moneyShown(run) && run.status === 'playing') ids = ids.filter((id) => id !== 'money');
+  const money = selectMoney(run, catalog);
+  const cap = ids.length > ROW_STATS ? MAX_STATS : ROW_STATS;
+  if (money && !ids.includes('money')) {
+    const automation = ids.indexOf('automation');
+    if (ids.length < cap) ids.push('money');
+    else ids[automation >= 0 ? automation : cap - 1] = 'money';
+  }
   // The hidden couplings made visible (E2): QUALITY and TEAM appear while they hurt (< 95 %),
-  // taking the progress meter's (automation) slot first.
+  // in the progress meter's (automation) slot or a free one; else Setup's "Limited by" names them.
   const pressure: StatId[] = [];
   if (run.economy.debt > 0 && statValue(run, 'quality', catalog) < 95) pressure.push('quality');
   if (run.unlockedTechnologyIds.length > 0 && statValue(run, 'team', catalog) < 95) {
     pressure.push('team');
   }
-  // Early panels keep three numbers: QUALITY and TEAM show only where a slot is free (DEBT already
-  // tells the quality story); Setup's "Limited by" names the rest.
-  const cap = ids.length > 3 ? 6 : 3;
-  let shown = [...ids];
   for (const id of pressure) {
-    const automation = shown.indexOf('automation');
-    if (automation >= 0) shown[automation] = id;
-    else if (shown.length < cap) shown.push(id);
-    else if (cap === 6) shown = [...shown.slice(0, 5), id];
+    const automation = ids.indexOf('automation');
+    if (automation >= 0) ids[automation] = id;
+    else if (ids.length < cap) ids.push(id);
   }
-  return shown
-    .slice(0, 6)
-    .map((id) => ({ id, label: catalog.statLabels[id], value: statValue(run, id, catalog) }));
+  return ids.slice(0, cap).map((id) => {
+    const stat = { id, label: catalog.statLabels[id], value: statValue(run, id, catalog) };
+    if (id !== 'money') return stat;
+    const rent =
+      money && money.rent !== null && money.rentInSeconds !== null
+        ? {
+            amount: money.rent,
+            dueInSeconds: money.rentInSeconds,
+            alarm: money.balance < money.rent || money.missedStreak > 0,
+          }
+        : undefined;
+    return { ...stat, alarm: run.economy.money < 0, ...(rent ? { rent } : {}) };
+  });
 }
 
 /** Mirrors `primaryAction` in commands.ts: the same rates, caps and charge budget. */
@@ -556,6 +583,10 @@ export function selectGame(
       label: catalog.primaryActionLabels[action],
       gain: primaryGain(run, catalog, action),
       ready: run.economy.actionCharges >= 1,
+      strain: {
+        level: Math.max(0, catalog.balance.actionBurst - run.economy.actionCharges),
+        limit: catalog.balance.actionBurst,
+      },
     },
     stats: headerStats(run, catalog),
     offers,
@@ -570,7 +601,7 @@ export function selectGame(
           illustrationId: pending.illustrationId,
         }
       : null,
-    log: run.log.slice(-catalog.balance.logVisibleLines),
+    log: run.log,
     ending: selectEnding(run, catalog, discovered),
     lastRelease: selectRelease(run, catalog, run.releases.length - 1),
     credit: creditState(run, catalog),

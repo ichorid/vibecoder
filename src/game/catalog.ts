@@ -122,10 +122,8 @@ export interface BalanceDefinition {
   readonly attention: AttentionBalance;
   /** Output queued by one accepted WRITE CODE before technology bonuses. */
   readonly manualOutputPerAction: number;
-  /** Recent ambient log lines kept in the run. */
+  /** Recent log lines kept in the run (all of them scroll in Game's terminal). */
   readonly logMemoryLimit: number;
-  /** Recent log lines shown in Game. */
-  readonly logVisibleLines: number;
   readonly tokens: TokenBalance;
   readonly chatter: ChatterBalance;
   readonly money: MoneyBalance;
@@ -337,7 +335,7 @@ export interface Requirements {
   readonly lifetimeOutput?: number;
 }
 
-/** Header statistics a technology may select (at most three are shown). */
+/** Header statistics a technology may select (four fit one row; five or six take two). */
 export const STAT_IDS = [
   'code',
   'tokens',

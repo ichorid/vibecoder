@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { StatViewModel } from '../game/selectors';
   import { STAT_ICONS } from './cardIcons';
-  import { formatAmount } from './format';
+  import { formatAmount, formatCountdown } from './format';
   import PixelIcon from './PixelIcon.svelte';
 
   interface Props {
@@ -13,11 +13,23 @@
   const { stats, onOpen }: Props = $props();
   /** Shares of 100 (progress and efficiencies) read as percentages. */
   const PERCENT: ReadonlySet<string> = new Set(['automation', 'quality', 'team']);
-  /** Up to four in a row; more numbers wrap into a second row (two rows at most). */
+  /** The next rent, under the balance: "(rent: −$101 in 1:00)". */
+  function rentText(rent: NonNullable<StatViewModel['rent']>): string {
+    return `(rent: −$${formatAmount(rent.amount)} in ${formatCountdown(rent.dueInSeconds)})`;
+  }
+
+  /** Money in dollars. */
+  function valueText(stat: StatViewModel): string {
+    if (stat.id === 'money')
+      return `${stat.value < 0 ? '−' : ''}$${formatAmount(Math.abs(stat.value))}`;
+    return `${formatAmount(stat.value)}${PERCENT.has(stat.id) ? '%' : ''}`;
+  }
+
+  /** Up to four in a row; five or six take a second row (only then). */
   const columns = $derived(stats.length <= 4 ? stats.length : Math.ceil(stats.length / 2));
 </script>
 
-<!-- Kept beside the primary action so the player sees what a press changes without looking up. -->
+<!-- Heads the game screen, under the navbar: what the run has, at a glance. -->
 {#snippet panel()}
   <!-- Equal columns sized by the screen, never by the numbers: the panel never re-wraps. -->
   <dl
@@ -27,11 +39,27 @@
     style:grid-template-columns="repeat({columns}, minmax(0, 1fr))"
   >
     {#each stats as stat (stat.id)}
-      <div class="stat">
+      <div
+        class="stat"
+        class:alarm={stat.alarm}
+        data-testid="stat-{stat.id}"
+        data-alarm={stat.alarm ? 'true' : 'false'}
+      >
         <dt>
           <PixelIcon map={STAT_ICONS[stat.id]} scale={2} /><span class="label">{stat.label}</span>
         </dt>
-        <dd>{formatAmount(stat.value)}{PERCENT.has(stat.id) ? '%' : ''}</dd>
+        <dd>{valueText(stat)}</dd>
+        {#if stat.rent}
+          <!-- Money going out: blue like a bill, red when it cannot be paid. -->
+          <dd
+            class="rent"
+            class:alarm={stat.rent.alarm}
+            data-testid="rent-due"
+            data-alarm={stat.rent.alarm ? 'true' : 'false'}
+          >
+            {rentText(stat.rent)}
+          </dd>
+        {/if}
       </div>
     {/each}
   </dl>
@@ -106,6 +134,22 @@
   .label {
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+  .alarm dd {
+    color: var(--alarm);
+  }
+  /* It may wrap under a narrow money column rather than being cut. */
+  dd.rent {
+    max-width: 100%;
+    white-space: normal;
+    text-align: center;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--rent);
+  }
+  dd.rent.alarm {
+    color: var(--alarm);
   }
   dd {
     margin: 0;

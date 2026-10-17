@@ -1,5 +1,12 @@
 import { expect, test } from '@playwright/test';
-import { buildCard, closeUpgrades, freshGame, openUpgrades, pressPrimary } from './helpers';
+import {
+  buildCard,
+  builtCode,
+  closeUpgrades,
+  freshGame,
+  openUpgrades,
+  pressPrimary,
+} from './helpers';
 
 test('first loop: write, build, announce, visit Cat, next offer, reload', async ({ page }) => {
   // 24 real presses at the tap budget: ~35 s on a fast runner, over a minute on a slow one.
@@ -32,13 +39,15 @@ test('first loop: write, build, announce, visit Cat, next offer, reload', async 
   await expect(page.getByRole('button', { name: /Generated snippets/ })).toBeVisible();
   await closeUpgrades(page);
   // Nothing picked after the build: presses drift into the original project at half speed.
+  await openUpgrades(page);
   await expect(page.getByTestId('ship-strip')).toContainText('AUTO · ½');
+  await closeUpgrades(page);
   await pressPrimary(page, 4);
-  await expect(page.getByTestId('ship-strip')).toContainText('9/2K');
+  await expect.poll(() => builtCode(page)).toBe('9');
 
   await page.reload();
   await expect(page.getByTestId('primary-action')).toBeVisible();
-  await expect(page.getByTestId('ship-strip')).toContainText('9/2K');
+  await expect.poll(() => builtCode(page)).toBe('9');
   await openUpgrades(page);
   await expect(page.getByRole('button', { name: /Generated snippets/ })).toBeVisible();
   await expect(page.getByTestId('announcement')).toHaveCount(0);

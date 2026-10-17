@@ -4,6 +4,7 @@
  * a reload changes what it pays. Without a gig the player searches (each search press costs a
  * primary-action charge); the job-search bot and auto-freelancing search on their own.
  */
+import { earned } from './ledger';
 import type { Catalog } from './catalog';
 import { marketEra, marketRate, roundAmount, roundNice, upgradeLevel } from './economy';
 import { appendLog } from './log';
@@ -106,7 +107,11 @@ export function payGig(run: RunState, catalog: Catalog): { run: RunState; facts:
     ...run,
     economy: { ...run.economy, money: roundAmount(run.economy.money + offer.pay) },
     gigs: { ...run.gigs, offer: null, paid: run.gigs.paid + 1 },
-    stats: { ...run.stats, gigCode: roundAmount(run.stats.gigCode + offer.size) },
+    stats: earned(
+      { ...run.stats, gigCode: roundAmount(run.stats.gigCode + offer.size) },
+      'gigs',
+      offer.pay,
+    ),
   };
   const payment = catalog.money.payments.find((p) => p.id === offer.paymentId);
   const paidLine =
@@ -158,6 +163,7 @@ export function stepGigs(run: RunState, stepMs: number, catalog: Catalog): RunSt
         ...next.economy,
         money: roundAmount(next.economy.money + catalog.balance.gigs.savings),
       },
+      stats: earned(next.stats, 'other', catalog.balance.gigs.savings),
     };
     next = appendLog(offerGig(next, catalog), lines.firstGig, catalog);
   }

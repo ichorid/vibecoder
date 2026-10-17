@@ -44,6 +44,27 @@ function allDomText(): string {
   return `${document.body.innerHTML} ${labels.join(' ')}`;
 }
 
+describe('the terminal', () => {
+  it('keeps the whole remembered log in a scrollable, keyboard-reachable region', () => {
+    const base = progressedRun(2);
+    const log = Array.from({ length: 12 }, (_, i) => ({ text: `line ${i}`, activeMs: i * 1000 }));
+    render(App, {
+      props: {
+        api: createUiGame({ ...base, log }).game.api,
+        illustrationUrl: () => null,
+        createRenderer: nullRenderer,
+        clock: { activeNow: () => 0, frames: () => () => {} },
+      },
+    });
+    const terminal = screen.getByRole('region', { name: 'Recent events' });
+    expect(terminal.getAttribute('tabindex')).toBe('0');
+    const lines = within(terminal).getAllByRole('listitem');
+    expect(lines.map((l) => l.textContent?.trim().replace(/^\[[^\]]*\]\s*/, ''))).toEqual(
+      log.map((l) => l.text),
+    );
+  });
+});
+
 describe('Game controls', () => {
   it('sends exactly one command per primary press', async () => {
     const t = setup();
@@ -57,6 +78,34 @@ describe('Game controls', () => {
     const floats = [...document.querySelectorAll('[data-testid="floating-gain"]')];
     expect(floats.map((f) => f.textContent?.trim())).toEqual(['+1', '+1', '+1']);
     expect(floats.every((f) => f.getAttribute('aria-hidden') === 'true')).toBe(true);
+  });
+
+  it('a press past the strain limit floats a red "too tired" and adds nothing', async () => {
+    const t = setup();
+    // Mashing with no time to cool down: six presses count, the seventh is too much.
+    for (let i = 0; i < 7; i += 1) await fireEvent.click(screen.getByTestId('primary-action'));
+    expect(t.latest()?.run.stats.manualActions).toBe(6);
+    const floats = [...document.querySelectorAll('[data-testid="floating-gain"]')];
+    expect(floats.map((f) => f.textContent?.trim())).toEqual([
+      ...Array<string>(6).fill('+1'),
+      'too tired',
+    ]);
+    expect(floats.at(-1)?.getAttribute('data-tone')).toBe('tired');
+  });
+
+  it('shows the strain on the button: it fills with presses and cools down over time', async () => {
+    const t = setup();
+    const meter = () => screen.getByTestId('strain');
+    const fill = () => Number.parseFloat(meter().style.getPropertyValue('--strain'));
+    expect(fill()).toBe(0);
+    for (let i = 0; i < 3; i += 1) await fireEvent.click(screen.getByTestId('primary-action'));
+    expect(fill()).toBeCloseTo(0.5, 5);
+    for (let i = 0; i < 3; i += 1) await fireEvent.click(screen.getByTestId('primary-action'));
+    expect(screen.getByTestId('primary-action').getAttribute('data-ready')).toBe('false');
+    t.tick(2000);
+    await Promise.resolve();
+    expect(fill()).toBe(0);
+    expect(screen.getByTestId('primary-action').getAttribute('data-ready')).toBe('true');
   });
 
   it('keeps at most eight floating numbers at a time', async () => {
@@ -145,5 +194,16 @@ describe('Game controls', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'CONTINUE' }));
     expect(t.latest()?.run.pendingUnlockIds).toEqual([]);
     expect(screen.queryByTestId('announcement')).toBeNull();
+  });
+
+  it('a discovery card puts CONTINUE at its top, away from the primary action', async () => {
+    const t = setup();
+    await t.write(5);
+    await fireEvent.click(screen.getByRole('button', { name: /Autocomplete/ }));
+    await t.write(AUTOCOMPLETE_PRICE);
+    const card = screen.getByTestId('announcement');
+    expect(card.firstElementChild?.textContent).toBe('CONTINUE');
+    await fireEvent.click(within(card).getByRole('button', { name: 'CONTINUE' }));
+    expect(t.latest()?.run.pendingUnlockIds).toEqual([]);
   });
 });

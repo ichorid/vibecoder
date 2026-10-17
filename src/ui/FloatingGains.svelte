@@ -15,7 +15,11 @@
     <span
       class="gain"
       class:fly={gain.to !== undefined}
+      class:tired={gain.tone === 'tired'}
+      class:spend={gain.tone === 'spend'}
+      class:earn={gain.tone === 'earn'}
       data-testid="floating-gain"
+      data-tone={gain.tone}
       data-flies={gain.to ? 'build' : undefined}
       aria-hidden="true"
       style:left="{gain.x * 100}%"
@@ -57,6 +61,65 @@
       3px 4px 0 rgba(0, 0, 0, 0.35);
     animation: float-up 900ms ease-out forwards;
   }
+  /* A press that did not count: red, a little smaller, a short wobble as it rises. */
+  .gain.tired {
+    font-size: 20px;
+    color: #ff5a4e;
+    animation: tired-up 800ms ease-out forwards;
+  }
+  @keyframes tired-up {
+    0% {
+      opacity: 1;
+      transform: translate(-50%, 4px) rotate(-6deg) scale(1.2);
+    }
+    12% {
+      transform: translate(-50%, -4px) rotate(5deg) scale(1);
+    }
+    24% {
+      transform: translate(-50%, -10px) rotate(-3deg);
+    }
+    36% {
+      opacity: 1;
+      transform: translate(-50%, -14px) rotate(0deg);
+    }
+    100% {
+      opacity: 0;
+      transform: translate(-50%, -48px);
+    }
+  }
+  /* Money paid out: red, rising like any number. */
+  .gain.spend {
+    font-size: 20px;
+    color: #ff5a4e;
+  }
+  /* Money earned: a big gold pop below the balance that flies up into it. */
+  .gain.earn {
+    font-size: 28px;
+    color: #ffc62a;
+    filter: drop-shadow(0 0 6px rgba(255, 198, 42, 0.75));
+    animation: earn-in 1300ms cubic-bezier(0.2, 0.8, 0.3, 1) forwards;
+  }
+  @keyframes earn-in {
+    0% {
+      opacity: 0;
+      transform: translate(-50%, 44px) scale(0.5);
+    }
+    18% {
+      opacity: 1;
+      transform: translate(-50%, 30px) scale(1.5);
+    }
+    32% {
+      transform: translate(-50%, 30px) scale(1.15);
+    }
+    65% {
+      opacity: 1;
+      transform: translate(-50%, 30px) scale(1.15);
+    }
+    100% {
+      opacity: 0;
+      transform: translate(-50%, -6px) scale(0.6);
+    }
+  }
   /* Into the build the press fills: it pops, then drops into the bar and fades. */
   .gain.fly {
     animation: fly-in 900ms ease-in forwards;
@@ -94,7 +157,9 @@
   }
   @media (prefers-reduced-motion: reduce) {
     .gain,
-    .gain.fly {
+    .gain.fly,
+    .gain.tired,
+    .gain.earn {
       animation: fade 900ms linear forwards;
     }
     @keyframes fade {

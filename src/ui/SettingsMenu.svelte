@@ -15,6 +15,8 @@
     checkpoint?: CheckpointInfo | null;
     onSaveCheckpoint?: () => void;
     onLoadCheckpoint?: () => void;
+    /** Give up the current run and start a fresh one (only while a run is being played). */
+    onStopRun?: () => void;
     onTheme: (theme: ThemePreference) => void;
     onClose: () => void;
     /** Dev server only: opens the Demo lab. */
@@ -29,11 +31,13 @@
     checkpoint = null,
     onSaveCheckpoint,
     onLoadCheckpoint,
+    onStopRun,
     onTheme,
     onClose,
     onDemoLab,
   }: Props = $props();
   let confirmLoad = $state(false);
+  let confirmStop = $state(false);
   let savedNote = $state(false);
   let panel: HTMLElement | undefined = $state();
   let page = $state<'main' | 'music'>('main');
@@ -122,6 +126,30 @@
       <button type="button" class="item" data-testid="demo-lab-open" onclick={onDemoLab}
         >Demo lab › <span class="dev">DEV</span></button
       >
+    {/if}
+    {#if onStopRun}
+      <div class="checkpoint" data-testid="stop-run">
+        <span class="credits-title">Run</span>
+        {#if confirmStop}
+          <p class="note">
+            Give up this run and start over? Endings you found and lessons learned stay.
+          </p>
+          <div class="confirm-row">
+            <button
+              type="button"
+              class="item danger"
+              onclick={() => {
+                confirmStop = false;
+                onStopRun?.();
+                onClose();
+              }}>STOP AND START OVER</button
+            >
+            <button type="button" class="item" onclick={() => (confirmStop = false)}>CANCEL</button>
+          </div>
+        {:else}
+          <button type="button" class="item" onclick={() => (confirmStop = true)}>STOP RUN…</button>
+        {/if}
+      </div>
     {/if}
     {#if onSaveCheckpoint}
       <div class="checkpoint" data-testid="checkpoint">
@@ -305,6 +333,10 @@
     font-weight: 800;
     text-decoration: none;
     cursor: pointer;
+  }
+  .item.danger {
+    border-color: #c0392b;
+    background: color-mix(in srgb, #e8483c 14%, var(--panel-strong));
   }
   .note {
     margin: 0 0 4px;

@@ -83,6 +83,15 @@ export interface RunStats {
   taxedCode: number;
   /** Code built into gigs (it became money). */
   gigCode: number;
+  /** The money ledger (see ledger.ts): money earned by source and spent by sink, this run. */
+  earnedGigs: number;
+  earnedSalary: number;
+  earnedRevenue: number;
+  earnedOther: number;
+  spentRent: number;
+  spentFood: number;
+  spentShopping: number;
+  spentCompany: number;
 }
 
 /** Last accepted care, for contextual Cat messages; cosmetic responses are not stored. */

@@ -53,8 +53,24 @@
     reactionKey += 1;
   }
 
-  function feed() {
-    if (dispatch({ type: 'feedCat' }) === 'applied') react('eat');
+  /** What FEED cost floats up from the button (nothing while the food is free). */
+  let spent = $state<FloatingGain[]>([]);
+  let nextSpent = 0;
+  let care: HTMLElement | undefined = $state();
+
+  function feed(event: MouseEvent) {
+    const cost = cat.foodCost;
+    if (dispatch({ type: 'feedCat' }) !== 'applied') return;
+    react('eat');
+    if (cost <= 0 || !care) return;
+    const host = care.getBoundingClientRect();
+    const button = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    const x = host.width > 0 ? (button.left + button.width / 2 - host.left) / host.width : 1 / 6;
+    nextSpent += 1;
+    spent = [
+      ...spent.slice(-(MAX_FLOATING - 1)),
+      { id: nextSpent, text: `−$${cost}`, x, tone: 'spend' },
+    ];
   }
 
   function pet() {
@@ -125,7 +141,8 @@
           </div>
         {/each}
       </dl>
-      <div class="care">
+      <div class="care" bind:this={care}>
+        <FloatingGains gains={spent} onDone={(id) => (spent = spent.filter((g) => g.id !== id))} />
         <button type="button" onclick={feed}
           >FEED{#if cat.foodCost > 0}<span class="cost"> ${cat.foodCost}</span>{/if}</button
         >
@@ -296,6 +313,7 @@
     text-align: right;
   }
   .care {
+    position: relative;
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 8px;

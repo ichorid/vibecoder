@@ -26,6 +26,9 @@
     aria-labelledby="announcement-title"
     data-testid="announcement"
   >
+    <!-- CONTINUE sits at the top: the card pops up over the primary action, and a tap meant for
+         the work must never land on it. -->
+    <button type="button" class="continue" onclick={onAcknowledge}>CONTINUE</button>
     <p class="kicker">{kicker}</p>
     <div class="frame">
       {#if illustrationUrl && !failed}
@@ -43,7 +46,6 @@
     </div>
     <h2 id="announcement-title">{announcement.title}</h2>
     <p class="description">{announcement.description}</p>
-    <button type="button" class="continue" onclick={onAcknowledge}>CONTINUE</button>
   </div>
 </div>
 

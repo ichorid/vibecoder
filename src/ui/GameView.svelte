@@ -1,10 +1,10 @@
 <script lang="ts">
-  import { tick, type Snippet } from 'svelte';
+  import { tick, untrack, type Snippet } from 'svelte';
   import type { ChoiceId, TechnologyId, UpgradeId } from '../game/ids';
   import type { ProjectBadge, ProjectViewModel } from '../game/projectViews';
   import type { GameViewModel, OfferViewModel } from '../game/selectors';
   import type { ProjectKey } from '../game/types';
-  import type { Dispatch, DomSpriteSheet, WheelSound } from './contracts';
+  import type { Dispatch, DomSpriteSheet, Payout, WheelSound } from './contracts';
   import { formatActiveTime, formatAmount, formatCountdown, formatEta } from './format';
   import CatOverlay from './CatOverlay.svelte';
   import EndingPanel from './EndingPanel.svelte';
@@ -21,7 +21,6 @@
     GIG_ICON,
     JOB_ICON,
     RELEASE_ICON,
-    RENT_ICON,
     SEARCH_ICON,
     STAT_ICONS,
   } from './cardIcons';
@@ -41,6 +40,8 @@
     onSound?: ((id: WheelSound) => void) | undefined;
     /** Small screens: show the cards in a popup instead of under the primary action. */
     compactOffers?: boolean;
+    /** Money just earned: each new one pops a golden "+$x" into the balance. */
+    payouts?: readonly Payout[];
     /** Opens the Setup view (from the stats panel). */
     onSetup?: () => void;
     /** Shows a coded demo (right after coding it). */
@@ -58,6 +59,7 @@
     reducedMotion = false,
     onSound,
     compactOffers = false,
+    payouts = [],
     onSetup,
     onDemo,
   }: Props = $props();
@@ -67,6 +69,27 @@
     if (game.ending) offersOpen = false;
   });
   let sheet: HTMLElement | undefined = $state();
+  /** Phones: the project (Ship It) and the demo wait in the popup with the cards. */
+  const sheetStrips = $derived(compactOffers && (game.release !== null || game.demo !== null));
+  /** Phones: the gig board and the job card wait in the popup with the cards. */
+  const sheetJobs = $derived(
+    compactOffers &&
+      ((game.money !== null && !game.money.employed && (game.money.gig ?? game.money.search)) ||
+        game.job !== null),
+  );
+  const sheetTitle = $derived(sheetJobs ? 'UPGRADES & JOBS' : 'UPGRADES');
+  /** Phones: the build the presses fill, when it sits in the closed popup (else null). */
+  const hiddenBuild = $derived.by(() => {
+    const target = game.buildTarget;
+    if (!compactOffers || target === null) return null;
+    if (target === 'release') return game.release?.project ?? null;
+    if (target === 'demo') return game.demo?.project ?? null;
+    // The job is never "done": it has no bar to watch.
+    if (target === 'job') return null;
+    if (target === 'gig') return game.money?.gig?.project ?? null;
+    const offer = game.offers.find((o) => o.id === target);
+    return offer?.kind === 'upgrade' ? (offer.project ?? null) : null;
+  });
   /**
    * What wants the player's attention in the cards: money cards the money pays for now, and
    * builds drifting at half speed (a tap confirms them).
@@ -76,12 +99,57 @@
       (o) =>
         o.kind === 'upgrade' &&
         ((o.currency === 'money' && o.affordable) || o.project?.badge === 'auto-half'),
-    ).length,
+    ).length +
+      // Phones fold the project and the demo in too: SHIP / RUN ready, or drifting at half speed.
+      (compactOffers
+        ? [game.release, game.demo].filter(
+            (s) => s && (s.affordable || s.project.badge === 'auto-half'),
+          ).length
+        : 0),
   );
   const decisions = $derived(game.offers.filter((o) => o.kind === 'choice').length);
   let controls: HTMLElement | undefined = $state();
 
   let gains = $state<FloatingGain[]>([]);
+
+  /** The terminal: it stays on the newest line while the player has not scrolled up. */
+  let terminal: HTMLElement | undefined = $state();
+  let following = true;
+  $effect(() => {
+    void game.log.at(-1);
+    void game.log.length;
+    if (terminal && following) terminal.scrollTop = terminal.scrollHeight;
+  });
+
+  /** Golden "+$x" for money earned: it pops under the balance and flies up into it. */
+  let earned = $state<FloatingGain[]>([]);
+  let statsBar: HTMLElement | undefined = $state();
+  // Payouts from before this view existed are old news.
+  let seenPayout = untrack(() => payouts.at(-1)?.id ?? 0);
+  $effect(() => {
+    const fresh = payouts.filter((p) => p.id > seenPayout);
+    if (fresh.length === 0) return;
+    seenPayout = fresh[fresh.length - 1]?.id ?? seenPayout;
+    const x = untrack(moneyX);
+    earned = [
+      ...untrack(() => earned).slice(-(MAX_FLOATING - fresh.length)),
+      ...fresh.map((p) => ({
+        id: p.id,
+        text: `+$${formatAmount(p.amount)}`,
+        x,
+        y: 0.5,
+        tone: 'earn' as const,
+      })),
+    ];
+  });
+  /** The balance's place in the stats bar, 0–1 (the middle when it cannot be measured). */
+  function moneyX(): number {
+    const cell = statsBar?.querySelector<HTMLElement>('[data-testid="stat-money"]');
+    const bar = statsBar?.getBoundingClientRect();
+    const box = cell?.getBoundingClientRect();
+    if (!bar || !box || bar.width <= 0) return 0.5;
+    return (box.left + box.width / 2 - bar.left) / bar.width;
+  }
   let nextGainId = 0;
 
   /** OBSERVE changes nothing; the button still answers (cosmetic, for the lulz). */
@@ -94,20 +162,24 @@
     '+0 purpose',
   ];
   let observed = 0;
+  /** A press past the strain limit (it adds nothing). */
+  const TIRED_TEXT = 'too tired';
 
   function primary(event: MouseEvent) {
     // The gain of *this* press is read before dispatching; nothing floats if it adds nothing.
     const gain = game.primaryAction.gain;
     const observing = game.primaryAction.id === 'observe';
-    // Faster than the fingers can type: the press fizzles visibly (pacing, not lag).
-    const capped = !game.primaryAction.ready && !observing;
-    if (dispatch({ type: 'primaryAction' }) !== 'applied' || (!gain && !observing)) return;
-    const text = capped
-      ? 'typing…'
+    // Past the strain limit the press adds nothing: say so, in red (pacing, not a dead button).
+    const tired = !game.primaryAction.ready;
+    if (dispatch({ type: 'primaryAction' }) !== 'applied') return;
+    if (!tired && !gain && !observing) return;
+    const target = event.currentTarget as HTMLElement;
+    if (tired) flinch(target);
+    const text = tired
+      ? TIRED_TEXT
       : gain
         ? gainText(gain, formatAmount)
         : (OBSERVE_GAINS[observed++ % OBSERVE_GAINS.length] ?? '+1 boredom');
-    const target = event.currentTarget as HTMLElement;
     const rect = target.getBoundingClientRect();
     const fromPointer = event.detail > 0 && rect.width > 0;
     const x = Math.min(
@@ -117,9 +189,34 @@
     nextGainId += 1;
     gains = [
       ...gains.slice(-(MAX_FLOATING - 1)),
-      { id: nextGainId, text, x, ...flight(gain?.unit === 'code' && !capped, rect, x) },
+      tired
+        ? { id: nextGainId, text, x, tone: 'tired' as const }
+        : { id: nextGainId, text, x, ...flight(gain?.unit === 'code', rect, x) },
     ];
   }
+
+  /** A short no-shake of the button for a press that did not count (none with reduced motion). */
+  function flinch(button: HTMLElement) {
+    if (typeof button.animate !== 'function') return;
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    button.animate(
+      [
+        { translate: '0 0' },
+        { translate: '-5px 0' },
+        { translate: '4px 0' },
+        { translate: '-2px 0' },
+        { translate: '0 0' },
+      ],
+      { duration: 220, easing: 'ease-out' },
+    );
+  }
+
+  /** Strain as a 0–1 fill of the meter; the last step (one press) is the red zone. */
+  const strain = $derived(
+    Number(
+      (game.primaryAction.strain.level / Math.max(1, game.primaryAction.strain.limit)).toFixed(3),
+    ),
+  );
 
   /**
    * A press of code flies into the build it fills: the first slot's card or strip, or the
@@ -346,55 +443,50 @@
     {/if}
   {/snippet}
   {#snippet moneyStrip()}
-    {#if game.money && !game.ending}
-      {@const m = game.money}
-      <!-- Money: the balance, rent day, and the gig board (or the search for one). -->
-      <div class="money-strip" class:broke={m.balance < 0} data-testid="money-strip">
-        <span class="money-head">
-          <span class="money-balance" data-testid="money-balance">${formatAmount(m.balance)}</span>
-          {#if m.rentInSeconds !== null && m.rent !== null}
-            <span class="rent" data-testid="rent-due"
-              ><span class="currency" aria-hidden="true"
-                ><PixelIcon map={RENT_ICON} scale={2} /></span
-              >${m.rent} in {formatCountdown(m.rentInSeconds)}{#if m.missedStreak > 0}
-                · missed ×{m.missedStreak}{/if}</span
-            >
-          {/if}
-        </span>
-        {#if m.employed}
+    <!-- The balance and the rent head the stats panel; this strip is the gig board (or the
+         search for one). Phones keep the board in the cards popup. -->
+    {#if game.money && !game.ending && (game.money.employed || (!compactOffers && (game.money.gig || game.money.search)))}
+      <div class="money-strip" data-testid="money-strip">
+        {#if game.money.employed}
           <span class="gig-note">💼 Employed: no gigs.</span>
-        {:else if m.gig}
-          {@const g = m.gig}
-          <button
-            type="button"
-            class="gig"
-            data-testid="gig"
-            aria-label="Gig: {g.title}, pays ${g.payMin}–{g.payMax}, {projectWords(g.project)}"
-            onclick={() => build('gig')}
-          >
-            <span class="currency" aria-hidden="true"><PixelIcon map={GIG_ICON} scale={2} /></span>
-            <span class="gig-text"
-              >{g.title} · ${g.payMin}–{g.payMax} · {formatEta(g.project.etaSeconds)}</span
-            >
-            {@render badge(g.project)}
-            {@render bar(g.project)}
-          </button>
-        {:else if m.search}
-          <button
-            type="button"
-            class="gig search"
-            data-testid="search-job"
-            onclick={() => dispatch({ type: 'searchJob' })}
-          >
-            <span class="currency" aria-hidden="true"
-              ><PixelIcon map={SEARCH_ICON} scale={2} /></span
-            >
-            <span class="gig-text" aria-label="No gigs: search for a job"
-              >SEARCH {m.search.done}/{m.search.needed}</span
-            >
-          </button>
+        {:else}
+          {@render gigBoard()}
         {/if}
       </div>
+    {/if}
+  {/snippet}
+  {#snippet gigBoard()}
+    {#if game.money && !game.money.employed}
+      {@const m = game.money}
+      {#if m.gig}
+        {@const g = m.gig}
+        <button
+          type="button"
+          class="gig"
+          data-testid="gig"
+          aria-label="Gig: {g.title}, pays ${g.payMin}–{g.payMax}, {projectWords(g.project)}"
+          onclick={() => build('gig')}
+        >
+          <span class="currency" aria-hidden="true"><PixelIcon map={GIG_ICON} scale={2} /></span>
+          <span class="gig-text"
+            >{g.title} · ${g.payMin}–{g.payMax} · {formatEta(g.project.etaSeconds)}</span
+          >
+          {@render badge(g.project)}
+          {@render bar(g.project)}
+        </button>
+      {:else if m.search}
+        <button
+          type="button"
+          class="gig search"
+          data-testid="search-job"
+          onclick={() => dispatch({ type: 'searchJob' })}
+        >
+          <span class="currency" aria-hidden="true"><PixelIcon map={SEARCH_ICON} scale={2} /></span>
+          <span class="gig-text" aria-label="No gigs: search for a job"
+            >SEARCH {m.search.done}/{m.search.needed}</span
+          >
+        </button>
+      {/if}
     {/if}
   {/snippet}
   {#snippet jobCard()}
@@ -537,6 +629,11 @@
       {/each}
     </ul>
   {/snippet}
+  <!-- The counters head the screen, right under the navbar, above the world. -->
+  <div class="stats-bar" bind:this={statsBar}>
+    <Stats stats={game.stats} onOpen={onSetup} />
+    <FloatingGains gains={earned} onDone={(id) => (earned = earned.filter((g) => g.id !== id))} />
+  </div>
   <div class="world" data-testid="world">
     {@render world?.()}
     {#if game.ending && !wheel && !game.rentWheel}
@@ -576,16 +673,26 @@
           class="primary"
           data-testid="primary-action"
           data-ready={game.primaryAction.ready}
+          class:tired={!game.primaryAction.ready}
           onclick={primary}
         >
           <span class="action-icon" aria-hidden="true"
             ><PixelIcon map={ACTION_ICONS[game.primaryAction.id]} scale={3} /></span
           >{game.primaryAction.label}
+          <!-- Strain: every press fills one step, it cools by itself; the red step means a press
+               would not count. Riding just below it is the full pace ("in the zone"). -->
+          <span
+            class="strain"
+            class:zone={game.primaryAction.ready && strain >= 0.5}
+            data-testid="strain"
+            aria-hidden="true"
+            style:--strain={strain}
+            style:--steps={game.primaryAction.strain.limit}><span class="strain-fill"></span></span
+          >
         </button>
         <FloatingGains {gains} onDone={(id) => (gains = gains.filter((g) => g.id !== id))} />
       </div>
     {/if}
-    <Stats stats={game.stats} onOpen={onSetup} />
     {#if game.credit && !game.ending}
       {@const credit = game.credit}
       <!-- Running on borrowed money: how much is owed, and how long until the bank stops. -->
@@ -606,8 +713,8 @@
       </div>
     {/if}
     {@render moneyStrip()}
-    {@render jobCard()}
-    {#if game.offers.length > 0 && !game.ending}
+    {#if !compactOffers}{@render jobCard()}{/if}
+    {#if (game.offers.length > 0 || sheetJobs || sheetStrips) && !game.ending}
       {#if compactOffers}
         <!-- Small screens: the cards live in a popup so the world keeps its room. -->
         <button
@@ -618,12 +725,14 @@
           data-affordable={affordable}
           aria-haspopup="dialog"
           aria-expanded={offersOpen}
-          aria-label="Upgrades: {game.offers
-            .length} cards, {affordable} affordable, {decisions} decisions"
+          aria-label="{sheetTitle}: {game.offers
+            .length} cards, {affordable} affordable, {decisions} decisions{hiddenBuild
+            ? `, building ${formatAmount(hiddenBuild.code)}${hiddenBuild.price === null ? '' : `/${formatAmount(hiddenBuild.price)}`} code`
+            : ''}"
           onclick={() => (offersOpen = true)}
         >
           <!-- Compact chips on one line: their appearing never re-wraps the button. -->
-          <span class="toggle-title">UPGRADES</span>
+          <span class="toggle-title">{sheetTitle}</span>
           <span class="toggle-count">{game.offers.length}</span>
           {#if affordable > 0}
             <span class="toggle-ready" data-testid="offers-affordable" title="affordable now"
@@ -638,41 +747,61 @@
               >{decisions}</span
             >{/if}
           <span class="toggle-open" aria-hidden="true">▲</span>
+          {#if hiddenBuild}
+            <!-- The build the press fills is in the popup: its progress stays in sight here. -->
+            <span class="toggle-build" data-testid="toggle-build">{@render bar(hiddenBuild)}</span>
+          {/if}
         </button>
       {:else}
         {@render offerList()}
       {/if}
     {/if}
-    {#if (game.release || game.demo) && !game.ending}
+    {#if !compactOffers && (game.release || game.demo) && !game.ending}
       <div class="strips">
         {@render shipStrip()}
         {@render demoStrip()}
       </div>
     {/if}
     {#if game.log.length > 0}
-      <ol class="log" aria-label="Recent events">
-        {#each game.log as line, i (i)}
-          {#if i === game.log.length - 1}
-            <!-- The newest line flashes in, so a purchase visibly lands in the terminal. -->
-            {#key `${line.activeMs}|${line.text}|${game.log.length}`}
-              <li class="fresh" data-testid="log-fresh">
-                <span class="time">[{formatActiveTime(line.activeMs)}]</span>
-                {line.text}
-              </li>
-            {/key}
-          {:else}
-            <li><span class="time">[{formatActiveTime(line.activeMs)}]</span> {line.text}</li>
-          {/if}
-        {/each}
-      </ol>
+      <!-- The terminal scrolls through the remembered lines; it follows the newest one unless
+           the player has scrolled up to read. -->
+      <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+      <div
+        class="log"
+        role="region"
+        aria-label="Recent events"
+        tabindex="0"
+        bind:this={terminal}
+        onscroll={() => {
+          if (terminal) {
+            following = terminal.scrollHeight - terminal.scrollTop - terminal.clientHeight < 8;
+          }
+        }}
+      >
+        <ol>
+          {#each game.log as line, i (i)}
+            {#if i === game.log.length - 1}
+              <!-- The newest line flashes in, so a purchase visibly lands in the terminal. -->
+              {#key `${line.activeMs}|${line.text}|${game.log.length}`}
+                <li class="fresh" data-testid="log-fresh">
+                  <span class="time">[{formatActiveTime(line.activeMs)}]</span>
+                  {line.text}
+                </li>
+              {/key}
+            {:else}
+              <li><span class="time">[{formatActiveTime(line.activeMs)}]</span> {line.text}</li>
+            {/if}
+          {/each}
+        </ol>
+      </div>
     {/if}
   </div>
-  {#if compactOffers && offersOpen && game.offers.length > 0 && !game.ending}
+  {#if compactOffers && offersOpen && (game.offers.length > 0 || sheetJobs || sheetStrips) && !game.ending}
     <div
       class="offers-sheet"
       role="dialog"
       aria-modal="true"
-      aria-label="Upgrades"
+      aria-label={sheetTitle}
       data-testid="offers-sheet"
       bind:this={sheet}
     >
@@ -680,10 +809,22 @@
         <button type="button" class="sheet-close" onclick={() => (offersOpen = false)}
           >← BACK TO CODE</button
         >
-        <h2>UPGRADES</h2>
+        <h2>{sheetTitle}</h2>
       </div>
       <Stats stats={game.stats} onOpen={onSetup} />
-      {@render offerList()}
+      {#if sheetStrips}
+        <div class="strips">
+          {@render shipStrip()}
+          {@render demoStrip()}
+        </div>
+      {/if}
+      {#if sheetJobs}
+        <div class="sheet-jobs">
+          {@render gigBoard()}
+          {@render jobCard()}
+        </div>
+      {/if}
+      {#if game.offers.length > 0}{@render offerList()}{/if}
     </div>
   {/if}
   {#if wheel}
@@ -724,9 +865,14 @@
     position: relative;
     display: grid;
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: minmax(0, 1fr) auto;
+    grid-template-rows: auto minmax(0, 1fr) auto;
     height: 100%;
     min-height: 0;
+  }
+  .stats-bar {
+    position: relative;
+    padding: 4px 10px;
+    border-bottom: 3px solid var(--border);
   }
   .world {
     position: relative;
@@ -749,7 +895,10 @@
     flex-direction: column;
   }
   .primary {
+    position: relative;
     min-height: 56px;
+    /* Room for the strain meter along the bottom edge. */
+    padding-bottom: 10px;
     border: 3px solid var(--border);
     background: var(--accent);
     color: var(--accent-ink);
@@ -763,6 +912,86 @@
   .primary:active {
     transform: translateY(2px);
     box-shadow: 0 2px 0 var(--accent-strong);
+  }
+  /* Overworked: the button cools off in red until the strain leaves the red step. */
+  .primary.tired {
+    background: color-mix(in srgb, #e8483c 45%, var(--accent));
+    box-shadow: 0 4px 0 #8e2a20;
+  }
+  .strain {
+    --step: calc(100% / var(--steps, 6));
+    position: absolute;
+    left: 8px;
+    right: 8px;
+    bottom: 5px;
+    height: 7px;
+    border: 1px solid var(--border);
+    /* The track, with its last step marked as the red zone. */
+    background:
+      repeating-linear-gradient(
+          135deg,
+          rgba(232, 72, 60, 0.55) 0 3px,
+          rgba(232, 72, 60, 0.2) 3px 6px
+        )
+        right / var(--step) 100% no-repeat,
+      rgba(0, 0, 0, 0.28);
+    pointer-events: none;
+  }
+  /* The fill reveals a fixed cool→hot gradient, so its colour says how close the red is. */
+  .strain-fill {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      to right,
+      #57c84d 0%,
+      #a6d83a 40%,
+      #ffd23f 62%,
+      #ff9f2e calc(100% - var(--step)),
+      #e8483c calc(100% - var(--step))
+    );
+    clip-path: inset(0 calc((1 - var(--strain, 0)) * 100%) 0 0);
+    transition: clip-path 100ms linear;
+  }
+  /* Step dividers: one per press of the budget. */
+  .strain::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      to right,
+      transparent 0 calc(var(--step) - 1px),
+      var(--border) calc(var(--step) - 1px) var(--step)
+    );
+  }
+  .strain.zone .strain-fill {
+    animation: zone-glow 600ms ease-in-out infinite alternate;
+  }
+  .primary.tired .strain {
+    background:
+      linear-gradient(#e8483c, #e8483c) right / var(--step) 100% no-repeat,
+      rgba(0, 0, 0, 0.28);
+  }
+  .primary.tired .strain-fill {
+    animation: tired-blink 300ms steps(2, jump-none) infinite;
+  }
+  @keyframes zone-glow {
+    to {
+      filter: brightness(1.35) saturate(1.2);
+    }
+  }
+  @keyframes tired-blink {
+    to {
+      filter: brightness(1.6);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .strain-fill {
+      transition: none;
+    }
+    .strain.zone .strain-fill,
+    .primary.tired .strain-fill {
+      animation: none;
+    }
   }
   .credit {
     display: flex;
@@ -869,6 +1098,15 @@
     letter-spacing: 0.06em;
     cursor: pointer;
   }
+  /* The title gives way first on narrow phones ("UPGRADES & J…"); the chips keep their size. */
+  .toggle-title {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .offers-toggle > :not(.toggle-title) {
+    flex: none;
+  }
   .toggle-count {
     min-width: 22px;
     padding: 1px 6px;
@@ -910,6 +1148,29 @@
   .toggle-open {
     margin-left: auto;
     font-size: 12px;
+  }
+  .offers-toggle {
+    position: relative;
+  }
+  .toggle-build .project-bar {
+    height: 6px;
+  }
+  .sheet-jobs {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .sheet-jobs .gig {
+    flex: none;
+    min-height: 48px;
+    border-color: #3f9d4a;
+  }
+  /* In the popup the gig has the room of a card: its title wraps instead of being cut. */
+  .sheet-jobs .gig-text {
+    white-space: normal;
+    overflow: visible;
+    font-size: 13px;
+    line-height: 1.3;
   }
   .offers-sheet {
     position: absolute;
@@ -1116,33 +1377,6 @@
     font-size: 13px;
     font-weight: 800;
   }
-  .money-strip.broke {
-    border-color: #c0392b;
-    background: color-mix(in srgb, #e8483c 12%, var(--panel));
-  }
-  .money-head {
-    flex: none;
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-    line-height: 1.1;
-  }
-  .money-balance {
-    font-size: 15px;
-    font-weight: 900;
-    font-variant-numeric: tabular-nums;
-  }
-  .money-strip.broke .money-balance {
-    color: #c0392b;
-  }
-  .rent {
-    display: inline-flex;
-    align-items: center;
-    gap: 2px;
-    font-size: 11px;
-    white-space: nowrap;
-    font-variant-numeric: tabular-nums;
-  }
   .gig {
     flex: 1;
     min-width: 0;
@@ -1259,24 +1493,28 @@
       animation: none;
     }
   }
+  /* The terminal: a fixed-height window that scrolls (it starts at the newest line). */
   .log {
-    list-style: none;
-    margin: 0;
-    padding: 6px 8px 8px;
     max-height: 7.5em;
     flex: none;
-    overflow: hidden;
-    /* The newest line sits fully visible at the bottom; older ones clip at the top. */
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 6px 8px 8px;
     background: var(--log-bg);
     color: var(--log-ink);
     font-size: 12px;
     line-height: 1.45;
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--log-ink) 40%, transparent) transparent;
   }
-  .log li {
-    flex: none;
+  .log:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: -2px;
+  }
+  .log ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
   }
   .time {
     opacity: 0.7;
@@ -1298,11 +1536,8 @@
     .log {
       max-height: 4.5em;
     }
-    .log li:nth-last-child(n + 4) {
-      display: none;
-    }
   }
-  /* Short phones: the world keeps its share; the terminal shows its two newest lines. */
+  /* Short phones: the world keeps its share; the terminal is two lines tall (it scrolls). */
   @media (max-height: 700px) {
     .controls {
       gap: 5px;

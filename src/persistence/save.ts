@@ -200,6 +200,14 @@ const STATS_FIELDS = [
   'refillDisasters',
   'taxedCode',
   'gigCode',
+  'earnedGigs',
+  'earnedSalary',
+  'earnedRevenue',
+  'earnedOther',
+  'spentRent',
+  'spentFood',
+  'spentShopping',
+  'spentCompany',
 ] as const satisfies readonly (keyof RunStats)[];
 
 // Compile-time proof that the field lists cover the whole state shape.

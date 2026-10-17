@@ -9,6 +9,9 @@ import { cardEffects, effectText } from './effectText';
 import { creditState, type CreditState } from './money';
 import type { PrimaryActionId, TechnologyId, UpgradeId } from './ids';
 import { currentPrimaryAction } from './progression';
+import { moneyLedger, type MoneyLedger } from './ledger';
+import { selectMoney } from './projectViews';
+import { companyPaysRent } from './rent';
 import type { ProjectKey, ReadonlyRun, SlotBy } from './types';
 
 /** What currently holds production back, most fundamental first. */
@@ -103,6 +106,30 @@ export interface SetupViewModel {
     } | null;
   };
   readonly limits: readonly SetupLimit[];
+  /** The player's own money, from the first gig: balance, work, rent and the ledger. */
+  readonly wallet: SetupWalletViewModel | null;
+}
+
+export interface SetupWalletViewModel {
+  readonly balance: number;
+  readonly work:
+    | { readonly kind: 'freelance'; readonly offer: number | null }
+    | {
+        readonly kind: 'employed';
+        readonly salary: number;
+        readonly paydays: number;
+        readonly of: number;
+        readonly permanent: boolean;
+      };
+  readonly rent:
+    | { readonly kind: 'parents' | 'company' }
+    | {
+        readonly kind: 'due';
+        readonly amount: number;
+        readonly dueInSeconds: number;
+        readonly missedTotal: number;
+      };
+  readonly ledger: MoneyLedger;
 }
 
 const MULTIPLIERS = new Set<Effect['kind']>([
@@ -289,6 +316,35 @@ export function selectSetup(run: ReadonlyRun, catalog: Catalog): SetupViewModel 
       money,
     },
     limits,
+    wallet: selectWallet(run, catalog),
+  };
+}
+
+function selectWallet(run: ReadonlyRun, catalog: Catalog): SetupWalletViewModel | null {
+  const money = selectMoney(run, catalog);
+  if (!money) return null;
+  const employed = run.job.employed;
+  return {
+    balance: money.balance,
+    work: employed
+      ? {
+          kind: 'employed',
+          salary: employed.salary,
+          paydays: employed.paydays,
+          of: catalog.balance.job.tryoutMonths,
+          permanent: employed.permanent,
+        }
+      : { kind: 'freelance', offer: run.job.offer?.salary ?? null },
+    rent:
+      money.rent !== null && money.rentInSeconds !== null
+        ? {
+            kind: 'due',
+            amount: money.rent,
+            dueInSeconds: money.rentInSeconds,
+            missedTotal: run.rent.missedTotal,
+          }
+        : { kind: run.rent.movedOut && companyPaysRent(run) ? 'company' : 'parents' },
+    ledger: moneyLedger(run),
   };
 }
 

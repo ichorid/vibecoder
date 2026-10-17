@@ -51,6 +51,14 @@ export interface UiSnapshot {
   readonly save: { readonly status: SaveStatus };
   /** The checkpoint slot (null: empty or not available). */
   readonly checkpoint: CheckpointInfo | null;
+  /** Money just earned (gigs paid), newest last; presentation only, never saved. */
+  readonly payouts: readonly Payout[];
+}
+
+export interface Payout {
+  /** Increases with every payout of this session. */
+  readonly id: number;
+  readonly amount: number;
 }
 
 export interface CheckpointInfo {

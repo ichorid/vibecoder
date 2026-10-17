@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { SetupLimit, SetupViewModel } from '../game/setup';
   import { ACTION_ICONS, cardIcon, STAT_ICONS } from './cardIcons';
-  import { formatAmount } from './format';
+  import { formatAmount, formatCountdown } from './format';
   import * as icons from './icons';
   import PixelIcon from './PixelIcon.svelte';
   import type { PixelMap } from './pixelArt';
@@ -22,6 +22,17 @@
     return String(Number(value.toFixed(size < 1 ? 2 : 1)));
   };
   const pct = (value: number) => `${Math.round(value * 100)}%`;
+  const usd = (value: number) => `${value < 0 ? '−' : ''}$${formatAmount(Math.abs(value))}`;
+
+  /** "gigs $300 · savings $60": the parts of a ledger total that are not zero. */
+  function parts(entries: readonly (readonly [string, number])[]): string {
+    const shown = entries.filter(([, amount]) => Math.abs(amount) >= 0.5);
+    return shown.length > 0
+      ? shown.map(([label, amount]) => `${label} ${usd(amount)}`).join(' · ')
+      : 'nothing yet';
+  }
+  const w = $derived(setup.wallet);
+  const jobOffer = $derived(w?.work.kind === 'freelance' ? w.work.offer : null);
 
   const LIMITED_BY = {
     compute: 'compute (agents wait for a slot)',
@@ -177,6 +188,75 @@
       <li class="total">
         <span class="what">{@render ico(STAT_ICONS.debt)}Debt now</span>
         <span class="value">{n(e.debt)}</span>
+      </li>
+    </ol>
+  {/if}
+
+  {#if w}
+    <h3>Wallet</h3>
+    <ol class="flow" data-testid="setup-wallet">
+      <li class="total" data-testid="wallet-balance">
+        <span class="what">{@render ico(STAT_ICONS.money)}Balance</span>
+        <span class="value" class:red={w.balance < 0}>{usd(w.balance)}</span>
+      </li>
+      <li data-testid="wallet-work">
+        {#if w.work.kind === 'employed'}
+          <span class="what">{@render ico(icons.jobIcon)}Employed</span>
+          <span class="value">{usd(w.work.salary)} a month</span>
+          <span class="note"
+            >{w.work.permanent ? 'Permanent.' : `Tryout ${w.work.paydays}/${w.work.of}.`}
+            The job takes all your code.</span
+          >
+        {:else}
+          <span class="what">{@render ico(icons.gigIcon)}Freelance</span>
+          <span class="value">gigs</span>
+          <span class="note"
+            >{#if jobOffer !== null}A job is on offer: {usd(jobOffer)} a month.{:else}Paid per gig,
+              when it is done.{/if}</span
+          >
+        {/if}
+      </li>
+      <li data-testid="wallet-rent">
+        <span class="what">{@render ico(icons.rentIcon)}Rent</span>
+        {#if w.rent.kind === 'due'}
+          <span class="value rent">−${formatAmount(w.rent.amount)}</span>
+          <span class="note"
+            >{`due in ${formatCountdown(w.rent.dueInSeconds)}`}{w.rent.missedTotal > 0
+              ? ` · missed ${w.rent.missedTotal} so far`
+              : ''}</span
+          >
+        {:else}
+          <span class="value">$0</span>
+          <span class="note"
+            >{w.rent.kind === 'company'
+              ? 'The company pays the rent.'
+              : 'Living with your parents: no rent yet.'}</span
+          >
+        {/if}
+      </li>
+      <li data-testid="wallet-earned">
+        <span class="what">{@render ico(icons.revenueIcon)}Earned so far</span>
+        <span class="value">{usd(w.ledger.earned)}</span>
+        <span class="note"
+          >{parts([
+            ['gigs', w.ledger.in.gigs],
+            ['salary', w.ledger.in.salary],
+            ['company', w.ledger.in.revenue],
+            ['savings', w.ledger.in.other],
+          ])}</span
+        >
+      </li>
+      <li data-testid="wallet-spent">
+        <span class="what">{@render ico(icons.costIcon)}Spent so far</span>
+        <span class="value">{usd(w.ledger.spent)}</span>
+        <span class="note"
+          >{parts([
+            ['rent', w.ledger.out.rent],
+            ['cat food', w.ledger.out.food],
+            ['shopping', w.ledger.out.shopping],
+            ['company costs', w.ledger.out.company],
+          ])}</span
+        >
       </li>
     </ol>
   {/if}
@@ -357,6 +437,13 @@
     font-variant-numeric: tabular-nums;
     text-align: right;
     white-space: nowrap;
+  }
+  /* Money going out is blue like a bill; a balance below zero is red. */
+  .value.rent {
+    color: var(--rent);
+  }
+  .value.red {
+    color: var(--alarm);
   }
   .note {
     grid-column: 1 / -1;

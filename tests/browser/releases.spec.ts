@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { loadSave } from './helpers';
+import { closeUpgrades, loadSave, openUpgrades } from './helpers';
 import { progressedRun, saveText, withBuilt } from './fixtures';
 import type { RunState } from '../../src/game/types';
 
@@ -8,8 +8,9 @@ function readyToShip(seed: number): RunState {
   return withBuilt(progressedRun(4, false, seed), 'release');
 }
 
-/** The Ship strip sits under the cards, outside the popup. */
+/** The Ship strip sits under the cards (in the cards popup on phones). */
 async function ship(page: Page) {
+  await openUpgrades(page);
   const card = page.locator('[data-release="1"]');
   await expect(card).toBeVisible();
   await expect(card).toContainText('v0.1');
@@ -32,9 +33,11 @@ test('ship a release: wheel, result, back to work, a frame on the wall, the card
   await page.getByRole('button', { name: 'BACK TO WORK' }).click();
   await expect(page.getByTestId('release-wheel')).toHaveCount(0);
   // The next release is on offer at once — and it has to be built again.
+  await openUpgrades(page);
   await expect(page.locator('[data-release="2"]')).toContainText('v0.2');
   await expect(page.locator('[data-release="1"]')).toHaveCount(0);
-  await expect(page.getByRole('list', { name: 'Recent events' })).toContainText('Shipped v0.1:');
+  await closeUpgrades(page);
+  await expect(page.getByRole('region', { name: 'Recent events' })).toContainText('Shipped v0.1:');
   await expect(page.getByTestId('world-canvas')).toHaveAttribute('data-release-frames', '1');
 
   // A reload never replays the wheel; the release stays in History.

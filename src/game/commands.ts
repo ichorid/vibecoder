@@ -1,3 +1,4 @@
+import { spent } from './ledger';
 import { feedCat, noteMeaningfulAction, petCat } from './cat';
 import { endRun, isChoiceOffered } from './endings';
 import type { Catalog } from './catalog';
@@ -172,7 +173,7 @@ export function applyCommand(
           ...run,
           cat: fed.cat,
           rng: { ...run.rng, cat: fed.rng },
-          stats: { ...run.stats, feeds: run.stats.feeds + 1 },
+          stats: spent({ ...run.stats, feeds: run.stats.feeds + 1 }, 'food', food),
           economy: { ...run.economy, money: roundAmount(run.economy.money - food) },
         },
         facts: [{ type: 'catCared', kind: 'feed' }],
@@ -216,6 +217,7 @@ function buyUpgrade(run: RunState, id: string, catalog: Catalog): CommandTransit
         money: roundAmount(run.economy.money - price),
         tokens: roundAmount(run.economy.tokens + pack.tokens),
       },
+      stats: spent(run.stats, 'shopping', price),
     };
     return {
       run: appendLog(
@@ -231,6 +233,7 @@ function buyUpgrade(run: RunState, id: string, catalog: Catalog): CommandTransit
     ...run,
     cat: noteMeaningfulAction(run.cat),
     economy: { ...run.economy, money: roundAmount(run.economy.money - price) },
+    stats: spent(run.stats, 'shopping', price),
     upgradeLevels: { ...run.upgradeLevels, [upgrade.id]: level + 1 },
   };
   // The terminal answers every purchase; a discovery prints its own "unlocked" line instead.

@@ -1,3 +1,4 @@
+import { earned, spent } from './ledger';
 import { evaluateChatter } from './chatter';
 import { creditNotices } from './money';
 import { updatePlant } from './plant';
@@ -47,12 +48,16 @@ export function stepRun(run: RunState, stepMs: number, catalog: Catalog): Transi
   const economy = stepEconomy(run.economy, deriveRates(run, catalog), stepMs, catalog.balance);
   const margin = economy.economy.revenuePerSecond - economy.economy.costPerSecond;
   const monetized = economy.economy.revenuePerSecond > 0 || economy.economy.costPerSecond > 0;
+  // The company's books: revenue in; costs and interest are whatever else moved the money.
+  const revenue = roundAmount(economy.economy.revenuePerSecond * (stepMs / 1000));
+  const moved = roundAmount(economy.economy.money - run.economy.money);
+  const books = spent(earned(run.stats, 'revenue', revenue), 'company', revenue - moved);
   let next: RunState = {
     ...run,
     activeMs,
     economy: economy.economy,
     stats: {
-      ...run.stats,
+      ...books,
       lifetimeOutput: roundAmount(run.stats.lifetimeOutput + economy.produced),
       // A clean pipeline counts from Evaluations: the checks have to exist to stay green.
       lowDebtMs:
@@ -173,6 +178,7 @@ function tokenAutomation(run: RunState, stepMs: number, catalog: Catalog): RunSt
         money: roundAmount(next.economy.money - price),
         tokens: roundAmount(next.economy.tokens + pack.tokens),
       },
+      stats: spent(next.stats, 'shopping', price),
     };
   }
   const refills = next.economy.autoRefills + 1;
@@ -198,7 +204,11 @@ function tokenAutomation(run: RunState, stepMs: number, catalog: Catalog): RunSt
         autoRefills: refills,
         money: roundAmount(next.economy.money - loss),
       },
-      stats: { ...next.stats, refillDisasters: next.stats.refillDisasters + 1 },
+      stats: spent(
+        { ...next.stats, refillDisasters: next.stats.refillDisasters + 1 },
+        'shopping',
+        loss,
+      ),
     };
     const story =
       next.stats.refillDisasters % 2 === 0
@@ -215,5 +225,6 @@ function tokenAutomation(run: RunState, stepMs: number, catalog: Catalog): RunSt
       money: roundAmount(next.economy.money - price),
       tokens: roundAmount(next.economy.tokens + pack.tokens),
     },
+    stats: spent(next.stats, 'shopping', price),
   };
 }

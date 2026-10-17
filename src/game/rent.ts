@@ -4,6 +4,7 @@
  * the eviction slice grows with each month missed in a row, and eviction ends the run. The draw
  * is committed at the due time from `rng.rent`; the wheel only animates it later.
  */
+import { spent } from './ledger';
 import type { Catalog } from './catalog';
 import { catAware } from './catAware';
 import { roundAmount } from './economy';
@@ -72,6 +73,7 @@ export function stepRent(run: RunState, catalog: Catalog): { run: RunState; fact
     next = {
       ...next,
       economy: { ...next.economy, money: roundAmount(next.economy.money - rent) },
+      stats: spent(next.stats, 'rent', rent),
       rent: { ...next.rent, missedStreak: 0 },
     };
     return { run: appendLog(next, fill(catalog.money.lines.rentPaid, { rent }), catalog), facts };
@@ -117,6 +119,7 @@ function missedRent(
     ...run,
     rng: { ...run.rng, rent: rng },
     economy: { ...run.economy, money: roundAmount(run.economy.money - rent + share * rent) },
+    stats: spent(run.stats, 'rent', rent - share * rent),
     rent: { ...run.rent, missedStreak: streak, missedTotal: run.rent.missedTotal + 1 },
     rentWheels: [...run.rentWheels, record],
   };

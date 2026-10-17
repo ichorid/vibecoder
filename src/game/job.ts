@@ -4,6 +4,7 @@
  * more than a moment, and at every payday a hidden draw may lay the player off anyway. Twelve
  * paydays make the contract permanent, which changes nothing.
  */
+import { earned } from './ledger';
 import type { Catalog } from './catalog';
 import { marketRate, roundAmount } from './economy';
 import { nextGig } from './gigs';
@@ -99,6 +100,7 @@ export function fire(
       ...run.economy,
       money: roundAmount(run.economy.money + (alreadyPaid ? 0 : finalPay)),
     },
+    stats: earned(run.stats, 'salary', alreadyPaid ? 0 : finalPay),
     job: {
       ...run.job,
       employed: null,
@@ -179,6 +181,7 @@ export function payday(run: RunState, catalog: Catalog): { run: RunState; facts:
   let next: RunState = {
     ...run,
     economy: { ...run.economy, money: roundAmount(run.economy.money + pay) },
+    stats: earned(run.stats, 'salary', pay),
     job: {
       ...run.job,
       employed: {

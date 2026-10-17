@@ -593,3 +593,21 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   became decisions; new contract test: an attentive player (picks within 5 s) finishes within
   30 min (measured 28.9–29.4 min, 5 % drifted).
 
+- 2026-10-17: (user) UI pass. Tap pacing made visible: a strain meter along the bottom of the
+  primary button (`primaryAction.strain` = burst − charges, one step per press, cools at the
+  refill rate; last step = red zone), glow while riding the upper half, red button + flinch + red
+  "too tired" float on a press that does not count (the old "typing…" never showed). Rules
+  unchanged. STOP RUN… in Settings. Stats bar moved under the navbar: one row up to four cells,
+  two rows only when the era lists five or six; MONEY always shows once money matters (it was
+  filtered out in every real run), with "(rent: −$x in m:ss)" in blue under it (red when it
+  cannot be paid). Bottom money strip is only the gig board now. Golden "+$pay" pops into the
+  money when a gig pays (app-level `payouts` in the snapshot, from `gigPaid` facts). FEED floats
+  "−$2". Phones: gigs, the job, Ship It and the demo live in the popup ("UPGRADES & JOBS"); the
+  folded button shows a mini-bar and names the hidden build ("building 9/2K code"). Discovery
+  cards: CONTINUE moved to the top (owner: no pause, no arming delay). Terminal scrolls through
+  the whole remembered log (`logVisibleLines` removed). Plant death is a significant narrative
+  event (History). Money ledger (`ledger.ts`, 8 stats: earned by gigs/salary/revenue/other,
+  spent on rent/food/shopping/company), booked at every money change; invariant test: balance
+  = earned − spent over whole runs. Save schema 11 (ledger starts at zero). Setup: Wallet
+  section (balance, work, rent, earned/spent). Not done: SEARCH shares the tap budget but has
+  no tired feedback.

@@ -16,6 +16,8 @@
   --log-ink: #e8e3d0;
   --health: #d9473b;
   --mood: #3d7fd9;
+  --rent: #2a63b8;
+  --alarm: #c0392b;
   --bar-track: #d8cbaa;
   --bar-dead: #9a958c;
   --focus: #e08a1e;
@@ -38,6 +40,8 @@
   --log-ink: #8ff5c9;
   --health: #ff6b5e;
   --mood: #59b7ff;
+  --rent: #6cb8ff;
+  --alarm: #ff6b5e;
   --bar-track: #2c3563;
   --bar-dead: #5b5f74;
   --focus: #ffd166;

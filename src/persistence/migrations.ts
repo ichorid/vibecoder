@@ -29,7 +29,7 @@
  */
 import { deriveSeed } from '../game/random';
 
-export const CURRENT_SCHEMA_VERSION = 10;
+export const CURRENT_SCHEMA_VERSION = 11;
 
 /** Release prices at schema 10 (v0.1 … v3.0, then ×6 each): where an old bank goes. */
 const RELEASE_PRICES_V10 = [2000, 12_000, 75_000, 450_000, 2_700_000];
@@ -248,6 +248,35 @@ function v9ToV10(envelope: Record<string, unknown>): MigrationResult {
   };
 }
 
+/** 10 → 11: the money ledger starts at zero (earlier money has no known source). */
+function v10ToV11(envelope: Record<string, unknown>): MigrationResult {
+  const run = envelope.run;
+  if (!isRecord(run) || !isRecord(run.stats)) {
+    return { ok: false, unsupported: false, reason: 'v10 save without run stats' };
+  }
+  return {
+    ok: true,
+    value: {
+      ...envelope,
+      schemaVersion: 11,
+      run: {
+        ...run,
+        stats: {
+          ...run.stats,
+          earnedGigs: 0,
+          earnedSalary: 0,
+          earnedRevenue: 0,
+          earnedOther: 0,
+          spentRent: 0,
+          spentFood: 0,
+          spentShopping: 0,
+          spentCompany: 0,
+        },
+      },
+    },
+  };
+}
+
 const STEPS: Record<number, (envelope: Record<string, unknown>) => MigrationResult> = {
   1: v1ToV2,
   2: v2ToV3,
@@ -258,6 +287,7 @@ const STEPS: Record<number, (envelope: Record<string, unknown>) => MigrationResu
   7: v7ToV8,
   8: v8ToV9,
   9: v9ToV10,
+  10: v10ToV11,
 };
 
 export function migrate(envelope: Record<string, unknown>): MigrationResult {

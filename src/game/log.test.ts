@@ -6,13 +6,14 @@ import { appendLog } from './log';
 import { selectGame } from './selectors';
 
 describe('event log', () => {
-  it('records a discovery line and shows at most five recent lines', () => {
+  it('records a discovery line; the terminal gets every remembered line (it scrolls)', () => {
     const run = build(clickAndSettle(createRun(1, 'r'), 5, catalog), 'autocomplete', catalog);
     expect(selectGame(run, catalog).log.map((l) => l.text)).toContain('🔓 Autocomplete unlocked.');
     let long = run;
     for (let i = 0; i < 8; i += 1) long = appendLog(long, `line ${i}`, catalog);
     const shown = selectGame(long, catalog).log.map((e) => e.text);
-    expect(shown).toEqual(['line 3', 'line 4', 'line 5', 'line 6', 'line 7']);
+    expect(shown).toEqual(long.log.map((e) => e.text));
+    expect(shown.slice(-3)).toEqual(['line 5', 'line 6', 'line 7']);
   });
 
   it('keeps at most the memory limit of entries in the run', () => {

@@ -14,6 +14,7 @@ import {
 import type {
   AppCommand,
   CheckpointInfo,
+  Payout,
   InputTiming,
   SaveStatus,
   UiGameApi,
@@ -138,6 +139,16 @@ export function createGame(options: GameOptions): Game {
     return loaded?.status === 'loaded' ? loaded.save.run : null;
   };
   let checkpoint = checkpointInfo(readCheckpoint());
+  /** Recent payouts for the "+$x" pop (a few are enough: the UI shows each new id once). */
+  let payouts: readonly Payout[] = [];
+  let payoutId = 0;
+  function notePayouts(facts: readonly GameFact[]): void {
+    for (const fact of facts) {
+      if (fact.type !== 'gigPaid') continue;
+      payoutId += 1;
+      payouts = [...payouts.slice(-3), { id: payoutId, amount: fact.amount }];
+    }
+  }
 
   const snapshot = (): GameSnapshot => ({
     run,
@@ -149,6 +160,7 @@ export function createGame(options: GameOptions): Game {
     profile,
     save: { status: saveStatus },
     checkpoint,
+    payouts,
   });
   const store = createSnapshotStore<GameSnapshot>(snapshot(), options.freezeSnapshots ?? true);
   const publish = () => store.publish(snapshot());
@@ -204,6 +216,7 @@ export function createGame(options: GameOptions): Game {
         const transition = stepRun(run, STEP_MS, catalog);
         run = transition.run;
         recordDiscoveries(transition.facts);
+        notePayouts(transition.facts);
         if (transition.facts.length > 0) options.onFacts?.(transition.facts);
         if (needsImmediateSave(transition.facts)) urgent = true;
       }
@@ -295,6 +308,7 @@ export function createGame(options: GameOptions): Game {
       const transition = applyCommand(run, command, at, catalog);
       run = transition.run;
       recordDiscoveries(transition.facts);
+      notePayouts(transition.facts);
       if (transition.facts.length > 0) options.onFacts?.(transition.facts);
       if (needsImmediateSave(transition.facts)) write();
       publish();

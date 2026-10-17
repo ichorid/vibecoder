@@ -13,6 +13,23 @@ const since = (run: ReadonlyRun, id: string) => {
 };
 
 export const events: readonly EventDefinition[] = [
+  // The corner plant's end: told once, and kept in History.
+  {
+    id: 'plant-dried',
+    emoji: '🥀',
+    text: 'The plant dried out. Nobody noticed.',
+    once: true,
+    significant: true,
+    when: (run) => !run.plant.alive && run.plant.cause === 'dried',
+  },
+  {
+    id: 'plant-drowned',
+    emoji: '🥀',
+    text: 'The plant drowned. It was trying its best.',
+    once: true,
+    significant: true,
+    when: (run) => !run.plant.alive && run.plant.cause === 'drowned',
+  },
   {
     id: 'new-project',
     emoji: '🚀',

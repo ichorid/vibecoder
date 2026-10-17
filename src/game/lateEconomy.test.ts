@@ -38,12 +38,12 @@ describe('infrastructure (13–17)', () => {
     expect(after.reviewPerSecond).toBe(before.reviewPerSecond);
   });
 
-  it('the panel fills up as the company grows: three at most early, all six from finance', () => {
+  it('the panel fills up as the company grows: one row of four at most early, six from finance', () => {
     for (const id of TECHNOLOGY_IDS) {
       const count = selectGame(through(id), catalog).stats.length;
       expect(count).toBeLessThanOrEqual(6);
       if (TECHNOLOGY_IDS.indexOf(id) < TECHNOLOGY_IDS.indexOf('evaluations')) {
-        expect(count).toBeLessThanOrEqual(3);
+        expect(count).toBeLessThanOrEqual(4);
       }
     }
     const finance = selectGame(through('finance'), catalog).stats.map((s) => s.id);
@@ -98,6 +98,16 @@ describe('organizations (23–28)', () => {
     expect(after.economy.revenuePerSecond).toBeGreaterThan(0);
     expect(after.economy.money).toBeGreaterThan(0);
     expect(selectGame(after, catalog).stats.map((s) => s.id)).toContain('money');
+  });
+
+  it('shows MONEY on the panel in a real run too (the first gig has long fired)', () => {
+    const run = through('finance', { money: 1000 });
+    const gigged = {
+      ...run,
+      narrative: { ...run.narrative, fired: [...run.narrative.fired, 'first-gig'] },
+    };
+    const ids = selectGame(gigged, catalog).stats.map((s) => s.id);
+    expect(ids.slice(0, 5)).toEqual(['code', 'tokens', 'debt', 'money', 'margin']);
   });
 
   it('subtracts operating costs after finance and tracks the margin', () => {

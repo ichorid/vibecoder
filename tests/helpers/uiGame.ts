@@ -11,11 +11,15 @@ export function createUiGame(run: RunState = createRun(7, 'ui-run')) {
   const clock = createFakeClock();
   const scheduler = createFakeScheduler();
   const storage = createMemoryStorage();
+  let restarts = 0;
   const game = createGame({
     catalog,
     clock,
     scheduler,
     run,
+    // A deliberate restart (NEW RUN, STOP RUN): numbered fresh runs.
+    newRun: (experience: number, frugal: number) =>
+      createRun(7, `ui-run-${(restarts += 1)}`, experience, frugal),
     persistence: { adapter: createSaveAdapter(storage), profile: createProfile(), revision: 0 },
   });
   game.start();

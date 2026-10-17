@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/svelte';
-import { afterEach, describe, expect, it } from 'vitest';
+import { tick } from 'svelte';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createUiGame, nullRenderer } from '../../tests/helpers/uiGame';
 import { progressedRun } from '../../tests/browser/fixtures';
 import type { GameSnapshot } from './createGame';
@@ -46,14 +47,56 @@ function onItsOwn(patch: Partial<RunState> = {}): RunState {
 }
 
 describe('money on screen', () => {
-  it('the money strip shows the balance, rent day and the gig board', () => {
+  it('the stats panel at the top shows the balance and the rent; the strip holds the gig board', () => {
     const run = onItsOwn();
     const t = show(run);
-    const strip = screen.getByTestId('money-strip');
-    expect(within(strip).getByTestId('money-balance').textContent).toBe('$240');
+    const stats = screen.getByTestId('stats');
+    // One row of four at most; the rent is a small line under the money, not a cell of its own.
+    expect(within(stats).getAllByRole('term').length).toBeLessThanOrEqual(4);
+    const money = within(stats).getByTestId('stat-money');
+    expect(money.textContent).toContain('$240');
     // Month 2 is due next: a dollar more, quietly.
-    expect(within(strip).getByTestId('rent-due').textContent).toContain('$101 in 1:00');
+    const rent = within(money).getByTestId('rent-due');
+    expect(rent.textContent?.trim()).toBe('(rent: −$101 in 1:00)');
+    expect(rent.getAttribute('data-alarm')).toBe('false');
+    const strip = screen.getByTestId('money-strip');
+    expect(strip.textContent).not.toContain('$240');
     expect(t.latest()?.game.money?.gig ?? t.latest()?.game.money?.search).toBeTruthy();
+  });
+
+  it('money and rent turn red when the rent cannot be paid', () => {
+    show(onItsOwn({ economy: { ...onItsOwn().economy, money: -30 } }));
+    expect(screen.getByTestId('stat-money').getAttribute('data-alarm')).toBe('true');
+    expect(screen.getByTestId('rent-due').getAttribute('data-alarm')).toBe('true');
+  });
+
+  it('a finished gig pops a golden "+$pay" on the money', async () => {
+    const run = onItsOwn();
+    const t = show({
+      ...run,
+      gigs: {
+        ...run.gigs,
+        offer: {
+          size: 10,
+          pay: 55,
+          tier: 'normal',
+          payMin: 50,
+          payMax: 60,
+          clientId: catalog.money.clients[0]?.id ?? 'c',
+          paymentId: 'p',
+        },
+        search: null,
+      },
+      projects: { ...run.projects, gig: { code: 9.5, price: 10 } },
+      slots: [{ target: 'gig', by: 'player', sinceMs: 0 }],
+    });
+    await fireEvent.click(screen.getByTestId('primary-action'));
+    t.tick(300);
+    await tick();
+    expect(t.latest()?.run.economy.money).toBeGreaterThanOrEqual(295);
+    const earned = [...document.querySelectorAll('[data-tone="earn"]')];
+    expect(earned.map((e) => e.textContent?.trim())).toEqual(['+$55']);
+    expect(earned[0]?.closest('.stats-bar')).not.toBeNull();
   });
 
   it('SEARCH spends a press and finds a gig after a few; tapping the gig builds it', async () => {
@@ -83,11 +126,71 @@ describe('money on screen', () => {
   });
 });
 
+describe('the wallet in Setup', () => {
+  it('shows the balance, the work, the rent, and what was earned and spent so far', async () => {
+    const run = onItsOwn();
+    show({
+      ...run,
+      stats: { ...run.stats, earnedGigs: 300, earnedOther: 60, spentRent: 100, spentFood: 20 },
+      rent: { ...run.rent, missedTotal: 1 },
+    });
+    await fireEvent.click(screen.getByTestId('open-setup'));
+    const wallet = screen.getByTestId('setup-wallet');
+    expect(within(wallet).getByTestId('wallet-balance').textContent).toContain('$240');
+    expect(within(wallet).getByTestId('wallet-work').textContent).toContain('Freelance');
+    const rent = within(wallet).getByTestId('wallet-rent').textContent ?? '';
+    expect(rent).toContain('−$101');
+    expect(rent).toContain('1:00');
+    expect(rent).toContain('missed 1');
+    const earned = within(wallet).getByTestId('wallet-earned').textContent ?? '';
+    expect(earned).toContain('$360');
+    expect(earned).toContain('gigs $300');
+    expect(earned).toContain('savings $60');
+    const spent = within(wallet).getByTestId('wallet-spent').textContent ?? '';
+    expect(spent).toContain('$120');
+    expect(spent).toContain('rent $100');
+    expect(spent).toContain('cat food $20');
+  });
+
+  it('an employee sees the salary and the tryout', async () => {
+    const run = onItsOwn();
+    show({
+      ...run,
+      job: {
+        ...run.job,
+        employed: { salary: 400, monthEmployedMs: 0, paydays: 3, permanent: false },
+      },
+      slots: [{ target: 'job', by: 'player', sinceMs: 0 }],
+    });
+    await fireEvent.click(screen.getByTestId('open-setup'));
+    const work = screen.getByTestId('wallet-work').textContent ?? '';
+    expect(work).toContain('$400 a month');
+    expect(work).toContain('Tryout 3/12.');
+  });
+});
+
 describe('the cat costs money (on your own)', () => {
   it('FEED shows its price after moving out', async () => {
     show(onItsOwn());
     await fireEvent.click(screen.getByRole('button', { name: /^Cat\./ }));
     expect(screen.getByRole('button', { name: /FEED/ }).textContent).toContain('$2');
+  });
+
+  it('FEED floats what the food cost', async () => {
+    const t = show(onItsOwn());
+    await fireEvent.click(screen.getByRole('button', { name: /^Cat\./ }));
+    await fireEvent.click(screen.getByRole('button', { name: /FEED/ }));
+    expect(t.latest()?.run.economy.money).toBe(238);
+    const float = document.querySelector('[data-testid="floating-gain"]');
+    expect(float?.textContent).toBe('−$2');
+    expect(float?.getAttribute('data-tone')).toBe('spend');
+  });
+
+  it('FEED floats nothing while the food is free', async () => {
+    show(createRun(3, 'home'));
+    await fireEvent.click(screen.getByRole('button', { name: /^Cat\./ }));
+    await fireEvent.click(screen.getByRole('button', { name: /FEED/ }));
+    expect(document.querySelector('[data-testid="floating-gain"]')).toBeNull();
   });
 });
 
@@ -180,5 +283,103 @@ describe('the landlord wheel and market updates', () => {
     const panel = screen.getByTestId('announcement');
     expect(panel.textContent).toContain('HISTORIC MILESTONE');
     expect(panel.textContent).toContain('until further notice');
+  });
+});
+
+describe('phones: gigs and the job wait in the popup with the cards', () => {
+  function asPhone() {
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: query.includes('max-width'),
+      media: query,
+      addEventListener() {},
+      removeEventListener() {},
+    }));
+    return () => vi.unstubAllGlobals();
+  }
+
+  it('the balance is up top; the gig sits in UPGRADES & JOBS, whose button shows its build', async () => {
+    const restore = asPhone();
+    try {
+      const t = show(onItsOwn());
+      expect(screen.getByTestId('stat-money').textContent).toContain('$240');
+      expect(screen.queryByTestId('money-strip')).toBeNull();
+      expect(screen.queryByTestId('gig')).toBeNull();
+      expect(screen.queryByTestId('search-job')).toBeNull();
+      const toggle = screen.getByTestId('offers-toggle');
+      expect(toggle.textContent).toContain('UPGRADES & JOBS');
+
+      await fireEvent.click(toggle);
+      const sheet = screen.getByTestId('offers-sheet');
+      expect(within(sheet).getByRole('heading').textContent).toBe('UPGRADES & JOBS');
+      // Find a gig if there is none yet, then take it.
+      for (let i = 0; i < 10 && !within(sheet).queryByTestId('gig'); i += 1) {
+        await fireEvent.click(within(sheet).getByTestId('search-job'));
+        t.tick(400);
+      }
+      await fireEvent.click(within(sheet).getByTestId('gig'));
+      expect(t.latest()?.run.slots[0]?.target).toBe('gig');
+      await fireEvent.click(within(sheet).getByRole('button', { name: '← BACK TO CODE' }));
+
+      // Its build stays visible on the folded button.
+      for (let i = 0; i < 3; i += 1) {
+        await fireEvent.click(screen.getByTestId('primary-action'));
+        t.tick(400);
+      }
+      await tick();
+      const progress = t.latest()?.game.money?.gig?.project.progress ?? 0;
+      expect(progress).toBeGreaterThan(0);
+      const bar = screen.getByTestId('toggle-build');
+      expect(bar.querySelector<HTMLElement>('.project-fill')?.style.width).toBe(
+        `${Math.min(100, progress * 100)}%`,
+      );
+    } finally {
+      restore();
+    }
+  });
+
+  it('the project (Ship It) and the demo live in the popup; the button shows the build', async () => {
+    const restore = asPhone();
+    try {
+      const run = onItsOwn();
+      const t = show({ ...run, slots: [{ target: 'release', by: 'player', sinceMs: 0 }] });
+      expect(screen.queryByTestId('ship-strip')).toBeNull();
+      expect(screen.queryByTestId('demo-strip')).toBeNull();
+      for (let i = 0; i < 3; i += 1) {
+        await fireEvent.click(screen.getByTestId('primary-action'));
+        t.tick(400);
+      }
+      await tick();
+      const progress = t.latest()?.game.release?.project.progress ?? 0;
+      expect(progress).toBeGreaterThan(0);
+      expect(
+        screen.getByTestId('toggle-build').querySelector<HTMLElement>('.project-fill')?.style.width,
+      ).toBe(`${Math.min(100, progress * 100)}%`);
+      await fireEvent.click(screen.getByTestId('offers-toggle'));
+      expect(within(screen.getByTestId('offers-sheet')).getByTestId('ship-strip')).toBeTruthy();
+    } finally {
+      restore();
+    }
+  });
+
+  it('a job offer is in the popup too', async () => {
+    const restore = asPhone();
+    try {
+      show(
+        onItsOwn({
+          job: {
+            offer: { salary: 400, expiresAtMs: 1e9 },
+            employed: null,
+            awayMs: 0,
+            cooldownUntilMs: null,
+            fired: 0,
+          },
+        }),
+      );
+      expect(screen.queryByTestId('job-card')).toBeNull();
+      await fireEvent.click(screen.getByTestId('offers-toggle'));
+      expect(within(screen.getByTestId('offers-sheet')).getByTestId('job-card')).toBeTruthy();
+    } finally {
+      restore();
+    }
   });
 });

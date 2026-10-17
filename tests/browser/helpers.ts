@@ -25,7 +25,17 @@ export async function pressPrimary(page: Page, count: number): Promise<void> {
  * what the presses add while nothing else is being built.
  */
 export async function builtCode(page: Page): Promise<string> {
-  const text = (await page.getByTestId('ship-strip').textContent()) ?? '';
+  const strip = page.getByTestId('ship-strip');
+  if ((await strip.count()) > 0) {
+    return /([\d.]+[KMB]?)\//.exec((await strip.textContent()) ?? '')?.[1] ?? '';
+  }
+  // Phones keep the project in the cards popup; the folded button names the build it fills.
+  const label = (await page.getByTestId('offers-toggle').getAttribute('aria-label')) ?? '';
+  const building = /building ([\d.]+[KMB]?)\//.exec(label)?.[1];
+  if (building !== undefined) return building;
+  await openUpgrades(page);
+  const text = (await strip.textContent()) ?? '';
+  await closeUpgrades(page);
   return /([\d.]+[KMB]?)\//.exec(text)?.[1] ?? '';
 }
 
@@ -40,14 +50,16 @@ export async function loadSave(page: Page, text: string): Promise<void> {
   await expect(page.getByTestId('primary-action')).toBeVisible();
 }
 
-/** Phones show the cards in a popup: open it (a no-op where the cards are inline). */
+/**
+ * Phones show the cards, the project, the demo and the gigs in a popup: open it (a no-op where
+ * they are inline).
+ */
 export async function openUpgrades(page: Page): Promise<void> {
   const toggle = page.getByTestId('offers-toggle');
-  await expect(toggle.or(page.locator('ul.offers')).first()).toBeVisible();
-  if ((await toggle.isVisible()) && !(await page.getByTestId('offers-sheet').isVisible())) {
-    await toggle.click();
-  }
-  await expect(page.locator('ul.offers')).toBeVisible();
+  const sheet = page.getByTestId('offers-sheet');
+  await expect(toggle.or(page.locator('ul.offers, .strips')).first()).toBeVisible();
+  if ((await toggle.isVisible()) && !(await sheet.isVisible())) await toggle.click();
+  await expect(sheet.or(page.locator('ul.offers, .strips')).first()).toBeVisible();
 }
 
 /** Close the cards popup again (a no-op where the cards are inline). */

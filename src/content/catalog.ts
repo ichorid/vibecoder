@@ -36,7 +36,7 @@ export const catalog: Catalog = {
     tokens: 'Tokens',
     debt: 'Debt',
     automation: 'Automation',
-    money: '$',
+    money: 'Money',
     margin: 'Margin',
     quality: 'Quality',
     team: 'Team',

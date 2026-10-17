@@ -128,9 +128,10 @@
         return joke(tap.target);
       case 'monitor': {
         // The monitor is where the work happens: tapping it is the main action.
-        const gain = current().game.primaryAction.gain;
-        if (api.dispatch({ type: 'primaryAction' }) !== 'applied' || !gain) return null;
-        return gainText(gain, formatAmount);
+        const { gain, ready } = current().game.primaryAction;
+        if (api.dispatch({ type: 'primaryAction' }) !== 'applied') return null;
+        if (!ready) return 'too tired';
+        return gain ? gainText(gain, formatAmount) : null;
       }
       case 'plant': {
         if (api.dispatch({ type: 'waterPlant' }) !== 'applied') return 'too late for that';
@@ -138,8 +139,10 @@
         return look === 'dead' ? 'oops' : look === 'soggy' ? 'glug (soggy)' : 'glug';
       }
       case 'bowl': {
+        const cost = current().cat.foodCost;
         if (api.dispatch({ type: 'feedCat' }) !== 'applied') return null;
-        return FEED_TEXT[current().cat.careNote ?? 'nom'] ?? 'fed';
+        const text = FEED_TEXT[current().cat.careNote ?? 'nom'] ?? 'fed';
+        return cost > 0 ? `${text} −$${cost}` : text;
       }
       case 'cat':
         return api.dispatch({ type: 'petCat' }) === 'applied' ? 'purr' : 'meow';
@@ -275,6 +278,14 @@
           api.dispatch({ type: 'loadCheckpoint' });
           returnToGame();
         }}
+        {...!$api.game.ending
+          ? {
+              onStopRun: () => {
+                api.dispatch({ type: 'restart' });
+                returnToGame();
+              },
+            }
+          : {}}
         onTheme={setTheme}
         onClose={closeSettings}
         {...loadDemoLab
@@ -315,6 +326,7 @@
     >
       <GameView
         game={$api.game}
+        payouts={$api.payouts}
         dispatch={api.dispatch}
         {illustrationUrl}
         attention={view === 'game' ? $api.cat.attention : undefined}
