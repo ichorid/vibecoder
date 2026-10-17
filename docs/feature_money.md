@@ -223,6 +223,14 @@ player builds nothing else at all.
 - **The card:** price **∞** (an infinity symbol where the code price goes), *Salary $N / month*,
   ETA *never*. Tapping it makes the job the run's target (docs/feature_projects.md §5.2); from
   then the card shows **EMPLOYED**.
+- **Best Employee bar.** From the moment the job starts, the card's fill bar (which a job would
+  never use — it never completes) becomes a **tenure bar** toward Best Employee: 12 pixel
+  segments, labelled *BEST EMPLOYEE 3/12*. Each payday fills a segment; the current segment
+  fills smoothly with the time employed this month. A firing (hidden layoff or switching) takes
+  the bar with the job; the next job starts again at 0/12. Once the mug is awarded in this run,
+  the bar is replaced by a small mug icon on later job cards. The bar shows tenure only — never
+  the layoff chance — so every full segment is hope, and every layoff takes it away.
+  View model: `job.tenure: { paydays: number; of: 12; monthFraction: number } | null`.
 - **The job takes everything.** While employed, **all** code — manual and agent, from every
   slot — goes into the job and is consumed; it never completes. Worktrees do not help: the
   other slot keeps its target and progress but receives nothing (*PAUSED · employed*). No
@@ -384,7 +392,8 @@ variants, cat rule validation) → wheel generalised.
 takes all code from every slot and never completes (other slots paused) → accepting drops the
 gig, no gig offers or search while employed → payday pro-rated before rent → another target > 2 s
 fires with final pay, ≤ 2 s does not → hidden layoff at payday after the salary, a flat 20 %
-(frequency test over 10 000 seeds), nothing about it in any view model → Best Employee at the 12th payday, once per run, before
+(frequency test over 10 000 seeds), nothing about it in any view model → tenure bar (paydays, month fraction; reset on firing; mug
+icon after the award) → Best Employee at the 12th payday, once per run, before
 the layoff draw (History entry, illustration, log) → cooldown 2 months → automation never moves the job →
 invariant: never employed with a gig or after Product Management → ∞ card, EMPLOYED and
 PAUSED · employed badges (browser).
