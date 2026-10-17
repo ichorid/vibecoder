@@ -126,7 +126,9 @@
         {/each}
       </dl>
       <div class="care">
-        <button type="button" onclick={feed}>FEED</button>
+        <button type="button" onclick={feed}
+          >FEED{#if cat.foodCost > 0}<span class="cost"> ${cat.foodCost}</span>{/if}</button
+        >
         <button type="button" onclick={() => dispatch({ type: 'startCatPlay' })}>PLAY</button>
         <button type="button" onclick={pet}>PET</button>
       </div>

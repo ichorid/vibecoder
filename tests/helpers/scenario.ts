@@ -77,9 +77,17 @@ export function every(intervalMs: number, action: Policy, offsetMs = 0): Policy 
 /** Press the primary action. */
 export const pressPrimary: Policy = () => [{ type: 'primaryAction' }];
 
-/** Acknowledge any pending discovery (the player watched or skipped the reveal). */
-export const acknowledgeReveals: Policy = ({ run }) =>
-  run.pendingUnlockIds.slice(0, 1).map((id) => ({ type: 'acknowledgeUnlock', id }));
+/**
+ * Acknowledge any pending discovery (the player watched or skipped the reveal), then market
+ * updates, milestones and landlord wheels the same way.
+ */
+export const acknowledgeReveals: Policy = ({ run }) => {
+  const id = run.pendingUnlockIds[0];
+  if (id) return [{ type: 'acknowledgeUnlock', id }];
+  if (run.notices.length > 0) return [{ type: 'acknowledgeNotice' }];
+  if (run.rentWheelsSeen < run.rentWheels.length) return [{ type: 'acknowledgeRentWheel' }];
+  return [];
+};
 
 /** Build or buy the first card on offer (a project is picked; a money card bought if affordable). */
 export const buyFirstAffordable: Policy = ({ run, catalog }) => {

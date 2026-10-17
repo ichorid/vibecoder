@@ -83,6 +83,14 @@ describe('money on screen', () => {
   });
 });
 
+describe('the cat costs money (on your own)', () => {
+  it('FEED shows its price after moving out', async () => {
+    show(onItsOwn());
+    await fireEvent.click(screen.getByRole('button', { name: /^Cat\./ }));
+    expect(screen.getByRole('button', { name: /FEED/ }).textContent).toContain('$2');
+  });
+});
+
 describe('the enterprise job', () => {
   it('an offer is a card with ∞ for a price; taking it starts the tryout and takes everything', async () => {
     const run = onItsOwn({

@@ -266,10 +266,10 @@
           <span class="ship-icon" aria-hidden="true"
             ><PixelIcon map={RELEASE_ICON} scale={2} /></span
           >
+          <!-- Short: the version and the build; the full story is in the accessible name. -->
           <span class="ship-text"
-            >{r.title} ·
-            <span class="currency" aria-hidden="true"><PixelIcon map={CODE_ICON} scale={2} /></span
-            >{formatAmount(p.code)}/{formatAmount(r.price)}{#if r.affordable}
+            >{r.shippable ? r.version : 'Project'}
+            {formatAmount(p.code)}/{formatAmount(r.price)}{#if r.affordable}
               · retire {Number((r.retireChance * 100).toFixed(2))}%{:else if p.ready}
               · polishing{/if}</span
           >
@@ -308,11 +308,7 @@
           onclick={() => build('demo')}
         >
           <span class="ship-icon" aria-hidden="true"><PixelIcon map={DEMO_ICON} scale={2} /></span>
-          <span class="ship-text"
-            >DEMO #{d.number} ·
-            <span class="currency" aria-hidden="true"><PixelIcon map={CODE_ICON} scale={2} /></span
-            >{formatAmount(p.code)}/{formatAmount(d.price)}</span
-          >
+          <span class="ship-text">#{d.number} {formatAmount(p.code)}/{formatAmount(d.price)}</span>
           {@render badge(p)}
           {@render bar(p)}
         </button>
@@ -370,7 +366,9 @@
             <span class="currency" aria-hidden="true"
               ><PixelIcon map={SEARCH_ICON} scale={2} /></span
             >
-            <span class="gig-text">No gigs · SEARCH {m.search.done}/{m.search.needed}</span>
+            <span class="gig-text" aria-label="No gigs: search for a job"
+              >SEARCH {m.search.done}/{m.search.needed}</span
+            >
           </button>
         {/if}
       </div>
@@ -391,8 +389,8 @@
         <span class="offer-text">
           <span class="offer-title">{j.title}</span>
           <span class="offer-desc" id="job-desc"
-            >${formatAmount(j.salary)} a month. Takes all your code.{#if j.expiresInSeconds !== null}
-              Offer ends in {formatCountdown(j.expiresInSeconds)}.{/if}</span
+            >${formatAmount(j.salary)} a month. Takes all your code.{#if j.expiresInSeconds !== null}{' '}Offer
+              ends in {formatCountdown(j.expiresInSeconds)}.{/if}</span
           >
           {#if j.tenure}
             {#if j.tenure.permanent}
@@ -779,9 +777,9 @@
     flex: 1;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     min-width: 0;
-    padding: 2px 6px 8px;
+    padding: 9px 4px 8px;
     border: 0;
     background: transparent;
     font: inherit;
@@ -823,10 +821,11 @@
     background: color-mix(in srgb, #7d6ff0 28%, var(--panel));
   }
   .ship-go {
+    flex: none;
     align-self: center;
     min-height: 32px;
     cursor: pointer;
-    padding: 2px 6px;
+    padding: 2px 4px;
     border: 2px solid var(--border);
     background: var(--panel-strong);
     font-size: 11px;
@@ -1282,6 +1281,16 @@
   }
   /* Short phones: the world keeps its share; the terminal shows its two newest lines. */
   @media (max-height: 700px) {
+    .controls {
+      gap: 5px;
+      padding-top: 6px;
+    }
+    .primary {
+      min-height: 48px;
+    }
+    .offers-toggle {
+      min-height: 44px;
+    }
     .log {
       max-height: 3.4em;
     }
@@ -1290,6 +1299,16 @@
     }
     .money-strip .gig {
       min-height: 34px;
+    }
+  }
+  /* Narrow phones: the strips keep their numbers, the icons step aside. */
+  @media (max-width: 400px) {
+    .strips .ship-icon {
+      display: none;
+    }
+    .ship-go {
+      font-size: 10px;
+      padding: 2px 3px;
     }
   }
 </style>

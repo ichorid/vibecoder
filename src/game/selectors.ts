@@ -359,10 +359,8 @@ function headerStats(run: ReadonlyRun, catalog: Catalog): StatViewModel[] {
     const stats = findTechnology(catalog, id)?.headerStats;
     if (stats) ids = stats;
   }
-  // Money shows from the first gig, right after the code rate.
-  if (moneyShown(run) && !ids.includes('money')) {
-    ids = [ids[0] ?? 'code', 'money', ...ids.slice(1)];
-  }
+  // From the first gig the money strip shows the balance (with rent and gigs): not twice.
+  if (moneyShown(run) && run.status === 'playing') ids = ids.filter((id) => id !== 'money');
   // The hidden couplings made visible (E2): QUALITY and TEAM appear while they hurt (< 95 %),
   // taking the progress meter's (automation) slot first.
   const pressure: StatId[] = [];
@@ -784,6 +782,8 @@ export interface CatViewModel {
   /** Current PLAY session (timeline data; UI derives phase/position with the shared functions). */
   readonly play: ReadonlyPlay | null;
   readonly playAttempts: number;
+  /** What a FEED costs (0 before moving out: the parents' fridge). */
+  readonly foodCost: number;
   /** Current foreground intrusion, if any. */
   readonly attention: { readonly level: AttentionLevel | null; readonly key: number };
 }
@@ -830,6 +830,7 @@ export function selectCat(run: ReadonlyRun, catalog: Catalog): CatViewModel {
       key: run.attention.count,
     },
     playAttempts: catalog.balance.catPlay.attempts,
+    foodCost: run.rent.movedOut ? catalog.balance.rent.foodPerFeed : 0,
   };
 }
 

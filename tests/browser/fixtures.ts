@@ -75,8 +75,11 @@ export function progressedRun(count: number, leavePending = false, seed = 41): R
   for (let i = 0; i < 60 * 600; i += 1) {
     if (run.pendingUnlockIds.length > 0) {
       if (leavePending && run.unlockedTechnologyIds.length >= count) return outsidePlay(run);
-      const id = run.pendingUnlockIds[0];
-      if (id) run = applyCommand(run, { type: 'acknowledgeUnlock', id }, run.activeMs, catalog).run;
+    }
+    // Discoveries, market updates and landlord wheels are watched and acknowledged.
+    for (let pending = acknowledgeReveals({ run, catalog }); pending.length > 0;) {
+      for (const command of pending) run = applyCommand(run, command, run.activeMs, catalog).run;
+      pending = acknowledgeReveals({ run, catalog });
     }
     if (run.unlockedTechnologyIds.length >= count) return outsidePlay(run);
     if (run.activeMs % 1000 === 0) {
@@ -123,6 +126,11 @@ export function untilChoice(id: ChoiceId, seed = 51): RunState {
   ];
   for (let i = 0; i < 60 * 600; i += 1) {
     if (selectGame(run, catalog).offers.some((o) => o.kind === 'choice' && o.id === id)) {
+      // Nothing left to watch (discoveries, market updates, landlord wheels).
+      for (let pending = acknowledgeReveals({ run, catalog }); pending.length > 0;) {
+        for (const command of pending) run = applyCommand(run, command, run.activeMs, catalog).run;
+        pending = acknowledgeReveals({ run, catalog });
+      }
       // Save outside a PLAY session, so the reloaded page opens on Game.
       return run.catPlay
         ? applyCommand(run, { type: 'leaveCatPlay' }, run.activeMs, catalog).run

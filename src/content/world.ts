@@ -638,9 +638,14 @@ export function presentAdditions(unlocked: readonly string[]): WorldAddition[] {
 }
 
 /** Concise description of the discovered scene for the decorative canvas. */
-export function describeScene(unlocked: readonly string[], catAlive: boolean): string {
+export function describeScene(
+  unlocked: readonly string[],
+  catAlive: boolean,
+  sites: readonly { readonly progress: number }[] = [],
+): string {
   const [room, ...rest] = presentAdditions(unlocked);
   const parts = [room?.description ?? '', ...rest.map((a) => a.description)].filter(Boolean);
+  const building = sites.map((s) => `a construction site, ${Math.floor(s.progress * 100)} % built`);
   const cat = catAlive ? ' An orange cat is somewhere nearby.' : '';
-  return `${parts.join('; ')}.${cat}`;
+  return `${[...parts, ...building].join('; ')}.${cat}`;
 }

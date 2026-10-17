@@ -13,8 +13,8 @@
   const { stats, onOpen }: Props = $props();
   /** Shares of 100 (progress and efficiencies) read as percentages. */
   const PERCENT: ReadonlySet<string> = new Set(['automation', 'quality', 'team']);
-  /** Up to three in a row; more numbers wrap into a second row (two rows at most). */
-  const columns = $derived(stats.length <= 3 ? stats.length : Math.ceil(stats.length / 2));
+  /** Up to four in a row; more numbers wrap into a second row (two rows at most). */
+  const columns = $derived(stats.length <= 4 ? stats.length : Math.ceil(stats.length / 2));
 </script>
 
 <!-- Kept beside the primary action so the player sees what a press changes without looking up. -->

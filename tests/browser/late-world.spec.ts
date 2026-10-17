@@ -15,7 +15,8 @@ test('the final scene builds all 28 additions; the living cat is no longer visib
     .toBe(29);
   await expect(canvas).toHaveAttribute('data-cat-lod', 'hidden');
   await expect(page.getByTestId('primary-action')).toHaveText('OBSERVE');
-  await expect(page.getByTestId('stats')).toContainText('$');
+  await expect(page.getByTestId('stats')).toContainText('Margin');
+  await expect(page.getByTestId('money-balance')).toContainText('$');
   // The cat still exists: its status lives on in the header and Cat view.
   await expect(page.getByTestId('cat-button')).not.toHaveAttribute('aria-label', 'Cat. Gone.');
   // Rough headless frame timing (not a device measurement).

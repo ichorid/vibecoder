@@ -12,7 +12,7 @@ function readyToShip(seed: number): RunState {
 async function ship(page: Page) {
   const card = page.locator('[data-release="1"]');
   await expect(card).toBeVisible();
-  await expect(card).toContainText('Ship v0.1');
+  await expect(card).toContainText('v0.1');
   await card.getByTestId('ship-go').click();
   await expect(page.getByTestId('release-wheel')).toBeVisible();
 }
@@ -32,7 +32,7 @@ test('ship a release: wheel, result, back to work, a frame on the wall, the card
   await page.getByRole('button', { name: 'BACK TO WORK' }).click();
   await expect(page.getByTestId('release-wheel')).toHaveCount(0);
   // The next release is on offer at once — and it has to be built again.
-  await expect(page.locator('[data-release="2"]')).toContainText('Ship v0.2');
+  await expect(page.locator('[data-release="2"]')).toContainText('v0.2');
   await expect(page.locator('[data-release="1"]')).toHaveCount(0);
   await expect(page.getByRole('list', { name: 'Recent events' })).toContainText('Shipped v0.1:');
   await expect(page.getByTestId('world-canvas')).toHaveAttribute('data-release-frames', '1');

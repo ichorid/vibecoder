@@ -66,9 +66,16 @@ export async function buildCard(page: Page, name: RegExp, presses = 400): Promis
   await closeUpgrades(page);
   const button = page.getByTestId('primary-action');
   const announcement = page.getByTestId('announcement');
-  for (let i = 0; i < presses && (await announcement.count()) === 0; i += 1) {
+  for (let i = 0; i < presses; i += 1) {
+    if ((await announcement.count()) > 0) return;
     await expect(button).toHaveAttribute('data-ready', 'true');
-    await button.click();
+    // The discovery can land between the check and the press: its panel then takes the tap.
+    const pressed = await button
+      .click({ timeout: 3000 })
+      .then(() => true)
+      .catch(() => false);
+    if (!pressed && (await announcement.count()) > 0) return;
+    if (!pressed) throw new Error('the primary action could not be pressed');
   }
 }
 

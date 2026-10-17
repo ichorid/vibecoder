@@ -90,10 +90,10 @@ describe('the demo popup', () => {
       },
     });
     const strip = screen.getByTestId('demo-strip');
-    expect(strip.textContent).toContain('DEMO #1');
+    expect(strip.textContent).toContain('#1');
     await fireEvent.click(screen.getByTestId('demo-go'));
     expect(screen.getByTestId('demo-screen')).toBeTruthy();
-    expect(screen.getByTestId('demo-strip').textContent).toContain('DEMO #2');
+    expect(screen.getByTestId('demo-strip').textContent).toContain('#2');
     await fireEvent.click(screen.getByRole('button', { name: 'CLOSE' }));
     expect(screen.queryByTestId('demo-screen')).toBeNull();
     await fireEvent.click(screen.getByRole('button', { name: 'HISTORY' }));

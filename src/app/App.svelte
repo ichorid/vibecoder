@@ -307,7 +307,12 @@
         This browser does not allow saving here: progress lasts only for this visit.
       </p>
     {/if}
-    <div class="view" hidden={view !== 'game'}>
+    <!-- A warning banner sits over the top of the screen: the cards popup starts below it. -->
+    <div
+      class="view"
+      class:warned={$api.save.status !== 'ok' || worldStatus !== 'ok'}
+      hidden={view !== 'game'}
+    >
       <GameView
         game={$api.game}
         dispatch={api.dispatch}
@@ -325,7 +330,11 @@
           <WorldCanvas
             world={{ ...$api.world, theme, reducedMotion }}
             active={view === 'game'}
-            description={describeScene($api.world.technologyIds, $api.world.cat.alive)}
+            description={describeScene(
+              $api.world.technologyIds,
+              $api.world.cat.alive,
+              $api.world.sites,
+            )}
             {atlasUrl}
             {...createRenderer ? { createRenderer } : {}}
             onStatus={onWorldStatus}
@@ -404,6 +413,9 @@
   }
   .view[hidden] {
     display: none;
+  }
+  .warned :global(.offers-sheet) {
+    padding-top: 72px;
   }
   .save-warning {
     position: absolute;

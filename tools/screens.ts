@@ -31,7 +31,53 @@ const playDemo = async (page: Page) => {
   await page.waitForTimeout(1500);
 };
 
+/** A mid-game run with a recruiter's offer on the table. */
+function jobOffer() {
+  const run = progressedRun(6, false, 41);
+  return {
+    ...run,
+    job: { ...run.job, offer: { salary: 420, expiresAtMs: run.activeMs + 90_000 } },
+  };
+}
+
+/** The same run, employed for seven months of its tryout. */
+function employed() {
+  const run = progressedRun(6, false, 41);
+  return {
+    ...run,
+    slots: [{ target: 'job' as const, by: 'player' as const, sinceMs: run.activeMs }],
+    job: {
+      ...run.job,
+      employed: { salary: 420, monthEmployedMs: 90_000, paydays: 7, permanent: false },
+    },
+  };
+}
+
+/** A missed rent waiting for its landlord wheel. */
+function broke() {
+  const run = progressedRun(6, false, 41);
+  return {
+    ...run,
+    economy: { ...run.economy, money: -60 },
+    rent: { ...run.rent, missedStreak: 2 },
+    rentWheels: [
+      {
+        month: run.rent.month,
+        outcome: 'friday' as const,
+        hazard: 0.15,
+        rent: 104,
+        catAlive: true,
+        activeMs: run.activeMs,
+      },
+    ],
+  };
+}
+
 const scenes: Record<string, Scene> = {
+  jobOffer: { width: 390, height: 844, save: () => saveText(jobOffer()) },
+  employed: { width: 390, height: 844, save: () => saveText(employed()) },
+  landlord: { width: 390, height: 844, save: () => saveText(broke()) },
+  money320: { width: 320, height: 568, save: () => saveText(progressedRun(6, false, 41)) },
   demoStrip: { width: 390, height: 844, save: demoSave },
   demoPhone: { width: 390, height: 844, save: demoSave, act: playDemo },
   demoDesktop: { width: 1280, height: 800, save: demoSave, act: playDemo },

@@ -31,7 +31,7 @@ test('code a demo: depacking, a drawn picture, the title card; History plays it 
   await loadSave(page, saveText(readyForDemo(41)));
   await expect(page.getByTestId('demo-design')).toHaveCount(0); // designing is on the demo screen
   const strip = page.getByTestId('demo-strip');
-  await expect(strip).toContainText('DEMO #1');
+  await expect(strip).toContainText('#1');
   await page.getByTestId('demo-go').click();
   const demo = page.getByTestId('demo-screen');
   await expect(demo).toBeVisible();
@@ -40,7 +40,7 @@ test('code a demo: depacking, a drawn picture, the title card; History plays it 
   await expect.poll(() => litPixels(page)).toBeGreaterThan(300);
   await page.getByRole('button', { name: 'CLOSE' }).click();
   await expect(demo).toHaveCount(0);
-  await expect(page.getByTestId('demo-strip')).toContainText('DEMO #2');
+  await expect(page.getByTestId('demo-strip')).toContainText('#2');
   await expect(page.getByRole('list', { name: 'Recent events' })).toContainText('It does nothing.');
 
   await page.reload();
