@@ -488,6 +488,7 @@ export function selectProject(
   run: RunState,
   key: ProjectKey,
   catalog: Catalog,
+  focus?: number,
 ): { run: RunState; facts: GameFact[] } | null {
   if (!isProjectAvailable(run, key, catalog)) return null;
   if (findUpgrade(catalog, key)?.internal) return null;
@@ -517,6 +518,7 @@ export function selectProject(
   if (fallback >= 0) return { run: setSlot(run, fallback, key, 'player'), facts: [] };
   const open = run.slots.map((s, i) => ({ s, i })).filter(({ s }) => !lockedByInternal(s, catalog));
   const pick =
+    open.find(({ i }) => i === focus) ??
     open.find(({ s }) => s.by === 'fallback') ??
     open.find(({ s }) => s.by === 'system') ??
     [...open].sort((a, b) => a.s.sinceMs - b.s.sinceMs)[0];

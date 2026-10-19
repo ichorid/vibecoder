@@ -87,6 +87,22 @@ describe('buying tokens with money', () => {
     const broke = buy({ ...run, economy: { ...run.economy, money: price - 1 } }, 'token-supply');
     expect(broke.result).toBe('unaffordable');
   });
+
+  it('the token gauge reloads at any time: a pack is bought even while the card is not offered', () => {
+    const full = at('terminal-agent', { tokens: 50_000 });
+    expect(offered(full, 'token-supply')).toBe(false);
+    const bought = buy(full, 'token-supply');
+    expect(bought.result).toBe('applied');
+    expect(bought.run.economy.tokens).toBe(50_000 + tokenPack(full, catalog).tokens);
+    // Trusting auto-refill v1 hides the card, never the reload.
+    const trusting = {
+      ...at('ralph-loop', { tokens: 5 }),
+      upgradeLevels: { ...at('ralph-loop').upgradeLevels, 'auto-refill-v1': 1 },
+    };
+    expect(buy(trusting, 'token-supply').result).toBe('applied');
+    // Before tokens cost money there is nothing to reload.
+    expect(buy(at('generated-snippets'), 'token-supply').result).toBe('unavailable');
+  });
 });
 
 describe('auto-refill', () => {

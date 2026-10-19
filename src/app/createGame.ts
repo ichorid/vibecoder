@@ -2,6 +2,7 @@ import type { Catalog } from '../game/catalog';
 import { applyCommand, type CommandResult } from '../game/commands';
 import { selectCat, selectGame, selectHistory, selectWorld } from '../game/selectors';
 import { selectSetup } from '../game/setup';
+import { momentTier } from '../game/deck';
 import { experienceOf, frugalOf } from '../game/experience';
 import { stepRun } from '../game/simulation';
 import type { GameCommand, GameFact, ReadonlyRun, RunState } from '../game/types';
@@ -14,6 +15,7 @@ import {
 import type {
   AppCommand,
   CheckpointInfo,
+  Moment,
   Payout,
   InputTiming,
   SaveStatus,
@@ -142,7 +144,20 @@ export function createGame(options: GameOptions): Game {
   /** Recent payouts for the "+$x" pop (a few are enough: the UI shows each new id once). */
   let payouts: readonly Payout[] = [];
   let payoutId = 0;
+  /** Recent completions for the ta-da and the ready popup (the UI shows each new id once). */
+  let moments: readonly Moment[] = [];
+  let momentId = 0;
+  function noteMoments(facts: readonly GameFact[]): void {
+    for (const fact of facts) {
+      const tier = momentTier(fact, catalog);
+      if (!tier || (fact.type !== 'projectBuilt' && fact.type !== 'projectReady')) continue;
+      momentId += 1;
+      const kind = fact.type === 'projectReady' ? 'ready' : 'built';
+      moments = [...moments.slice(-3), { id: momentId, kind, key: fact.id, tier }];
+    }
+  }
   function notePayouts(facts: readonly GameFact[]): void {
+    noteMoments(facts);
     for (const fact of facts) {
       if (fact.type !== 'gigPaid') continue;
       payoutId += 1;
@@ -161,6 +176,7 @@ export function createGame(options: GameOptions): Game {
     save: { status: saveStatus },
     checkpoint,
     payouts,
+    moments,
   });
   const store = createSnapshotStore<GameSnapshot>(snapshot(), options.freezeSnapshots ?? true);
   const publish = () => store.publish(snapshot());

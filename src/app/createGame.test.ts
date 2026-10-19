@@ -106,3 +106,33 @@ describe('createGame store', () => {
     expect(facts.filter((f) => f === 'cared:pet')).toHaveLength(1);
   });
 });
+
+describe('moments (docs/feature_build_deck.md §11)', () => {
+  it('a completed build becomes one moment with its tier; nothing is replayed on a new snapshot', () => {
+    const clock = createFakeClock();
+    const scheduler = createFakeScheduler();
+    const catalog = createTestCatalog();
+    const base = createRun(1, 'm');
+    const game = createGame({
+      catalog,
+      clock,
+      scheduler,
+      run: {
+        ...base,
+        projects: { release: { code: 1999, price: 2000 } },
+        economy: { ...base.economy, pendingManualWork: 5 },
+      },
+    });
+    const seen: GameSnapshot[] = [];
+    game.api.subscribe((s) => seen.push(s));
+    expect(seen[0]?.moments).toEqual([]);
+    game.start();
+    clock.advance(100);
+    scheduler.fire();
+    const moments = seen.at(-1)?.moments ?? [];
+    expect(moments).toEqual([{ id: 1, kind: 'ready', key: 'release', tier: 'S' }]);
+    clock.advance(100);
+    scheduler.fire();
+    expect(seen.at(-1)?.moments).toEqual(moments);
+  });
+});

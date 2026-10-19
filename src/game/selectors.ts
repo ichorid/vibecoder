@@ -10,7 +10,7 @@ import {
   qualityEfficiency,
   tokenPack,
 } from './economy';
-import { projectCode } from './projects';
+import { autoSelects, projectCode } from './projects';
 import {
   projectView,
   selectJob,
@@ -40,6 +40,7 @@ import { plantLook, type PlantLook } from './plant';
 import { upgradeImpact } from './setup';
 import { deriveSeed } from './random';
 import { catAware } from './catAware';
+import { assembleDeck, selectTokenGauge, type DeckViewModel } from './deck';
 import { jackpotHazard, nextRelease, releaseAt, releaseLabel } from './releases';
 import { demoLine, demoText, nextDemo } from './demos';
 import type {
@@ -253,6 +254,8 @@ export interface GameViewModel {
   readonly notice: NoticeViewModel | null;
   /** What a press builds right now (the first slot's target), for the flying "+N". */
   readonly buildTarget: ProjectKey | null;
+  /** The build rows, the lane and the token gauge (docs/feature_build_deck.md). */
+  readonly deck: DeckViewModel;
 }
 
 /** What a History line shows in front of its title. */
@@ -518,10 +521,10 @@ export function selectGame(
     ({ card }) => findUpgradeDefinition(catalog, card.id)?.discovers,
   );
   const decisions = choiceCards.slice(0, progressionShown ? 2 : MAX_OFFERS);
-  const offers = [...upgradeCards, ...decisions]
+  const ranked = [...upgradeCards, ...decisions]
     .sort((a, b) => a.priority - b.priority || a.order - b.order)
-    .slice(0, MAX_OFFERS)
     .map(({ card }) => card);
+  const offers = ranked.slice(0, MAX_OFFERS);
   // Ship It has its own strip outside the three cards (economy redesign D2): the original
   // project, built from the start; SHIP exists once the project works.
   const shippable = nextRelease(run, catalog);
@@ -569,6 +572,9 @@ export function selectGame(
       : null;
   const pendingId = run.pendingUnlockIds[0];
   const pending = pendingId === undefined ? undefined : findTechnology(catalog, pendingId);
+  const money = selectMoney(run, catalog);
+  const job = selectJob(run, catalog);
+  const playing = run.status === 'playing';
   return {
     primaryAction: {
       id: action,
@@ -592,11 +598,21 @@ export function selectGame(
     ending: selectEnding(run, catalog, discovered),
     lastRelease: selectRelease(run, catalog, run.releases.length - 1),
     credit: creditState(run, catalog),
-    money: selectMoney(run, catalog),
-    job: selectJob(run, catalog),
+    money,
+    job,
     rentWheel: selectRentWheel(run, catalog),
     notice: selectNotice(run, catalog),
-    buildTarget: run.status === 'playing' ? (run.slots[0]?.target ?? null) : null,
+    buildTarget: playing ? (run.slots[0]?.target ?? null) : null,
+    deck: assembleDeck({
+      slots: playing ? run.slots : [],
+      ranked: playing ? ranked : [],
+      release,
+      demo,
+      money,
+      job,
+      managed: autoSelects(run),
+      tokens: playing ? selectTokenGauge(run, catalog) : null,
+    }),
   };
 }
 

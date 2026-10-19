@@ -7,6 +7,7 @@ import { deriveRates, offerPrice, roundAmount, tokenPack, upgradeLevel } from '.
 import {
   currentPrimaryAction,
   findUpgrade,
+  isTokenReloadAvailable,
   isUpgradeOffered,
   resolveDiscoveries,
 } from './progression';
@@ -61,7 +62,7 @@ export function applyCommand(
     case 'buyUpgrade':
       return buyUpgrade(run, command.id, catalog);
     case 'selectProject': {
-      const selected = selectProject(run, command.id, catalog);
+      const selected = selectProject(run, command.id, catalog, command.slot);
       if (!selected) return reject(run, 'unavailable');
       return {
         run: { ...selected.run, cat: noteMeaningfulAction(selected.run.cat) },
@@ -194,7 +195,11 @@ export function applyCommand(
 /** Money buys things (tokens, compute, the company's cards); code-priced cards are projects. */
 function buyUpgrade(run: RunState, id: string, catalog: Catalog): CommandTransition {
   const upgrade = findUpgrade(catalog, id);
-  if (!upgrade || upgrade.currency !== 'money' || !isUpgradeOffered(run, upgrade)) {
+  if (
+    !upgrade ||
+    upgrade.currency !== 'money' ||
+    !(isUpgradeOffered(run, upgrade) || isTokenReloadAvailable(run, upgrade))
+  ) {
     return reject(run, 'unavailable');
   }
   const level = upgradeLevel(run, upgrade.id);

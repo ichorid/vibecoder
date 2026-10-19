@@ -380,7 +380,8 @@ export type ReadonlyRun = DeepReadonly<RunState>;
 export type GameCommand =
   | { type: 'primaryAction' }
   | { type: 'buyUpgrade'; id: UpgradeId }
-  | { type: 'selectProject'; id: ProjectKey }
+  /** `slot`: the build slot the player focused (two worktrees); else the default rule picks. */
+  | { type: 'selectProject'; id: ProjectKey; slot?: number }
   | { type: 'searchJob' }
   | { type: 'acknowledgeNotice' }
   | { type: 'acknowledgeRentWheel' }

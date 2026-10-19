@@ -26,6 +26,14 @@ export function isUpgradeOffered(run: ReadonlyRun, upgrade: UpgradeDefinition): 
   return upgrade.extraCondition ? upgrade.extraCondition(run) : true;
 }
 
+/**
+ * The token gauge's reload (docs/feature_build_deck.md §7): a pack can be bought whenever tokens
+ * cost money, even while the card is not offered (it only shows when tokens run low).
+ */
+export function isTokenReloadAvailable(run: ReadonlyRun, upgrade: UpgradeDefinition): boolean {
+  return upgrade.pack === 'tokens' && run.status === 'playing' && meets(run, upgrade.requires);
+}
+
 export function findUpgrade(catalog: Catalog, id: string): UpgradeDefinition | undefined {
   return catalog.upgrades.find((upgrade) => upgrade.id === id);
 }

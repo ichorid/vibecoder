@@ -60,3 +60,33 @@ describe('a gig taken over a build', () => {
     expect(run.slots[0]?.resume).toBeUndefined();
   });
 });
+
+describe('two worktrees: a pick for a focused slot', () => {
+  it('goes to that slot, not to the one the default rule would take', async () => {
+    const { act } = await import('../../tests/helpers/run');
+    const { isProjectAvailable } = await import('./projects');
+    const base = createRun(3, 'focus');
+    const ids = catalog.technologies.map((t) => t.id);
+    const upTo = ids.slice(0, ids.indexOf('ralph-loop') + 1);
+    const run: RunState = {
+      ...base,
+      unlockedTechnologyIds: upTo,
+      upgradeLevels: Object.fromEntries(upTo.map((id) => [id, 1])),
+      economy: { ...base.economy, tasks: 60 },
+      slots: [
+        { target: 'release', by: 'player', sinceMs: 0 },
+        { target: 'demo', by: 'player', sinceMs: 500 },
+      ],
+    };
+    const other = catalog.upgrades.find(
+      (u) => u.currency === 'output' && !u.internal && isProjectAvailable(run, u.id, catalog),
+    );
+    if (!other) throw new Error('no second project on offer');
+    // Without a slot the oldest pick is replaced (slot 0); a named slot wins.
+    expect(act(run, { type: 'selectProject', id: other.id }, catalog).slots[0]?.target).toBe(
+      other.id,
+    );
+    const focused = act(run, { type: 'selectProject', id: other.id, slot: 1 }, catalog);
+    expect(focused.slots.map((s) => s.target)).toEqual(['release', other.id]);
+  });
+});

@@ -9,7 +9,8 @@ import type {
   HistoryViewModel,
   WorldViewModel,
 } from '../game/selectors';
-import type { GameCommand } from '../game/types';
+import type { MomentTier } from '../game/deck';
+import type { GameCommand, ProjectKey } from '../game/types';
 
 /** The colours actually shown. */
 export type Theme = 'light' | 'dark';
@@ -53,6 +54,17 @@ export interface UiSnapshot {
   readonly checkpoint: CheckpointInfo | null;
   /** Money just earned (gigs paid), newest last; presentation only, never saved. */
   readonly payouts: readonly Payout[];
+  /** Recent completions, for the celebration and the ready popup (each new id once). */
+  readonly moments: readonly Moment[];
+}
+
+/** A completion worth a ta-da (docs/feature_build_deck.md §8.1): a build done or a release ready. */
+export interface Moment {
+  /** Increases with every moment of this session. */
+  readonly id: number;
+  readonly kind: 'built' | 'ready';
+  readonly key: ProjectKey;
+  readonly tier: MomentTier;
 }
 
 export interface Payout {
