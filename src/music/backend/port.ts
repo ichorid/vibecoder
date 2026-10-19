@@ -55,5 +55,20 @@ export interface MusicBackendPort {
 }
 
 /** Allowlisted short sound effects (explicit care actions only; never mood/health alerts). */
-export const SFX_IDS = ['feed', 'pet', 'play', 'tick', 'release', 'jackpot', 'ready'] as const;
+export const SFX_IDS = [
+  'feed',
+  'pet',
+  'play',
+  'tick',
+  'release',
+  'jackpot',
+  'ready',
+  // The build deck (docs/feature_build_deck.md §8): an item lands, a build is done, a big one,
+  // a gig paid, the tokens are about to run out.
+  'pop',
+  'built',
+  'fanfare',
+  'coin',
+  'warn',
+] as const;
 export type SfxId = (typeof SFX_IDS)[number];

@@ -10,6 +10,7 @@ import { nextDemo } from '../game/demos';
 import type { DemoViewModel } from '../game/selectors';
 import type { RunState } from '../game/types';
 import DemoScreen from './DemoScreen.svelte';
+import { needDeckItem } from '../../tests/helpers/deck';
 
 /** Animation frames run by hand. */
 let frames: FrameRequestCallback[] = [];
@@ -78,7 +79,7 @@ describe('the demo popup', () => {
     expect(onClose).toHaveBeenCalledTimes(2);
   });
 
-  it('is coded from its strip next to Ship It, and History can play it again', async () => {
+  it('is run from its READY lane item (a popup offers RUN), and History can play it again', async () => {
     const run = progressedRun(4, false);
     const ui = createUiGame(withDemoBuilt(run));
     render(App, {
@@ -89,11 +90,13 @@ describe('the demo popup', () => {
         clock: { activeNow: () => ui.game.activeNow(), frames: () => () => {} },
       },
     });
-    const strip = screen.getByTestId('demo-strip');
-    expect(strip.textContent).toContain('#1');
-    await fireEvent.click(screen.getByTestId('demo-go'));
+    expect(needDeckItem('demo').textContent).toContain('#1');
+    await fireEvent.click(needDeckItem('demo'));
+    expect(screen.getByTestId('ready-popup').textContent).toContain('DEMO #1 IS READY');
+    await fireEvent.click(screen.getByTestId('ready-go'));
     expect(screen.getByTestId('demo-screen')).toBeTruthy();
-    expect(screen.getByTestId('demo-strip').textContent).toContain('#2');
+    expect(screen.queryByTestId('ready-popup')).toBeNull();
+    expect(needDeckItem('demo').textContent).toContain('#2');
     await fireEvent.click(screen.getByRole('button', { name: 'CLOSE' }));
     expect(screen.queryByTestId('demo-screen')).toBeNull();
     await fireEvent.click(screen.getByRole('button', { name: 'HISTORY' }));
@@ -121,7 +124,8 @@ describe('the demo popup', () => {
     });
     // the choice lives on the demo screen only
     expect(screen.queryByTestId('demo-designer')).toBeNull();
-    await fireEvent.click(screen.getByTestId('demo-go'));
+    await fireEvent.click(needDeckItem('demo'));
+    await fireEvent.click(screen.getByTestId('ready-go'));
     await fireEvent.click(screen.getByTestId('demo-depack')); // skip the intro
     runFrames(400);
     const first = screen.getByTestId('demo-screen');
@@ -136,13 +140,16 @@ describe('the demo popup', () => {
     await fireEvent.click(variant);
     expect(variant.getAttribute('aria-checked')).toBe('true');
     await fireEvent.click(screen.getByRole('button', { name: 'CLOSE' }));
-    // Build the next demo: tap its strip, then let the code flow in.
-    await fireEvent.click(screen.getByTestId('demo-build'));
+    // Build the next demo: tap it in the lane, then let the code flow in.
+    await fireEvent.click(needDeckItem('demo'));
     for (let i = 0; i < 3000 && !built; i += 1) {
       ui.game.api.dispatch({ type: 'primaryAction' });
       ui.tick(400);
     }
-    await fireEvent.click(screen.getByTestId('demo-go'));
+    // READY: the popup asked (or the row reopens it); RUN.
+    runFrames(40);
+    if (!screen.queryByTestId('ready-popup')) await fireEvent.click(needDeckItem('demo'));
+    await fireEvent.click(screen.getByTestId('ready-go'));
     await fireEvent.click(screen.getByTestId('demo-depack'));
     runFrames(400);
     const second = screen.getByTestId('demo-screen');

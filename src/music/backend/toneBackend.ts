@@ -232,12 +232,31 @@ export function createToneBackend(tone: Tone, options: ToneBackendOptions = {}):
         jackpot: ['C5', 'E5', 'G5', 'C6', 'G5', 'C6'],
         // A build is ready to ship: a soft rising chime.
         ready: ['E5', 'G5', 'C6'],
+        // A lane item lands: one short blip.
+        pop: ['A5'],
+        // A build is done: a quick upward arpeggio.
+        built: ['C5', 'G5', 'C6'],
+        // A discovery: a short fanfare (smaller than the jackpot).
+        fanfare: ['G4', 'C5', 'E5', 'G5', 'E5', 'G5'],
+        // Coins into the wallet.
+        coin: ['B5', 'E6'],
+        // Tokens about to run out: a low double knock.
+        warn: ['E4', 'E4'],
       };
       const sequence = notes[id];
-      const gap = id === 'jackpot' ? 0.11 : id === 'ready' ? 0.09 : 0.07;
-      const level = id === 'tick' ? 0.25 : id === 'ready' ? 0.35 : 0.5;
+      const gap =
+        id === 'jackpot' || id === 'fanfare'
+          ? 0.1
+          : id === 'ready'
+            ? 0.09
+            : id === 'built'
+              ? 0.06
+              : 0.07;
+      const level =
+        id === 'tick' ? 0.25 : id === 'ready' || id === 'pop' || id === 'warn' ? 0.35 : 0.5;
       sequence.forEach((note, i) => {
-        const length = id === 'tick' ? 0.015 : i === sequence.length - 1 ? 0.07 : 0.05;
+        const length =
+          id === 'tick' || id === 'pop' ? 0.015 : i === sequence.length - 1 ? 0.07 : 0.05;
         sfxSynth?.triggerAttackRelease(note, length, now + i * gap, level);
       });
     },

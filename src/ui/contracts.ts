@@ -107,11 +107,13 @@ export interface AudioControls extends Readable<AudioView> {
   setSound(on: boolean): Promise<void>;
   setVolume(volume: number): void;
   /** A short presentation sound (release wheel); silent when sound is off. */
-  effect?(id: WheelSound): void;
+  effect?(id: UiSound): void;
 }
 
 /** Sounds the release wheel drives itself, so they match the animation. */
 export type WheelSound = 'tick' | 'release' | 'jackpot';
+/** Every short effect the views may ask for (the wheel's and the build deck's). */
+export type UiSound = WheelSound | 'pop' | 'built' | 'fanfare' | 'coin' | 'warn';
 
 const UNAVAILABLE_VIEW: AudioView = {
   available: false,

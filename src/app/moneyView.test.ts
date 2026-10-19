@@ -11,6 +11,7 @@ import { createRun } from '../game/createRun';
 import { selectRentWheel } from '../game/projectViews';
 import ReleaseWheel from '../ui/ReleaseWheel.svelte';
 import type { RunState } from '../game/types';
+import { buildRow, deckItem, needDeckItem } from '../../tests/helpers/deck';
 
 afterEach(() => {
   cleanup();
@@ -47,7 +48,7 @@ function onItsOwn(patch: Partial<RunState> = {}): RunState {
 }
 
 describe('money on screen', () => {
-  it('the stats panel at the top shows the balance and the rent; the strip holds the gig board', () => {
+  it('the stats panel at the top shows the balance and the rent; the lane holds the gig board', () => {
     const run = onItsOwn();
     const t = show(run);
     const stats = screen.getByTestId('stats');
@@ -59,9 +60,9 @@ describe('money on screen', () => {
     const rent = within(money).getByTestId('rent-due');
     expect(rent.textContent?.trim()).toBe('(rent: −$101 in 1:00)');
     expect(rent.getAttribute('data-alarm')).toBe('false');
-    const strip = screen.getByTestId('money-strip');
-    expect(strip.textContent).not.toContain('$240');
+    expect(screen.getByTestId('build-lane').textContent).not.toContain('$240');
     expect(t.latest()?.game.money?.gig ?? t.latest()?.game.money?.search).toBeTruthy();
+    expect(deckItem('gig') ?? deckItem('search')).not.toBeNull();
   });
 
   it('money and rent turn red when the rent cannot be paid', () => {
@@ -104,25 +105,26 @@ describe('money on screen', () => {
       onItsOwn({ gigs: { offer: null, search: { done: 0, needed: 3 }, paid: 1, botMs: 0 } }),
     );
     for (let i = 0; i < 3; i += 1) {
-      await fireEvent.click(screen.getByTestId('search-job'));
+      await fireEvent.click(needDeckItem('search'));
       t.tick(400);
     }
-    const gig = screen.getByTestId('gig');
+    const gig = needDeckItem('gig');
     expect(gig.textContent).toMatch(/\$\d+–\d+/);
     await fireEvent.click(gig);
     expect(t.latest()?.run.slots[0]?.target).toBe('gig');
+    expect(buildRow().getAttribute('data-key')).toBe('gig');
   });
 
   it('a fallback build drifts at half speed (AUTO · ½); one tap makes it full speed', async () => {
     const base = createRun(3, 'drift');
     const t = show({ ...base, slots: [{ target: 'release', by: 'fallback', sinceMs: 0 }] });
-    const strip = screen.getByTestId('ship-strip');
-    expect(within(strip).getByTestId('project-badge').textContent).toBe('AUTO · ½');
-    await fireEvent.click(screen.getByTestId('ship-build'));
+    expect(within(buildRow()).getByTestId('project-badge').textContent).toBe('AUTO · ½');
+    // The cost of not choosing is said where the choice is.
+    expect(screen.getByTestId('deck-tax').textContent).toContain('at ½ while you decide');
+    await fireEvent.click(buildRow());
     expect(t.latest()?.run.slots[0]).toMatchObject({ target: 'release', by: 'player' });
-    expect(within(screen.getByTestId('ship-strip')).getByTestId('project-badge').textContent).toBe(
-      'BUILDING',
-    );
+    expect(within(buildRow()).getByTestId('project-badge').textContent).toBe('BUILDING');
+    expect(screen.queryByTestId('deck-tax')).toBeNull();
   });
 });
 
@@ -195,7 +197,7 @@ describe('the cat costs money (on your own)', () => {
 });
 
 describe('the enterprise job', () => {
-  it('an offer is a card with ∞ for a price; taking it starts the tryout and takes everything', async () => {
+  it('an offer is a lane item with ∞ for a price; taking it starts the tryout and takes everything', async () => {
     const run = onItsOwn({
       job: {
         offer: { salary: 400, expiresAtMs: 1e9 },
@@ -206,14 +208,15 @@ describe('the enterprise job', () => {
       },
     });
     const t = show(run);
-    const card = screen.getByTestId('job-card');
-    expect(within(card).getByTestId('job-price').textContent).toBe('∞');
+    const card = needDeckItem('job');
+    expect(card.textContent).toContain('∞');
     await fireEvent.click(card);
     expect(t.latest()?.run.job.employed).toMatchObject({ salary: 400, paydays: 0 });
-    const employed = screen.getByTestId('job-card');
-    expect(within(employed).getByTestId('job-tryout').textContent).toContain('TRYOUT PERIOD 0/12');
-    expect(within(employed).getByTestId('project-badge').textContent).toBe('EMPLOYED');
-    expect(screen.getByTestId('money-strip').textContent).toContain('Employed');
+    const row = buildRow();
+    expect(row.getAttribute('data-key')).toBe('job');
+    expect(row.textContent).toContain('TRYOUT PERIOD 0/12');
+    expect(row.textContent).toContain('At work');
+    expect(within(row).getByTestId('project-badge').textContent).toBe('EMPLOYED');
   });
 
   it('after twelve paydays the card reads PERMANENT — and nothing else changes', () => {
@@ -228,7 +231,8 @@ describe('the enterprise job', () => {
       slots: [{ target: 'job', by: 'player', sinceMs: 0 }],
     });
     show(run);
-    expect(screen.getByTestId('job-permanent').textContent).toContain('Permanent. Relax.');
+    expect(buildRow().textContent).toContain('PERMANENT');
+    expect(buildRow().textContent).toContain('Permanent. Relax.');
   });
 });
 
@@ -286,7 +290,7 @@ describe('the landlord wheel and market updates', () => {
   });
 });
 
-describe('phones: gigs and the job wait in the popup with the cards', () => {
+describe('phones: gigs, the project, the demo and the job are in the lane', () => {
   function asPhone() {
     vi.stubGlobal('matchMedia', (query: string) => ({
       matches: query.includes('max-width'),
@@ -297,30 +301,20 @@ describe('phones: gigs and the job wait in the popup with the cards', () => {
     return () => vi.unstubAllGlobals();
   }
 
-  it('the balance is up top; the gig sits in UPGRADES & JOBS, whose button shows its build', async () => {
+  it('the balance is up top; no UPGRADES button; the gig is a tap away and fills its build row', async () => {
     const restore = asPhone();
     try {
       const t = show(onItsOwn());
       expect(screen.getByTestId('stat-money').textContent).toContain('$240');
-      expect(screen.queryByTestId('money-strip')).toBeNull();
-      expect(screen.queryByTestId('gig')).toBeNull();
-      expect(screen.queryByTestId('search-job')).toBeNull();
-      const toggle = screen.getByTestId('offers-toggle');
-      expect(toggle.textContent).toContain('UPGRADES & JOBS');
-
-      await fireEvent.click(toggle);
-      const sheet = screen.getByTestId('offers-sheet');
-      expect(within(sheet).getByRole('heading').textContent).toBe('UPGRADES & JOBS');
+      expect(screen.queryByTestId('offers-toggle')).toBeNull();
+      expect(screen.queryByTestId('offers-sheet')).toBeNull();
       // Find a gig if there is none yet, then take it.
-      for (let i = 0; i < 10 && !within(sheet).queryByTestId('gig'); i += 1) {
-        await fireEvent.click(within(sheet).getByTestId('search-job'));
+      for (let i = 0; i < 10 && !deckItem('gig'); i += 1) {
+        await fireEvent.click(needDeckItem('search'));
         t.tick(400);
       }
-      await fireEvent.click(within(sheet).getByTestId('gig'));
+      await fireEvent.click(needDeckItem('gig'));
       expect(t.latest()?.run.slots[0]?.target).toBe('gig');
-      await fireEvent.click(within(sheet).getByRole('button', { name: '← BACK TO CODE' }));
-
-      // Its build stays visible on the folded button.
       for (let i = 0; i < 3; i += 1) {
         await fireEvent.click(screen.getByTestId('primary-action'));
         t.tick(400);
@@ -328,8 +322,7 @@ describe('phones: gigs and the job wait in the popup with the cards', () => {
       await tick();
       const progress = t.latest()?.game.money?.gig?.project.progress ?? 0;
       expect(progress).toBeGreaterThan(0);
-      const bar = screen.getByTestId('toggle-build');
-      expect(bar.querySelector<HTMLElement>('.project-fill')?.style.width).toBe(
+      expect(buildRow().querySelector<HTMLElement>('.fill')?.style.width).toBe(
         `${Math.min(100, progress * 100)}%`,
       );
     } finally {
@@ -337,13 +330,12 @@ describe('phones: gigs and the job wait in the popup with the cards', () => {
     }
   });
 
-  it('the project (Ship It) and the demo live in the popup; the button shows the build', async () => {
+  it('the project (Ship It) builds in the row; the demo waits in the lane', async () => {
     const restore = asPhone();
     try {
       const run = onItsOwn();
       const t = show({ ...run, slots: [{ target: 'release', by: 'player', sinceMs: 0 }] });
       expect(screen.queryByTestId('ship-strip')).toBeNull();
-      expect(screen.queryByTestId('demo-strip')).toBeNull();
       for (let i = 0; i < 3; i += 1) {
         await fireEvent.click(screen.getByTestId('primary-action'));
         t.tick(400);
@@ -351,17 +343,17 @@ describe('phones: gigs and the job wait in the popup with the cards', () => {
       await tick();
       const progress = t.latest()?.game.release?.project.progress ?? 0;
       expect(progress).toBeGreaterThan(0);
-      expect(
-        screen.getByTestId('toggle-build').querySelector<HTMLElement>('.project-fill')?.style.width,
-      ).toBe(`${Math.min(100, progress * 100)}%`);
-      await fireEvent.click(screen.getByTestId('offers-toggle'));
-      expect(within(screen.getByTestId('offers-sheet')).getByTestId('ship-strip')).toBeTruthy();
+      expect(buildRow().getAttribute('data-key')).toBe('release');
+      expect(buildRow().querySelector<HTMLElement>('.fill')?.style.width).toBe(
+        `${Math.min(100, progress * 100)}%`,
+      );
+      if (t.latest()?.game.demo) expect(deckItem('demo')).not.toBeNull();
     } finally {
       restore();
     }
   });
 
-  it('a job offer is in the popup too', async () => {
+  it('a job offer is in the lane too', () => {
     const restore = asPhone();
     try {
       show(
@@ -375,9 +367,7 @@ describe('phones: gigs and the job wait in the popup with the cards', () => {
           },
         }),
       );
-      expect(screen.queryByTestId('job-card')).toBeNull();
-      await fireEvent.click(screen.getByTestId('offers-toggle'));
-      expect(within(screen.getByTestId('offers-sheet')).getByTestId('job-card')).toBeTruthy();
+      expect(needDeckItem('job').textContent).toContain('$400 a month');
     } finally {
       restore();
     }

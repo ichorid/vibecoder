@@ -7,6 +7,7 @@ import { AUTOCOMPLETE_PRICE } from '../../tests/helpers/run';
 import type { GameSnapshot } from '../app/createGame';
 import App from '../app/App.svelte';
 import { formatAmount } from './format';
+import { buildRow, deckItem, needDeckItem } from '../../tests/helpers/deck';
 
 afterEach(() => {
   cleanup();
@@ -97,20 +98,25 @@ describe('Game controls', () => {
     );
   });
 
-  it('a tap picks a card to build; it shows BUILDING and fills with every press', async () => {
+  it('a tap on a lane card builds it: it moves to the build row, the old build takes its spot', async () => {
     const t = setup();
     await t.write(6);
     const card = screen.getByRole<HTMLButtonElement>('button', { name: /Autocomplete/ });
     expect(card.disabled).toBe(false);
+    expect(buildRow().getAttribute('data-key')).toBe('release');
     await fireEvent.click(card);
     expect(t.latest()?.run.slots[0]).toMatchObject({ target: 'autocomplete', by: 'player' });
-    expect(within(card).getByTestId('project-badge').textContent).toBe('BUILDING');
+    expect(buildRow().getAttribute('data-key')).toBe('autocomplete');
+    expect(within(buildRow()).getByTestId('project-badge').textContent).toBe('BUILDING');
+    expect(document.querySelector('[data-lane-key="autocomplete"]')).toBeNull();
+    // Swap in place: the release waits where Autocomplete was.
+    expect(document.querySelector('[data-lane-key="release"]')).not.toBeNull();
     await t.write(3);
     expect(t.latest()?.run.projects.autocomplete?.code).toBe(3);
     expect(t.latest()?.run.upgradeLevels).toEqual({});
   });
 
-  it('shows the fixed price on Ship It and the demo strip, not what is left to earn', () => {
+  it('shows the fixed price on the project and the demo, not what is left to earn', () => {
     const run = progressedRun(4, false);
     const ui = createUiGame(run);
     let latest: GameSnapshot | undefined;
@@ -126,25 +132,26 @@ describe('Game controls', () => {
       },
     });
     const { release, demo } = latest?.game ?? {};
-    if (!release || !demo) throw new Error('both strips must be on offer');
+    if (!release || !demo) throw new Error('both must be on offer');
     expect(release.affordable || demo.affordable).toBe(false);
-    const ship = screen.getByTestId('ship-strip').textContent ?? '';
-    const code = screen.getByTestId('demo-strip').textContent ?? '';
+    const ship = needDeckItem('release').textContent ?? '';
+    const code = needDeckItem('demo').textContent ?? '';
     expect(ship).toContain(formatAmount(release.price));
     expect(code).toContain(formatAmount(demo.price));
     expect(`${ship} ${code}`).not.toContain('to go');
   });
 
-  it('removes a built card, never shows more than three, and leaks no future title', async () => {
+  it('removes a built card, never shows more than three new cards, and leaks no future title', async () => {
     const t = setup();
     await t.write(5);
-    expect(
-      within(screen.getByRole('list', { name: 'Upgrades' })).getAllByRole('listitem').length,
-    ).toBeLessThanOrEqual(3);
+    const cards = [...document.querySelectorAll<HTMLElement>('[data-lane-key]')].filter((el) =>
+      ['upgrade', 'choice'].includes(el.dataset.kind ?? ''),
+    );
+    expect(cards.length).toBeLessThanOrEqual(3);
     await fireEvent.click(screen.getByRole('button', { name: /Autocomplete/ }));
     await t.write(AUTOCOMPLETE_PRICE);
     expect(t.latest()?.run.upgradeLevels.autocomplete).toBe(1);
-    expect(screen.queryByRole('list', { name: 'Upgrades' })).toBeNull();
+    expect(deckItem('autocomplete')).toBeNull();
     const text = allDomText();
     expect(text).not.toMatch(/Generated snippets|AI-native IDE|generated-snippets/);
   });

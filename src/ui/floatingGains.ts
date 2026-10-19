@@ -18,22 +18,9 @@ export interface FloatingGain {
   readonly tone?: 'spend' | 'earn';
 }
 
-/** The element a press fills (the first slot's build), as a CSS selector in Game. */
+/** The element a press fills (the first slot's build row), as a CSS selector in Game. */
 export function buildSelector(target: string | null): string | null {
-  switch (target) {
-    case null:
-      return null;
-    case 'release':
-      return '[data-testid="ship-build"]';
-    case 'demo':
-      return '[data-testid="demo-build"]';
-    case 'gig':
-      return '[data-testid="gig"]';
-    case 'job':
-      return '[data-testid="job-card"]';
-    default:
-      return `[data-offer="${target}"]`;
-  }
+  return target === null ? null : '[data-build-slot="0"]';
 }
 
 /** Short text for one primary press: what it really added. */

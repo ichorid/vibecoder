@@ -26,7 +26,7 @@
   import { atlasUrl, memorialUrls } from './assetUrls';
   import { loadDomSheet } from './domSheet';
   import { APP_VERSION } from './version';
-  import type { DomSpriteSheet, WheelSound } from '../ui/contracts';
+  import type { DomSpriteSheet, UiSound } from '../ui/contracts';
 
   interface Props {
     api: UiGameApi;
@@ -326,6 +326,7 @@
       <GameView
         game={$api.game}
         payouts={$api.payouts}
+        moments={$api.moments}
         dispatch={api.dispatch}
         {illustrationUrl}
         attention={view === 'game' ? $api.cat.attention : undefined}
@@ -334,7 +335,7 @@
         {reducedMotion}
         {compactOffers}
         onSetup={() => open('setup')}
-        onSound={(id: WheelSound) => audio.effect?.(id)}
+        onSound={(id: UiSound) => audio.effect?.(id)}
         onDemo={(number: number) => (watching = { number, fresh: true })}
       >
         {#snippet world()}

@@ -57,7 +57,7 @@ describe('the build deck: rows and lane', () => {
     expect(keys(searching)).not.toContain('gig');
     const offered: RunState = {
       ...run,
-      job: { ...run.job, offer: { salary: 900, expiresAtMs: run.activeMs + 60_000 } as never },
+      job: { ...run.job, offer: { salary: 900, expiresAtMs: run.activeMs + 60_000 } },
     };
     expect(keys(offered)).toContain('job');
   });
