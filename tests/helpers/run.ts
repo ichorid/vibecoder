@@ -17,14 +17,10 @@ export function steps(run: RunState, count: number, catalog: Catalog): RunState 
   return next;
 }
 
-/**
- * Click the primary action `count` times so that every click counts: before each one, wait
- * (in ordinary steps) until the tap budget has a charge, then settle one step after it.
- */
+/** Click the primary action `count` times, settling one ordinary step after each click. */
 export function clickAndSettle(run: RunState, count: number, catalog: Catalog): RunState {
   let next = run;
   for (let i = 0; i < count; i += 1) {
-    while (next.economy.actionCharges < 1) next = steps(next, 1, catalog);
     next = act(next, { type: 'primaryAction' }, catalog);
     next = steps(next, 1, catalog);
   }

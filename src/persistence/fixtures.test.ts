@@ -76,16 +76,16 @@ function moneyRun() {
   return applyCommand(run, { type: 'selectProject', id: 'job' }, run.activeMs, catalog).run;
 }
 
-/** Current-format fixtures (schema 10), produced by the same real game paths. */
+/** Current-format fixtures (schema 12), produced by the same real game paths. */
 const BUILDERS: Record<string, () => string> = {
-  'v11-fresh': () => saveWithProfile(createRun(1, 'fixture-fresh'), []),
-  'v11-midgame': () => saveWithProfile(progressedRun(6, true), []),
-  'v11-dead-cat': () => saveWithProfile(neglectedRun(), []),
-  'v11-stray-cat': () => saveWithProfile(strayRun(), []),
-  'v11-shipped': () => saveWithProfile(shippedRun(), []),
-  'v11-demos': () => saveWithProfile(demoRun(), []),
-  'v11-money': () => saveWithProfile(moneyRun(), []),
-  'v11-ended': () => {
+  'v12-fresh': () => saveWithProfile(createRun(1, 'fixture-fresh'), []),
+  'v12-midgame': () => saveWithProfile(progressedRun(6, true), []),
+  'v12-dead-cat': () => saveWithProfile(neglectedRun(), []),
+  'v12-stray-cat': () => saveWithProfile(strayRun(), []),
+  'v12-shipped': () => saveWithProfile(shippedRun(), []),
+  'v12-demos': () => saveWithProfile(demoRun(), []),
+  'v12-money': () => saveWithProfile(moneyRun(), []),
+  'v12-ended': () => {
     const run = endedRun();
     return saveWithProfile(run, [
       { id: 'the-forgotten-project', runId: run.id, activeMs: run.activeMs, order: 1 },
@@ -168,6 +168,16 @@ const V10 = [
   'v10-demos',
   'v10-money',
   'v10-ended',
+] as const;
+const V11 = [
+  'v11-fresh',
+  'v11-midgame',
+  'v11-dead-cat',
+  'v11-stray-cat',
+  'v11-shipped',
+  'v11-demos',
+  'v11-money',
+  'v11-ended',
 ] as const;
 const file = (name: string) => readFileSync(`${DIR}/${name}.json`, 'utf8');
 
@@ -289,6 +299,13 @@ describe('released save fixtures', () => {
     });
   }
 
+  for (const name of V11) {
+    it(`${name} drops the tap budget (11 → 12)`, () => {
+      expect(JSON.parse(file(name))).toHaveProperty('run.economy.actionCharges');
+      expect(loaded(file(name)).run.economy).not.toHaveProperty('actionCharges');
+    });
+  }
+
   it('a migrated run past a market wall replays no market updates', () => {
     const save = loaded(file('v9-ended'));
     const eras = save.run.history.filter((h) => h.kind === 'market').length;
@@ -297,7 +314,7 @@ describe('released save fixtures', () => {
   });
 
   it('money, rent, the landlord wheel and the job round-trip', () => {
-    const save = loaded(fixture('v11-money'));
+    const save = loaded(fixture('v12-money'));
     expect(save.run.rent.movedOut).toBe(true);
     expect(save.run.rentWheels.length).toBeGreaterThan(0);
     expect(save.run.job.employed).toMatchObject({ salary: 400, paydays: 0, permanent: false });
@@ -305,7 +322,7 @@ describe('released save fixtures', () => {
   });
 
   it('coded and designed demos round-trip with their seeds, picks and History entries', () => {
-    const save = loaded(fixture('v11-demos'));
+    const save = loaded(fixture('v12-demos'));
     expect(save.run.demos.map((d) => [d.number, d.pick])).toEqual([
       [1, null],
       [2, 2],
@@ -322,14 +339,14 @@ describe('released save fixtures', () => {
   });
 
   it('a shipped release round-trips with its outcome, comment and cat', () => {
-    const save = loaded(fixture('v11-shipped'));
+    const save = loaded(fixture('v12-shipped'));
     expect(save.run.releases).toHaveLength(1);
     expect(save.run.releases[0]).toMatchObject({ window: 1, catAlive: true });
     expect(save.run.history.some((h) => h.kind === 'release')).toBe(true);
   });
 
   it('a stray cat stays gone and is not mistaken for a dead one', () => {
-    const stray = loaded(fixture('v11-stray-cat'));
+    const stray = loaded(fixture('v12-stray-cat'));
     expect(stray.run.cat.alive).toBe(false);
     expect(stray.run.cat.leftAtActiveMs).not.toBeNull();
     expect(stray.run.cat.diedAtActiveMs).toBeNull();
@@ -354,25 +371,25 @@ describe('released save fixtures', () => {
   });
 
   it('mid-game keeps RNG streams, the pending reveal and care cooldowns', () => {
-    const save = loaded(fixture('v11-midgame'));
-    const original = JSON.parse(fixture('v11-midgame')) as { run: { rng: unknown } };
+    const save = loaded(fixture('v12-midgame'));
+    const original = JSON.parse(fixture('v12-midgame')) as { run: { rng: unknown } };
     expect(save.run.rng).toEqual(original.run.rng);
     expect(save.run.pendingUnlockIds.length).toBeGreaterThan(0);
     expect(save.run.cat.lastFedAtActiveMs).not.toBeNull();
   });
 
   it('a dead cat stays dead and an ended run stays ended', () => {
-    const dead = loaded(fixture('v11-dead-cat'));
+    const dead = loaded(fixture('v12-dead-cat'));
     expect(dead.run.cat.alive).toBe(false);
     expect(dead.run.history.some((h) => h.kind === 'cat' && h.id === 'cat-died')).toBe(true);
-    const ended = loaded(fixture('v11-ended'));
+    const ended = loaded(fixture('v12-ended'));
     expect(ended.run.status).toBe('ended');
     expect(ended.run.ending?.id).toBe('the-forgotten-project');
     expect(ended.profile.endings.map((e) => e.id)).toEqual(['the-forgotten-project']);
   });
 
   it('a future schema, unknown IDs or out-of-range values are refused and never overwritten', () => {
-    const base = JSON.parse(fixture('v11-midgame')) as Record<string, unknown> & {
+    const base = JSON.parse(fixture('v12-midgame')) as Record<string, unknown> & {
       run: Record<string, unknown> & { cat: Record<string, unknown> };
     };
     const cases: [string, unknown, string][] = [

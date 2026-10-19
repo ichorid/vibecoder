@@ -1,8 +1,8 @@
 /**
  * Gigs (docs/feature_money.md §5.2–5.4): money comes from coding for clients. A gig is a
  * project; its size and pay are drawn from `rng.gigs` when it is offered, so neither timing nor
- * a reload changes what it pays. Without a gig the player searches (each search press costs a
- * primary-action charge); the job-search bot and auto-freelancing search on their own.
+ * a reload changes what it pays. Without a gig the player searches (a press per step); the
+ * job-search bot and auto-freelancing search on their own.
  */
 import { earned } from './ledger';
 import type { Catalog } from './catalog';

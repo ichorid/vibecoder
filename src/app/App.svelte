@@ -128,9 +128,8 @@
         return joke(tap.target);
       case 'monitor': {
         // The monitor is where the work happens: tapping it is the main action.
-        const { gain, ready } = current().game.primaryAction;
+        const { gain } = current().game.primaryAction;
         if (api.dispatch({ type: 'primaryAction' }) !== 'applied') return null;
-        if (!ready) return 'too tired';
         return gain ? gainText(gain, formatAmount) : null;
       }
       case 'plant': {

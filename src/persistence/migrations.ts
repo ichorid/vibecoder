@@ -26,10 +26,12 @@
  *   build slot on the release, empty gigs/rent/job state, gig and rent RNG streams derived from
  *   the run ID, `frugal: 1`, and silent market History entries for the eras it already passed
  *   (`MARKET_ERAS_V10`), so a loaded run does not replay old market updates.
+ * - 10 → 11: the money ledger starts at zero.
+ * - 11 → 12: no tap budget any more; the economy's `actionCharges` is dropped.
  */
 import { deriveSeed } from '../game/random';
 
-export const CURRENT_SCHEMA_VERSION = 11;
+export const CURRENT_SCHEMA_VERSION = 12;
 
 /** Release prices at schema 10 (v0.1 … v3.0, then ×6 each): where an old bank goes. */
 const RELEASE_PRICES_V10 = [2000, 12_000, 75_000, 450_000, 2_700_000];
@@ -277,6 +279,17 @@ function v10ToV11(envelope: Record<string, unknown>): MigrationResult {
   };
 }
 
+/** 11 → 12: every press counts; the tap budget's charges are dropped. */
+function v11ToV12(envelope: Record<string, unknown>): MigrationResult {
+  const run = envelope.run;
+  if (!isRecord(run) || !isRecord(run.economy)) {
+    return { ok: false, unsupported: false, reason: 'v11 save without a run economy' };
+  }
+  const economy = { ...run.economy };
+  delete economy.actionCharges;
+  return { ok: true, value: { ...envelope, schemaVersion: 12, run: { ...run, economy } } };
+}
+
 const STEPS: Record<number, (envelope: Record<string, unknown>) => MigrationResult> = {
   1: v1ToV2,
   2: v2ToV3,
@@ -288,6 +301,7 @@ const STEPS: Record<number, (envelope: Record<string, unknown>) => MigrationResu
   8: v8ToV9,
   9: v9ToV10,
   10: v10ToV11,
+  11: v11ToV12,
 };
 
 export function migrate(envelope: Record<string, unknown>): MigrationResult {

@@ -177,6 +177,9 @@ Verify: seer buyer peak debt ≤ 120; force-merge still reachable by the reckles
 
 ### E3 — The human act and the tap cap (MUST)
 
+> **Superseded 2026-10-19 (owner):** the tap cap and its visible pacing (strain meter, "too
+> tired") are removed; every press counts. The act-1 prices and the 3 cps baseline stay.
+
 Problem F5, F10 (act 1). Pillar: the human disappearing needs a "before".
 
 - `balance.ts`: `actionBurst 6`, `actionRefillPerSecond 3`.
@@ -289,6 +292,7 @@ Keep both log lines. Verify: disaster costs 25–40 s of progress for spender an
 Thumb tapping on a phone settles at 3–6 cps for minutes at a time; 1 cps is a patient
 player, 10 cps an auto-clicker. Capping at 3/s makes every human player the same player for
 pacing purposes, and lets the act-1 prices give the human act its intended ~3 minutes.
+(Cap removed 2026-10-19: 3 cps stays the measured baseline; faster tappers are now faster.)
 
 ## 8. Disagreements and how they were resolved
 

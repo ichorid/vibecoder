@@ -11,12 +11,11 @@ export interface FloatingGain {
   /** Where it flies to, in px from its start: into the build the press fills (none: it rises). */
   readonly to?: { readonly x: number; readonly y: number };
   /**
-   * `tired`: a press that did not count (over the strain limit), red with a wobble.
    * `spend`: money paid out (e.g. the cat's food), red.
    * `earn`: money earned (a gig paid), gold; it pops under the balance and flies up into it.
    * None of them flies to a build.
    */
-  readonly tone?: 'tired' | 'spend' | 'earn';
+  readonly tone?: 'spend' | 'earn';
 }
 
 /** The element a press fills (the first slot's build), as a CSS selector in Game. */

@@ -52,9 +52,11 @@ describe('economy shape (§4 contract)', { timeout: 300_000 }, () => {
     expect(minutes(m)).toBeLessThanOrEqual(55);
   });
 
-  it('mashing at 10 cps is at most ~20 % faster than the baseline', () => {
+  // No tap cap since 2026-10-19 (owner): every press counts, so faster tapping pays (measured
+  // 10 cps: 18.9 min vs 28.0, 0.68 × the baseline); it must still not trivialise the route.
+  it('mashing at 10 cps is at most ~40 % faster than the baseline', () => {
     const m = measured('mash', () => measureRun(1, { cps: 10, cpsAfter: 10 }));
-    expect(minutes(m)).toBeGreaterThanOrEqual(0.8 * minutes(baseline(1)));
+    expect(minutes(m)).toBeGreaterThanOrEqual(0.6 * minutes(baseline(1)));
   });
 
   it('buying the capacity the cards suggest is ≥ 10 % faster than progression only', () => {
@@ -114,7 +116,6 @@ describe('economy shape (§4 contract)', { timeout: 300_000 }, () => {
     expect(minutes(slow) - minutes(baseline(1))).toBeLessThanOrEqual(6);
   });
 
-  it.todo('mashing at 10 cps is at most 10 % faster (measured 14–16 %)');
   it.todo('quality < 0.9 for 30–60 % of minutes 16–31 (measured 21–31 %)');
   it.todo('two optional cards visible ≥ 80 % of the time from 4 min (D29: only helpful capacity)');
   it.todo('act walls ≥ 2 min (measured 1.2–2.6)');

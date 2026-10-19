@@ -41,8 +41,6 @@ export function createRun(seed: number, runId: string, experience = 0, frugal = 
       pendingManualWork: 0,
       tokens: 0,
       tasks: 0,
-      // Starts full: balance.actionBurst (the agents test pins the two together).
-      actionCharges: 6,
       debt: 0,
       delegation: 0,
       optimization: 0,

@@ -611,3 +611,12 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   = earned − spent over whole runs. Save schema 11 (ledger starts at zero). Setup: Wallet
   section (balance, work, rent, earned/spent). Not done: SEARCH shares the tap budget but has
   no tired feedback.
+- 2026-10-19: (user) tap pacing removed — the cap and its feedback "proved to be uncool". No
+  `actionCharges` / `actionBurst` / `actionRefillPerSecond`: every primary press and every
+  SEARCH tap counts, however fast. UI: no strain meter, no red "too tired" (button or monitor
+  tap), no `data-ready`/`ready`/`strain` in the view model. Save schema 12 (11 → 12 drops
+  `economy.actionCharges`; v12 fixtures). Measured: 3 cps baseline, slow, idle, money and
+  attentive-player contracts unchanged (the baseline tapper never hit the cap); 10 cps reaches
+  the company at 18.9 min vs 28.0 (0.68 ×; strategies seed 101: 19.2 min). Masher contracts
+  restated: ≥ 0.6 × baseline (was 0.8) and ≥ 17 min (was 20); the "≤ 10 % faster" todo dropped.
+  Harness: the project player still searches once per 100 ms step (search is 3–8 taps).

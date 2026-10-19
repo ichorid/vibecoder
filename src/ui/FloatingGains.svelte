@@ -15,7 +15,6 @@
     <span
       class="gain"
       class:fly={gain.to !== undefined}
-      class:tired={gain.tone === 'tired'}
       class:spend={gain.tone === 'spend'}
       class:earn={gain.tone === 'earn'}
       data-testid="floating-gain"
@@ -60,32 +59,6 @@
       -2px 2px 0 #2a2017,
       3px 4px 0 rgba(0, 0, 0, 0.35);
     animation: float-up 900ms ease-out forwards;
-  }
-  /* A press that did not count: red, a little smaller, a short wobble as it rises. */
-  .gain.tired {
-    font-size: 20px;
-    color: #ff5a4e;
-    animation: tired-up 800ms ease-out forwards;
-  }
-  @keyframes tired-up {
-    0% {
-      opacity: 1;
-      transform: translate(-50%, 4px) rotate(-6deg) scale(1.2);
-    }
-    12% {
-      transform: translate(-50%, -4px) rotate(5deg) scale(1);
-    }
-    24% {
-      transform: translate(-50%, -10px) rotate(-3deg);
-    }
-    36% {
-      opacity: 1;
-      transform: translate(-50%, -14px) rotate(0deg);
-    }
-    100% {
-      opacity: 0;
-      transform: translate(-50%, -48px);
-    }
   }
   /* Money paid out: red, rising like any number. */
   .gain.spend {
@@ -158,7 +131,6 @@
   @media (prefers-reduced-motion: reduce) {
     .gain,
     .gain.fly,
-    .gain.tired,
     .gain.earn {
       animation: fade 900ms linear forwards;
     }

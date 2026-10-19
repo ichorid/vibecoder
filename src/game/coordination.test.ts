@@ -75,15 +75,13 @@ describe('parallel agents and coordination', () => {
     expect(run.economy.delegation).toBe(0);
   });
 
-  it('SUPERVISE clears some debt per press within the action budget', () => {
+  it('SUPERVISE clears some debt per press, down to zero', () => {
     let run = era(['parallel-agents', 'worktrees', 'manager-agent'], { debt: 30 });
     expect(selectGame(run, catalog).primaryAction.label).toBe('SUPERVISE');
     run = act(run, { type: 'primaryAction' }, catalog);
     expect(run.economy.debt).toBe(30 - catalog.balance.coordination.supervisePerPress);
     for (let i = 0; i < 30; i += 1) run = act(run, { type: 'primaryAction' }, catalog);
-    expect(run.economy.debt).toBe(
-      30 - catalog.balance.actionBurst * catalog.balance.coordination.supervisePerPress,
-    );
+    expect(run.economy.debt).toBe(0);
   });
 });
 

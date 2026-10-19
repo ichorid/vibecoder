@@ -227,13 +227,6 @@ export interface GameViewModel {
     readonly id: PrimaryActionId;
     readonly label: string;
     readonly gain: PrimaryGainViewModel | null;
-    /** A press would count right now (false: over the tap cap, it fizzles). */
-    readonly ready: boolean;
-    /**
-     * How overworked the fingers are, in presses: each press adds 1, it cools down by itself,
-     * and a press counts only while `level <= limit - 1` (the last step is the red zone).
-     */
-    readonly strain: { readonly level: number; readonly limit: number };
   };
   readonly stats: readonly StatViewModel[];
   readonly offers: readonly OfferViewModel[];
@@ -413,13 +406,12 @@ function headerStats(run: ReadonlyRun, catalog: Catalog): StatViewModel[] {
   });
 }
 
-/** Mirrors `primaryAction` in commands.ts: the same rates, caps and charge budget. */
+/** Mirrors `primaryAction` in commands.ts: the same rates and caps. */
 function primaryGain(
   run: ReadonlyRun,
   catalog: Catalog,
   action: PrimaryActionId,
 ): PrimaryGainViewModel | null {
-  if (run.economy.actionCharges < 1) return null;
   const coordination = catalog.balance.coordination;
   switch (action) {
     case 'writeCode':
@@ -582,11 +574,6 @@ export function selectGame(
       id: action,
       label: catalog.primaryActionLabels[action],
       gain: primaryGain(run, catalog, action),
-      ready: run.economy.actionCharges >= 1,
-      strain: {
-        level: Math.max(0, catalog.balance.actionBurst - run.economy.actionCharges),
-        limit: catalog.balance.actionBurst,
-      },
     },
     stats: headerStats(run, catalog),
     offers,

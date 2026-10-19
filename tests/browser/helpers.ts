@@ -8,14 +8,10 @@ export async function freshGame(page: Page): Promise<void> {
   await expect(page.getByTestId('primary-action')).toBeVisible();
 }
 
-/**
- * Press the primary action `count` times through real pointer clicks, each one once the tap
- * budget has a charge (so every press counts).
- */
+/** Press the primary action `count` times through real pointer clicks. */
 export async function pressPrimary(page: Page, count: number): Promise<void> {
   const button = page.getByTestId('primary-action');
   for (let i = 0; i < count; i += 1) {
-    await expect(button).toHaveAttribute('data-ready', 'true');
     await button.click();
   }
 }
@@ -80,7 +76,6 @@ export async function buildCard(page: Page, name: RegExp, presses = 400): Promis
   const announcement = page.getByTestId('announcement');
   for (let i = 0; i < presses; i += 1) {
     if ((await announcement.count()) > 0) return;
-    await expect(button).toHaveAttribute('data-ready', 'true');
     // The discovery can land between the check and the press: its panel then takes the tap.
     const pressed = await button
       .click({ timeout: 3000 })
@@ -104,7 +99,6 @@ export async function pressUntilOffered(page: Page, name: RegExp, limit = 400): 
       await closeUpgrades(page);
       if (found) return;
     }
-    await expect(button).toHaveAttribute('data-ready', 'true');
     await button.click();
   }
   throw new Error(`${name} never offered`);

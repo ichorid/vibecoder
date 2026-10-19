@@ -89,10 +89,10 @@ describe('the first agent', () => {
     expect(run.stats.lifetimeOutput - before).toBeGreaterThan(9);
   });
 
-  it('caps manual presses with a refilling action budget', () => {
+  it('counts every manual press, however fast', () => {
     let run = createRun(1, 'r');
     for (let i = 0; i < 40; i += 1) run = act(run, { type: 'primaryAction' }, catalog);
     run = steps(run, 1, catalog);
-    expect(run.stats.lifetimeOutput).toBe(catalog.balance.actionBurst);
+    expect(run.stats.lifetimeOutput).toBe(40);
   });
 });

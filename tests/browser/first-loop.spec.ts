@@ -9,7 +9,7 @@ import {
 } from './helpers';
 
 test('first loop: write, build, announce, visit Cat, next offer, reload', async ({ page }) => {
-  // 24 real presses at the tap budget: ~35 s on a fast runner, over a minute on a slow one.
+  // Real presses, a reload and a Cat visit: generous for a slow runner.
   test.setTimeout(120_000);
   await freshGame(page);
   await expect(page.locator('body')).not.toContainText('Generated snippets');

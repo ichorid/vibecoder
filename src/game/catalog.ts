@@ -113,9 +113,6 @@ export interface BalanceDefinition {
   readonly optimizeStep: number;
   readonly optimizeCap: number;
   readonly optimizeDecayPerSecond: number;
-  /** Primary-action budget: presses beyond this rate do nothing (no autoclicker bypass). */
-  readonly actionBurst: number;
-  readonly actionRefillPerSecond: number;
   readonly agents: AgentBalance;
   readonly cat: CatBalance;
   readonly catPlay: CatPlayBalance;

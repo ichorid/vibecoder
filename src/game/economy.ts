@@ -439,10 +439,6 @@ export function stepEconomy(
       pendingManualWork: 0,
       tokens: roundAmount(tokens),
       tasks: roundAmount(Math.max(0, queued - usedTasks)),
-      actionCharges: Math.min(
-        balance.actionBurst,
-        economy.actionCharges + balance.actionRefillPerSecond * dt,
-      ),
       debt: roundAmount(debt),
       delegation: Math.max(
         0,

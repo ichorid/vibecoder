@@ -141,8 +141,8 @@ need falls. The announcements reveal nothing about upcoming technologies (progre
 
 - With no gig offered, the money strip shows **No gigs · SEARCH n/N**. N is drawn uniformly in
   3–8 per search (`rng.gigs`).
-- A SEARCH tap spends **one primary-action charge** (`balance.actionBurst` / refill), exactly like
-  WRITE CODE, and adds no code: searching costs coding.
+- A SEARCH tap is one search step and adds no code: a tap spent searching is not spent coding.
+  (There is no tap budget since 2026-10-19; every tap counts.)
 - At N/N a gig is offered.
 - **Job-search bot** (`job-search-bot`, code project, requires `ralph-loop`, ~1.5 × the ralph-loop
   price): one search step every 2 s on its own; the player's taps still count. Log lines from a

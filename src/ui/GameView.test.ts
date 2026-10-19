@@ -30,7 +30,7 @@ function setup() {
   const write = async (count: number) => {
     for (let i = 0; i < count; i += 1) {
       await fireEvent.click(screen.getByTestId('primary-action'));
-      // At the tap pace (about 3 per second): every press counts.
+      // About 3 presses per second.
       ui.tick(400);
     }
   };
@@ -80,32 +80,13 @@ describe('Game controls', () => {
     expect(floats.every((f) => f.getAttribute('aria-hidden') === 'true')).toBe(true);
   });
 
-  it('a press past the strain limit floats a red "too tired" and adds nothing', async () => {
+  it('mashing without pause: every press counts and floats its gain', async () => {
     const t = setup();
-    // Mashing with no time to cool down: six presses count, the seventh is too much.
     for (let i = 0; i < 7; i += 1) await fireEvent.click(screen.getByTestId('primary-action'));
-    expect(t.latest()?.run.stats.manualActions).toBe(6);
+    expect(t.latest()?.run.stats.manualActions).toBe(7);
     const floats = [...document.querySelectorAll('[data-testid="floating-gain"]')];
-    expect(floats.map((f) => f.textContent?.trim())).toEqual([
-      ...Array<string>(6).fill('+1'),
-      'too tired',
-    ]);
-    expect(floats.at(-1)?.getAttribute('data-tone')).toBe('tired');
-  });
-
-  it('shows the strain on the button: it fills with presses and cools down over time', async () => {
-    const t = setup();
-    const meter = () => screen.getByTestId('strain');
-    const fill = () => Number.parseFloat(meter().style.getPropertyValue('--strain'));
-    expect(fill()).toBe(0);
-    for (let i = 0; i < 3; i += 1) await fireEvent.click(screen.getByTestId('primary-action'));
-    expect(fill()).toBeCloseTo(0.5, 5);
-    for (let i = 0; i < 3; i += 1) await fireEvent.click(screen.getByTestId('primary-action'));
-    expect(screen.getByTestId('primary-action').getAttribute('data-ready')).toBe('false');
-    t.tick(2000);
-    await Promise.resolve();
-    expect(fill()).toBe(0);
-    expect(screen.getByTestId('primary-action').getAttribute('data-ready')).toBe('true');
+    expect(floats.map((f) => f.textContent?.trim())).toEqual(Array<string>(7).fill('+1'));
+    expect(screen.queryByTestId('strain')).toBeNull();
   });
 
   it('keeps at most eight floating numbers at a time', async () => {

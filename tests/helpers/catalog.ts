@@ -29,8 +29,6 @@ export function createTestCatalog(): Catalog {
         delegationDecayPerSecond: 0.1,
         supervisePerPress: 2,
       },
-      actionBurst: 10,
-      actionRefillPerSecond: 10,
       agents: { taskQueueCap: 40, tokenReserve: 150, tokenReserveSupplySeconds: 60 },
       cat: catBalance,
       catPlay: catPlayBalance,

@@ -95,9 +95,6 @@ export const balance = {
     delegationDecayPerSecond: 0.1,
     supervisePerPress: 2,
   },
-  // About 3 presses per second (realistic thumb tapping); faster tapping fizzles (E3).
-  actionBurst: 6,
-  actionRefillPerSecond: 3,
   agents: { taskQueueCap: 60, tokenReserve: 150, tokenReserveSupplySeconds: 60 },
   cat: catBalance,
   catPlay: catPlayBalance,

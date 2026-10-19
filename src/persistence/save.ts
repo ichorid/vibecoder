@@ -176,7 +176,6 @@ const ECONOMY_FIELDS = [
   'pendingManualWork',
   'tokens',
   'tasks',
-  'actionCharges',
   'debt',
   'delegation',
   'optimization',

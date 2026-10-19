@@ -71,13 +71,7 @@ export function applyCommand(
     }
     case 'searchJob': {
       if (!run.gigs.search || run.job.employed) return reject(run, 'unavailable');
-      // A search press spends a primary-action charge: searching costs coding.
-      if (run.economy.actionCharges < 1) return { run, facts: [], result: 'applied' };
-      const charged: RunState = {
-        ...run,
-        economy: { ...run.economy, actionCharges: run.economy.actionCharges - 1 },
-      };
-      return { run: searchStep(charged, catalog), facts: [], result: 'applied' };
+      return { run: searchStep(run, catalog), facts: [], result: 'applied' };
     }
     case 'acknowledgeNotice':
       if (run.notices.length === 0) return reject(run, 'unavailable');
@@ -252,16 +246,12 @@ function buyUpgrade(run: RunState, id: string, catalog: Catalog): CommandTransit
   };
 }
 
-/**
- * The current primary action. Every press spends one charge of a refilling budget, so rapid
- * clicking cannot exceed the intended rate; a press without charge is accepted but adds nothing.
- */
+/** The current primary action: every press counts. */
 function primaryAction(run: RunState, catalog: Catalog): CommandTransition {
   const cat = noteMeaningfulAction(run.cat);
-  if (run.economy.actionCharges < 1) return { run: { ...run, cat }, facts: [], result: 'applied' };
   const rates = deriveRates(run, catalog);
   const action = currentPrimaryAction(run, catalog);
-  let economy = { ...run.economy, actionCharges: run.economy.actionCharges - 1 };
+  let economy = run.economy;
   const stats = { ...run.stats, manualActions: run.stats.manualActions + 1 };
   switch (action) {
     case 'writeCode':

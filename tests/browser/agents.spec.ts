@@ -3,7 +3,7 @@ import { buildCard, freshGame, loadSave, openUpgrades, pressUntilOffered } from 
 import { nearlyBuilt, progressedRun, saveText } from './fixtures';
 
 test('from the empty room to a working terminal agent with real presses', async ({ page }) => {
-  // Every press waits for the tap budget; a slow shared CI runner needs ~4.5 min (locally ~2).
+  // Hundreds of real presses; a slow shared CI runner needs minutes.
   test.setTimeout(480_000);
   await freshGame(page);
   const primary = page.getByTestId('primary-action');

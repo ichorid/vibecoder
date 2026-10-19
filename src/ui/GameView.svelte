@@ -162,24 +162,16 @@
     '+0 purpose',
   ];
   let observed = 0;
-  /** A press past the strain limit (it adds nothing). */
-  const TIRED_TEXT = 'too tired';
 
   function primary(event: MouseEvent) {
     // The gain of *this* press is read before dispatching; nothing floats if it adds nothing.
     const gain = game.primaryAction.gain;
     const observing = game.primaryAction.id === 'observe';
-    // Past the strain limit the press adds nothing: say so, in red (pacing, not a dead button).
-    const tired = !game.primaryAction.ready;
-    if (dispatch({ type: 'primaryAction' }) !== 'applied') return;
-    if (!tired && !gain && !observing) return;
+    if (dispatch({ type: 'primaryAction' }) !== 'applied' || (!gain && !observing)) return;
     const target = event.currentTarget as HTMLElement;
-    if (tired) flinch(target);
-    const text = tired
-      ? TIRED_TEXT
-      : gain
-        ? gainText(gain, formatAmount)
-        : (OBSERVE_GAINS[observed++ % OBSERVE_GAINS.length] ?? '+1 boredom');
+    const text = gain
+      ? gainText(gain, formatAmount)
+      : (OBSERVE_GAINS[observed++ % OBSERVE_GAINS.length] ?? '+1 boredom');
     const rect = target.getBoundingClientRect();
     const fromPointer = event.detail > 0 && rect.width > 0;
     const x = Math.min(
@@ -189,34 +181,9 @@
     nextGainId += 1;
     gains = [
       ...gains.slice(-(MAX_FLOATING - 1)),
-      tired
-        ? { id: nextGainId, text, x, tone: 'tired' as const }
-        : { id: nextGainId, text, x, ...flight(gain?.unit === 'code', rect, x) },
+      { id: nextGainId, text, x, ...flight(gain?.unit === 'code', rect, x) },
     ];
   }
-
-  /** A short no-shake of the button for a press that did not count (none with reduced motion). */
-  function flinch(button: HTMLElement) {
-    if (typeof button.animate !== 'function') return;
-    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
-    button.animate(
-      [
-        { translate: '0 0' },
-        { translate: '-5px 0' },
-        { translate: '4px 0' },
-        { translate: '-2px 0' },
-        { translate: '0 0' },
-      ],
-      { duration: 220, easing: 'ease-out' },
-    );
-  }
-
-  /** Strain as a 0–1 fill of the meter; the last step (one press) is the red zone. */
-  const strain = $derived(
-    Number(
-      (game.primaryAction.strain.level / Math.max(1, game.primaryAction.strain.limit)).toFixed(3),
-    ),
-  );
 
   /**
    * A press of code flies into the build it fills: the first slot's card or strip, or the
@@ -668,27 +635,10 @@
       {/if}
     {:else}
       <div class="primary-host">
-        <button
-          type="button"
-          class="primary"
-          data-testid="primary-action"
-          data-ready={game.primaryAction.ready}
-          class:tired={!game.primaryAction.ready}
-          onclick={primary}
-        >
+        <button type="button" class="primary" data-testid="primary-action" onclick={primary}>
           <span class="action-icon" aria-hidden="true"
             ><PixelIcon map={ACTION_ICONS[game.primaryAction.id]} scale={3} /></span
           >{game.primaryAction.label}
-          <!-- Strain: every press fills one step, it cools by itself; the red step means a press
-               would not count. Riding just below it is the full pace ("in the zone"). -->
-          <span
-            class="strain"
-            class:zone={game.primaryAction.ready && strain >= 0.5}
-            data-testid="strain"
-            aria-hidden="true"
-            style:--strain={strain}
-            style:--steps={game.primaryAction.strain.limit}><span class="strain-fill"></span></span
-          >
         </button>
         <FloatingGains {gains} onDone={(id) => (gains = gains.filter((g) => g.id !== id))} />
       </div>
@@ -895,10 +845,7 @@
     flex-direction: column;
   }
   .primary {
-    position: relative;
     min-height: 56px;
-    /* Room for the strain meter along the bottom edge. */
-    padding-bottom: 10px;
     border: 3px solid var(--border);
     background: var(--accent);
     color: var(--accent-ink);
@@ -912,86 +859,6 @@
   .primary:active {
     transform: translateY(2px);
     box-shadow: 0 2px 0 var(--accent-strong);
-  }
-  /* Overworked: the button cools off in red until the strain leaves the red step. */
-  .primary.tired {
-    background: color-mix(in srgb, #e8483c 45%, var(--accent));
-    box-shadow: 0 4px 0 #8e2a20;
-  }
-  .strain {
-    --step: calc(100% / var(--steps, 6));
-    position: absolute;
-    left: 8px;
-    right: 8px;
-    bottom: 5px;
-    height: 7px;
-    border: 1px solid var(--border);
-    /* The track, with its last step marked as the red zone. */
-    background:
-      repeating-linear-gradient(
-          135deg,
-          rgba(232, 72, 60, 0.55) 0 3px,
-          rgba(232, 72, 60, 0.2) 3px 6px
-        )
-        right / var(--step) 100% no-repeat,
-      rgba(0, 0, 0, 0.28);
-    pointer-events: none;
-  }
-  /* The fill reveals a fixed cool→hot gradient, so its colour says how close the red is. */
-  .strain-fill {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(
-      to right,
-      #57c84d 0%,
-      #a6d83a 40%,
-      #ffd23f 62%,
-      #ff9f2e calc(100% - var(--step)),
-      #e8483c calc(100% - var(--step))
-    );
-    clip-path: inset(0 calc((1 - var(--strain, 0)) * 100%) 0 0);
-    transition: clip-path 100ms linear;
-  }
-  /* Step dividers: one per press of the budget. */
-  .strain::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: repeating-linear-gradient(
-      to right,
-      transparent 0 calc(var(--step) - 1px),
-      var(--border) calc(var(--step) - 1px) var(--step)
-    );
-  }
-  .strain.zone .strain-fill {
-    animation: zone-glow 600ms ease-in-out infinite alternate;
-  }
-  .primary.tired .strain {
-    background:
-      linear-gradient(#e8483c, #e8483c) right / var(--step) 100% no-repeat,
-      rgba(0, 0, 0, 0.28);
-  }
-  .primary.tired .strain-fill {
-    animation: tired-blink 300ms steps(2, jump-none) infinite;
-  }
-  @keyframes zone-glow {
-    to {
-      filter: brightness(1.35) saturate(1.2);
-    }
-  }
-  @keyframes tired-blink {
-    to {
-      filter: brightness(1.6);
-    }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .strain-fill {
-      transition: none;
-    }
-    .strain.zone .strain-fill,
-    .primary.tired .strain-fill {
-      animation: none;
-    }
   }
   .credit {
     display: flex;

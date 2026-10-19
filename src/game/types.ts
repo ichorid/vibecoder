@@ -42,8 +42,6 @@ export interface EconomyState {
   tokens: number;
   /** Queued agent work in agent-seconds (supplied by PROMPT and later automation). */
   tasks: number;
-  /** Primary-action budget (refills each step, capped). */
-  actionCharges: number;
   /** Accumulated technical debt; lowers quality efficiency, removed by review. */
   debt: number;
   /** Temporary extra managed capacity from DELEGATE (bounded, decays). */
@@ -71,7 +69,7 @@ export interface RunStats {
   feeds: number;
   pets: number;
   playHits: number;
-  /** Accepted primary presses (with a charge) over the run. */
+  /** Primary presses over the run. */
   manualActions: number;
   /** Continuous active time with debt ≤ 5 / margin > 0 / margin < 0 (ending conditions). */
   lowDebtMs: number;

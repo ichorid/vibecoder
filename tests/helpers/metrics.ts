@@ -138,7 +138,6 @@ export function measureRun(seed: number, options: MeasureOptions = {}): RunMetri
     buyerPolicy(options.buyer ?? 'baseline', options),
     acknowledgeReveals,
     ...(options.care === 'none' ? [] : [...baselineCare, playEvery()]),
-    // Taps after the buyer: search presses spend the same charges first.
     tapAt(cps, options.cpsAfter ?? 1 / 3),
     ...(options.extra ?? []),
   ];
