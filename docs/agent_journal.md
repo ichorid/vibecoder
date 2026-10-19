@@ -620,3 +620,17 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   the company at 18.9 min vs 28.0 (0.68 ×; strategies seed 101: 19.2 min). Masher contracts
   restated: ≥ 0.6 × baseline (was 0.8) and ≥ 17 min (was 20); the "≤ 10 % faster" todo dropped.
   Harness: the project player still searches once per 100 ms step (search is 3–8 taps).
+- 2026-10-20: (user) build deck (docs/feature_build_deck.md; 20 phone playtests: nobody found
+  UPGRADES, and leaving the code to pick broke the rhythm). The UPGRADES button, its sheet, the
+  inline card list and the Ship It / demo strips are gone on every screen. Above CODE: the token
+  gauge (time to empty, one-tap reload at any time — `isTokenReloadAvailable`; the card's offer
+  rule and so the harness are unchanged), the build row(s) and the build lane (phones scroll,
+  wide screens wrap). Lane order never re-sorts (swap in place, insert at the peek, auto-scroll
+  to arrivals unless the player aims, NEW tags, edge counters, tap-vs-drag and inert windows).
+  A completion that falls back grows the lane into cards ("what next?", tax line); Manager
+  Agent completions only note the pick. Ready release/demo: fireworks, then SHIP IT / RUN or
+  Later (READY waits in the deck; a tap reopens it). Decisions open in full from the lane.
+  Ta-da tiers S/A/B (`momentTier`, app-level moments like payouts), sfx pop/built/fanfare/coin/
+  warn. `selectProject` takes an optional focused slot. A tap on an AUTO · ½ row confirms it
+  (P3 one-tap confirm kept). No save change. Browser tests moved from the sheet to the deck; the
+  setup test of the sheet's stats line was removed with the sheet.

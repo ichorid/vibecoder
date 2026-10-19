@@ -65,19 +65,19 @@
       opacity: 0;
     }
   }
-  /* Small: sits on the right end of the primary button. */
+  /* Small: sits on the right end of the primary button (the bottom of the controls). */
   .small.button {
-    top: 0;
+    bottom: 40px;
     right: 14px;
   }
-  /* Small: sits on the first upgrade card's price. */
+  /* Small: sits on the build lane, right above the primary button. */
   .small.card {
-    top: 64px;
+    bottom: 76px;
     right: 18px;
   }
-  /* Small: strolls across the event log. */
+  /* Small: strolls across the event log (the top of the controls). */
   .small.walk {
-    bottom: 6px;
+    top: 0;
     left: 0;
     animation: stroll 4s linear both;
   }
@@ -91,7 +91,7 @@
   }
   /* Large: covers the primary action until tapped or the intrusion passes. */
   .large.block {
-    top: -84px;
+    bottom: 0;
     left: 50%;
     margin-left: -90px;
     width: 180px;

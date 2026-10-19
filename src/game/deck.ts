@@ -163,7 +163,7 @@ export function assembleDeck(parts: DeckParts): DeckViewModel {
     items.set('release', {
       key: 'release',
       kind: 'release',
-      title: release.shippable ? `${release.version} ${release.title}` : release.title,
+      title: release.title,
       project: release.project,
       release,
     });

@@ -16,22 +16,19 @@ export async function pressPrimary(page: Page, count: number): Promise<void> {
   }
 }
 
+/** An item of the build deck: its build row while it builds, else its lane chip. */
+export function deckItem(page: Page, key: string) {
+  return page
+    .locator(`[data-testid="build-row"][data-key="${key}"], [data-lane-key="${key}"]`)
+    .first();
+}
+
 /**
- * Code built into the original project so far, as its strip shows it ("The project · 7/2K"):
+ * Code built into the original project so far, as the deck shows it ("The project · 7/2K"):
  * what the presses add while nothing else is being built.
  */
 export async function builtCode(page: Page): Promise<string> {
-  const strip = page.getByTestId('ship-strip');
-  if ((await strip.count()) > 0) {
-    return /([\d.]+[KMB]?)\//.exec((await strip.textContent()) ?? '')?.[1] ?? '';
-  }
-  // Phones keep the project in the cards popup; the folded button names the build it fills.
-  const label = (await page.getByTestId('offers-toggle').getAttribute('aria-label')) ?? '';
-  const building = /building ([\d.]+[KMB]?)\//.exec(label)?.[1];
-  if (building !== undefined) return building;
-  await openUpgrades(page);
-  const text = (await strip.textContent()) ?? '';
-  await closeUpgrades(page);
+  const text = (await deckItem(page, 'release').textContent()) ?? '';
   return /([\d.]+[KMB]?)\//.exec(text)?.[1] ?? '';
 }
 
@@ -46,32 +43,25 @@ export async function loadSave(page: Page, text: string): Promise<void> {
   await expect(page.getByTestId('primary-action')).toBeVisible();
 }
 
-/**
- * Phones show the cards, the project, the demo and the gigs in a popup: open it (a no-op where
- * they are inline).
- */
-export async function openUpgrades(page: Page): Promise<void> {
-  const toggle = page.getByTestId('offers-toggle');
-  const sheet = page.getByTestId('offers-sheet');
-  await expect(toggle.or(page.locator('ul.offers, .strips')).first()).toBeVisible();
-  if ((await toggle.isVisible()) && !(await sheet.isVisible())) await toggle.click();
-  await expect(sheet.or(page.locator('ul.offers, .strips')).first()).toBeVisible();
+/** The deck is always on screen; this closes its expanded cards if they are open. */
+export async function closeDeck(page: Page): Promise<void> {
+  const open = page.getByTestId('deck-expanded');
+  if (await open.isVisible()) await page.getByTestId('deck-close').click();
 }
 
-/** Close the cards popup again (a no-op where the cards are inline). */
-export async function closeUpgrades(page: Page): Promise<void> {
-  const sheet = page.getByTestId('offers-sheet');
-  if (await sheet.isVisible()) await sheet.getByRole('button', { name: '← BACK TO CODE' }).click();
+/** A lane chip whose text matches `name`. */
+export function laneItem(page: Page, name: RegExp) {
+  return page.getByTestId('lane-item').filter({ hasText: name }).first();
 }
 
 /**
- * Build a card: pick it (in the popup on phones), then write by hand until its discovery is
- * announced (or `presses` run out). Code is never banked: the build fills as you press.
+ * Build a card: pick it in the lane, then write by hand until its discovery is announced (or
+ * `presses` run out). Code is never banked: the build fills as you press.
  */
 export async function buildCard(page: Page, name: RegExp, presses = 400): Promise<void> {
-  await openUpgrades(page);
-  await page.getByRole('button', { name }).click();
-  await closeUpgrades(page);
+  await closeDeck(page);
+  await laneItem(page, name).click();
+  await expect(page.getByTestId('build-row').filter({ hasText: name }).first()).toBeVisible();
   const button = page.getByTestId('primary-action');
   const announcement = page.getByTestId('announcement');
   for (let i = 0; i < presses; i += 1) {
@@ -86,20 +76,32 @@ export async function buildCard(page: Page, name: RegExp, presses = 400): Promis
   }
 }
 
-/** Press until a card with this name is on offer (cards appear before they are built). */
+/** Press until a card with this name is in the lane (cards appear before they are built). */
 export async function pressUntilOffered(page: Page, name: RegExp, limit = 400): Promise<void> {
   const button = page.getByTestId('primary-action');
-  const toggle = page.getByTestId('offers-toggle');
-  const card = page.getByRole('button', { name });
+  const card = page.getByTestId('lane-item').filter({ hasText: name });
   for (let i = 0; i < limit; i += 1) {
     if ((await card.count()) > 0) return;
-    if ((await toggle.count()) > 0) {
-      await toggle.click();
-      const found = (await card.count()) > 0;
-      await closeUpgrades(page);
-      if (found) return;
-    }
+    await closeDeck(page);
     await button.click();
   }
   throw new Error(`${name} never offered`);
+}
+
+/** A ready release or demo: tap it in the deck, then SHIP IT / RUN in its popup. */
+export async function goReady(page: Page, key: 'release' | 'demo'): Promise<void> {
+  const popup = page.getByTestId('ready-popup');
+  if (!(await popup.isVisible())) await deckItem(page, key).click();
+  await expect(popup).toBeVisible();
+  await popup.getByTestId('ready-go').click();
+}
+
+/** Take a decision from the lane: open it, DECIDE, and confirm when it asks. */
+export async function decide(page: Page, id: string): Promise<void> {
+  await closeDeck(page);
+  await page.locator(`[data-lane-key="choice:${id}"]`).click();
+  const popup = page.getByTestId('choice-popup');
+  await popup.getByTestId('choice-decide').click();
+  const yes = popup.getByRole('button', { name: 'YES' });
+  if ((await yes.count()) > 0) await yes.click();
 }

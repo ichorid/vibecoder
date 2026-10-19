@@ -745,4 +745,19 @@
       padding: 2px 8px;
     }
   }
+  @media (max-height: 640px) {
+    .controls {
+      gap: 4px;
+      padding-top: 4px;
+      padding-bottom: max(6px, env(safe-area-inset-bottom));
+    }
+    .primary {
+      min-height: 46px;
+    }
+    /* One line of the terminal (it still scrolls). */
+    .log {
+      max-height: 1.6em;
+      padding: 1px 8px;
+    }
+  }
 </style>

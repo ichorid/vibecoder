@@ -1,6 +1,6 @@
 # Feature: Build deck — the choice lives under the thumb
 
-Status: **draft** (2026-10-20). Owner decisions are in §2. Every number is a *starting value*;
+Status: **implemented** (2026-10-20); deviations are listed in §17. Owner decisions are in §2. Every number is a *starting value*;
 playtests decide, and each phase records its result in docs/agent_journal.md. Follow AGENTS.md
 TDD: one behaviour RED → GREEN → refactor per step.
 
@@ -442,3 +442,26 @@ Same protocol as the 20 tests that found the problem.
 ## 16. Open questions
 
 - The shake in tier S (§8.1): keep it after the first phone playtest, or flash only?
+
+## 17. As built (2026-10-20)
+
+Deviations and details settled while building (journal 2026-10-20):
+
+- **§6.1:** a tap on a build row in **AUTO · ½** confirms that build at full speed (the one-tap
+  confirm of docs/feature_projects.md §5.3 had to survive); a tap on any other row opens the lane
+  in full (two slots: focuses that slot). A READY row opens the ready popup.
+- **§6.2:** the lane keeps the old surface limit of **three unstarted** cards and decisions; started
+  (paused) builds, the release, the demo, the gig or the search and the job offer are always in.
+  The token pack is never a lane item.
+- **§7:** the token pack can now be bought at any time once tokens cost money
+  (`isTokenReloadAvailable`); the card's own offer rule is unchanged, so the harness and its
+  metrics are not affected. The idle agents are a badge over the world (*💤 AGENTS IDLE*), not a
+  sprite change.
+- **Rules:** `selectProject` takes an optional `slot` (the focused worktree). No save change.
+- **Moments:** the app turns `projectBuilt` / `projectReady` facts into session-numbered moments
+  with a tier (`momentTier`), like payouts; nothing replays after a reload.
+- **Sounds:** new effects `pop`, `built`, `fanfare`, `coin`, `warn`. A ready release keeps the music
+  binding's chime (no second fanfare).
+- **Timers:** the UI owns no `setTimeout` / `setInterval` (lint rule); waits and inert windows run
+  on animation frames.
+- **Desktop:** arrivals spotlight in place (the lane wraps, nothing scrolls).

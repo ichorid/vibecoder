@@ -5,6 +5,9 @@ Every number is a *starting value*; the harness (`tools/tune.ts`, `tests/helpers
 decides, and each phase records its measured result in docs/agent_journal.md. Follow AGENTS.md
 TDD: one behaviour RED → GREEN → refactor per step.
 
+Presentation (§7.1 cards and strips) is replaced by docs/feature_build_deck.md (build rows, the
+build lane, the ready popup, the token gauge).
+
 Amended by docs/feature_money.md: token packs and compute slots are bought with money, not
 built (§5.6 below is superseded there); gigs are projects.
 

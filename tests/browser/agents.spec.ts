@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { buildCard, freshGame, loadSave, openUpgrades, pressUntilOffered } from './helpers';
+import { buildCard, closeDeck, freshGame, loadSave, pressUntilOffered } from './helpers';
 import { nearlyBuilt, progressedRun, saveText } from './fixtures';
 
 test('from the empty room to a working terminal agent with real presses', async ({ page }) => {
@@ -41,10 +41,14 @@ test('the reviewer, almost built, completes on its own and opens a decision', as
   await expect(page.getByTestId('stats')).toContainText('Debt');
   await expect(page.getByTestId('announcement')).toContainText('Reviewer Agent');
   await page.getByRole('button', { name: 'CONTINUE' }).click();
-  // The reviewer opens a new decision (keep writing by hand) on the same card surface.
-  await openUpgrades(page);
-  await expect(page.locator('[data-choice="keep-manual"]')).toBeVisible();
-  await expect(page.getByRole('button', { name: /Parallel agents/ })).toBeVisible();
-  // At most three cards; capacity shows only when it would help (journal D29).
-  expect(await page.locator('.offers li').count()).toBeLessThanOrEqual(3);
+  // The reviewer opens a new decision (keep writing by hand) in the same lane.
+  await closeDeck(page);
+  await expect(page.locator('[data-lane-key="choice:keep-manual"]')).toBeAttached();
+  await expect(page.getByTestId('lane-item').filter({ hasText: /Parallel agents/ })).toBeAttached();
+  // At most three new cards; capacity shows only when it would help (journal D29).
+  expect(
+    await page
+      .locator('[data-lane-key][data-kind="upgrade"], [data-lane-key][data-kind="choice"]')
+      .count(),
+  ).toBeLessThanOrEqual(3);
 });

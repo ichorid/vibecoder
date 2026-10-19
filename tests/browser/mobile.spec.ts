@@ -18,7 +18,7 @@ for (const viewport of [
   { width: 390, height: 844 },
   { width: 430, height: 932 },
 ]) {
-  test(`${viewport.width}×${viewport.height}: a busy mid-game keeps the primary action, the world and the cards in reach`, async ({
+  test(`${viewport.width}×${viewport.height}: a busy mid-game keeps the primary action, the world and the lane in reach`, async ({
     page,
   }) => {
     await page.setViewportSize(viewport);
@@ -27,18 +27,28 @@ for (const viewport of [
     if (!primary) throw new Error('no primary action');
     expect(primary.y + primary.height).toBeLessThanOrEqual(viewport.height);
     expect(primary.height).toBeGreaterThanOrEqual(44);
-    // On a phone the cards wait in a popup, so the world keeps a real share of the screen.
-    const toggle = await page.getByTestId('offers-toggle').boundingBox();
-    if (!toggle) throw new Error('no upgrades button');
-    expect(toggle.y + toggle.height).toBeLessThanOrEqual(viewport.height);
-    expect(toggle.height).toBeGreaterThanOrEqual(44);
+    // The build row and the lane sit right above CODE; the world keeps a real share.
+    expect(await page.getByTestId('offers-toggle').count()).toBe(0);
+    const row = await page.getByTestId('build-row').first().boundingBox();
+    if (!row) throw new Error('no build row');
+    expect(row.height).toBeGreaterThanOrEqual(40);
+    expect(row.y + row.height).toBeLessThanOrEqual(primary.y);
+    const chip = await page.getByTestId('lane-item').first().boundingBox();
+    if (!chip) throw new Error('no lane item');
+    expect(chip.height).toBeGreaterThanOrEqual(44);
+    expect(chip.y + chip.height).toBeLessThanOrEqual(primary.y);
     const world = await page.getByTestId('world').boundingBox();
     expect(world?.height ?? 0).toBeGreaterThanOrEqual(viewport.height * 0.3);
     expect(await overflow(page)).toBeLessThanOrEqual(0);
-    await page.getByTestId('offers-toggle').click();
-    const card = await page.getByTestId('offers-sheet').locator('.offer').first().boundingBox();
+    // Opened, the cards grow over the world and CODE stays where it was.
+    await page.getByTestId('build-row').first().click();
+    const expanded = page.getByTestId('deck-expanded');
+    if (!(await expanded.isVisible())) await page.getByTestId('build-row').first().click();
+    const card = await page.getByTestId('lane-card').first().boundingBox();
     if (!card) throw new Error('no card');
-    expect(card.y + card.height).toBeLessThanOrEqual(viewport.height);
+    expect(card.y + card.height).toBeLessThanOrEqual(primary.y);
+    const after = await page.getByTestId('primary-action').boundingBox();
+    expect(after?.y).toBe(primary.y);
   });
 }
 
@@ -127,24 +137,31 @@ test('dark theme keeps the health and mood bars distinguishable from their track
   for (const ratio of ratios) expect(ratio).toBeGreaterThanOrEqual(3);
 });
 
-test('a wide screen keeps the cards inline; a phone opens them in a popup and buys there', async ({
+test('a wide screen wraps the lane into rows; a phone scrolls it, the last item cut', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1024, height: 800 });
-  await loadSave(page, saveText(progressedRun(3)));
-  await expect(page.locator('ul.offers')).toBeVisible();
+  await loadSave(page, saveText(progressedRun(9)));
+  const deck = page.getByTestId('build-deck');
+  await expect(deck).toHaveClass(/wrap/);
   await expect(page.getByTestId('offers-toggle')).toHaveCount(0);
 
-  await page.setViewportSize({ width: 390, height: 844 });
-  await expect(page.locator('ul.offers')).toHaveCount(0);
-  const toggle = page.getByTestId('offers-toggle');
-  await expect(toggle).toContainText('UPGRADES');
-  await toggle.click();
-  const sheet = page.getByTestId('offers-sheet');
-  await expect(sheet).toBeVisible();
-  await expect(sheet.getByTestId('stats')).toBeVisible();
-  await sheet.getByRole('button', { name: '← BACK TO CODE' }).click();
-  await expect(sheet).toHaveCount(0);
+  await page.setViewportSize({ width: 360, height: 740 });
+  await expect(deck).not.toHaveClass(/wrap/);
+  const lane = page.getByTestId('build-lane');
+  const fits = await lane.evaluate((el) => el.scrollWidth <= el.clientWidth + 1);
+  if (!fits) {
+    // More than fits: the last visible item is cut (it says "there is more") and a counter shows.
+    const cut = await lane.evaluate((el) => {
+      const view = el.getBoundingClientRect();
+      return [...el.querySelectorAll('[data-lane-key]')].some((item) => {
+        const box = item.getBoundingClientRect();
+        return box.left < view.right && box.right > view.right + 1;
+      });
+    });
+    expect(cut).toBe(true);
+    await expect(page.getByTestId('lane-more')).toBeVisible();
+  }
   await expect(page.getByTestId('primary-action')).toBeVisible();
 });
 
@@ -158,12 +175,21 @@ for (const width of [320, 360]) {
       page,
       saveText({ ...run, economy: { ...run.economy, money: run.economy.money + 1e7 } }),
     );
-    for (const open of [null, 'offers-toggle'] as const) {
-      if (open) await page.getByTestId(open).click();
+    for (const open of [false, true]) {
+      if (open) {
+        await page.getByTestId('build-row').first().click();
+        if (!(await page.getByTestId('deck-expanded').isVisible())) {
+          await page.getByTestId('build-row').first().click();
+        }
+      }
       const sticking = await page.evaluate(() => {
         const vw = document.documentElement.clientWidth;
         return [...document.querySelectorAll<HTMLElement>('body *')]
           .filter((el) => {
+            // The lane and its cards scroll sideways on purpose: their items may run past an edge.
+            if (el.closest('[data-testid="build-lane"], [data-testid="deck-expanded"] ul')) {
+              return false;
+            }
             const r = el.getBoundingClientRect();
             // Cut by an edge (a helper parked fully off-screen, like Pixi's, cannot scroll).
             const cut = (r.right > vw + 0.5 && r.left < vw) || (r.left < -0.5 && r.right > 0);
@@ -182,7 +208,7 @@ for (const width of [320, 360]) {
   });
 }
 
-test('the stats panel and the upgrades button keep their height while numbers change', async ({
+test('the stats panel, the build row and the lane keep their height while numbers change', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 320, height: 640 });
@@ -192,8 +218,11 @@ test('the stats panel and the upgrades button keep their height while numbers ch
   for (let i = 0; i < 12; i += 1) {
     await page.getByTestId('primary-action').click();
     const stats = await page.getByTestId('stats').boundingBox();
-    const toggle = await page.getByTestId('offers-toggle').boundingBox();
-    heights.add(`${Math.round(stats?.height ?? 0)}/${Math.round(toggle?.height ?? 0)}`);
+    const row = await page.getByTestId('build-row').first().boundingBox();
+    const lane = await page.getByTestId('build-lane').boundingBox();
+    heights.add(
+      `${Math.round(stats?.height ?? 0)}/${Math.round(row?.height ?? 0)}/${Math.round(lane?.height ?? 0)}`,
+    );
     await page.waitForTimeout(250);
   }
   expect([...heights]).toHaveLength(1);

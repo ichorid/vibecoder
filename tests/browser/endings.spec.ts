@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { loadSave, openUpgrades } from './helpers';
+import { decide, loadSave } from './helpers';
 import { saveWithProfile, untilChoice } from './fixtures';
 
 test('an ending, frozen Cat/History, restart with retained discoveries, then another ending', async ({
@@ -7,12 +7,12 @@ test('an ending, frozen Cat/History, restart with retained discoveries, then ano
 }) => {
   test.setTimeout(120_000);
   await loadSave(page, saveWithProfile(untilChoice('archive-original'), []));
-  await openUpgrades(page);
-  const card = page.locator('[data-choice="archive-original"]');
-  await expect(card).toBeVisible();
+  const card = page.locator('[data-lane-key="choice:archive-original"]');
+  await expect(card).toBeAttached();
   await expect(page.locator('body')).not.toContainText('The Forgotten Project');
   await card.click();
-  await expect(page.getByRole('group', { name: /Confirm/ })).toContainText('This ends the run.');
+  await page.getByTestId('choice-decide').click();
+  await expect(page.getByTestId('choice-popup')).toContainText('This ends the run.');
   await page.getByRole('button', { name: 'YES' }).click();
 
   const panel = page.getByTestId('ending-panel');
@@ -54,9 +54,7 @@ test('a second ending is added to the profile without duplicating the first', as
     page,
     saveWithProfile(run, [{ id: 'three-users', runId: 'earlier', activeMs: 300_000, order: 1 }]),
   );
-  await openUpgrades(page);
-  await page.locator('[data-choice="remove-oversight"]').click();
-  await page.getByRole('button', { name: 'YES' }).click();
+  await decide(page, 'remove-oversight');
   await expect(page.getByTestId('ending-panel')).toContainText('You Have Been Optimized');
   await page.getByRole('button', { name: 'HISTORY' }).click();
   const endings = page.locator('section.endings li');

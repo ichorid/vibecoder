@@ -148,6 +148,7 @@
     const dt = Math.min(250, t - lastLoop);
     lastLoop = t;
     // NEW goes once the item has been fully visible for a while.
+    let watching = false;
     if (fresh.size > 0) {
       for (const key of [...fresh]) {
         if (pending.has(key)) continue;
@@ -161,6 +162,7 @@
         const box = el.getBoundingClientRect();
         const visible = box.left >= view.left - 1 && box.right <= view.right + 1;
         if (!visible) continue;
+        watching = true;
         const seen = (seenMs.get(key) ?? 0) + dt;
         seenMs.set(key, seen);
         if (seen >= NEW_SEEN_MS) fresh.delete(key);
@@ -173,7 +175,8 @@
       break;
     }
     if (movedInert && t >= movedUntil) movedInert = false;
-    if (queue.length > 0 || fresh.size > 0 || movedInert) loop = frame(step);
+    // Idle while nothing is due: a scroll or a new item wakes the loop again.
+    if (queue.length > 0 || watching || movedInert) loop = frame(step);
   }
 
   function land(key: string, t: number) {
@@ -242,7 +245,6 @@
   let hiddenRight = $state(0);
   let freshLeft = $state(false);
   let freshRight = $state(false);
-  let scrolledAt = 0;
   function measureEdges() {
     if (!laneEl || wrap) {
       hiddenLeft = hiddenRight = 0;
@@ -276,6 +278,7 @@
     void fresh.size;
     void expanded;
     measureEdges();
+    if (fresh.size > 0) untrack(run);
   });
   $effect(() => {
     if (!laneEl || typeof ResizeObserver === 'undefined') return;
@@ -305,11 +308,13 @@
   });
 
   // ---- Taps (§6.4, §6.5) ----
-  let press: { x: number; y: number; moved: boolean; stopOnly: boolean } | null = null;
+  // A tap that stops a fling never becomes a click (the browser's own rule), so only drags
+  // and inert moments need filtering here.
+  let press: { x: number; y: number; moved: boolean } | null = null;
   function onPointerDown(event: PointerEvent) {
     aim.pressing = true;
     aim.lastTouchMs = now();
-    press = { x: event.clientX, y: event.clientY, moved: false, stopOnly: now() - scrolledAt < 80 };
+    press = { x: event.clientX, y: event.clientY, moved: false };
   }
   function onPointerMove(event: PointerEvent) {
     if (press && !isTap(event.clientX - press.x, event.clientY - press.y)) press.moved = true;
@@ -320,16 +325,16 @@
     run();
   }
   function onScroll() {
-    scrolledAt = now();
-    aim.lastTouchMs = scrolledAt;
+    aim.lastTouchMs = now();
     measureEdges();
+    if (fresh.size > 0) run();
   }
-  /** A click counts unless it ended a drag, only stopped momentum, or hit an inert moment. */
+  /** A click counts unless it ended a drag or hit an inert moment. */
   function counts(event: MouseEvent): boolean {
     const pressed = press;
     press = null;
     if (event.detail === 0) return true;
-    if (pressed && (pressed.moved || pressed.stopOnly)) return false;
+    if (pressed?.moved) return false;
     return !movedInert && now() >= inertUntil;
   }
 
@@ -495,7 +500,7 @@
   };
   function badgeText(project: ProjectViewModel | null): string | null {
     if (!project?.badge) return null;
-    if (project.badge === 'paused') return `⏸ ${Math.floor(project.progress * 100)}%`;
+    if (project.badge === 'paused') return `PAUSED ${Math.floor(project.progress * 100)}%`;
     return BADGES[project.badge];
   }
 
@@ -570,10 +575,6 @@
       (item.kind === 'demo' && item.demo.affordable)
     );
   }
-
-  const fallbackTitle = $derived(
-    deck.builds.find((b) => b.item.project?.badge === 'auto-half')?.item.title ?? 'the release',
-  );
 </script>
 
 {#snippet icon(item: DeckItemViewModel, scale: number)}
@@ -687,9 +688,6 @@
           </li>
         {/each}
       </ul>
-      {#if fallback}
-        <p class="tax" data-testid="deck-tax">{fallbackTitle} at ½ while you decide</p>
-      {/if}
     </div>
   {/if}
 
@@ -717,18 +715,17 @@
           >{#if item.kind === 'job' && item.job.employed}💼 At work · all code goes to the employer{:else}{item.title}{/if}</span
         >
         <span class="item-detail"
-          >{#if managerNote && item.project?.badge === 'auto'}{managerNote.text}{:else}{detail(
-              item,
-            )}{/if}</span
+          >{#if managerNote && item.project?.badge === 'auto'}{managerNote.text}{:else if item.project?.badge === 'auto-half' && !item.project.ready}<span
+              class="tax"
+              data-testid="deck-tax">at ½ while you decide</span
+            >
+            · {detail(item)}{:else}{detail(item)}{/if}</span
         >
       </span>
       {@render badge(item.project)}
       {@render bar(item.project)}
     </button>
   {/each}
-  {#if fallback && !expanded}
-    <p class="tax" data-testid="deck-tax">{fallbackTitle} at ½ while you decide</p>
-  {/if}
 
   <div class="lane-host">
     {#if hiddenLeft > 0}
@@ -739,6 +736,7 @@
       class="lane"
       class:inert={movedInert}
       class:placeholder={expanded}
+      class:empty={items.length === 0}
       aria-label="Build lane"
       data-testid="build-lane"
       bind:this={laneEl}
@@ -831,12 +829,10 @@
     flex: none;
     font-size: 12px;
   }
+  /* The cost of not choosing, said where the choice is. */
   .tax {
-    margin: 0;
-    padding: 0 4px;
-    font-size: 11px;
+    color: #c0392b;
     font-weight: 900;
-    color: var(--ink-soft);
   }
   .item-icon {
     flex: none;
@@ -1027,11 +1023,11 @@
     font-weight: 900;
     line-height: 13px;
   }
+  /* On the top edge, over the borders: the items' icons and titles stay readable. */
   .edge {
     position: absolute;
-    top: 50%;
+    top: 0;
     z-index: 2;
-    transform: translateY(-50%);
     padding: 1px 4px;
     border: 2px solid var(--border);
     background: var(--panel-strong);
@@ -1057,6 +1053,11 @@
   }
   .lane.placeholder {
     visibility: hidden;
+  }
+  /* Nothing to pick yet (the first seconds): the world keeps the room. */
+  .lane.empty {
+    min-height: 0;
+    padding: 0;
   }
 
   /* ---- Arrival (§8.2) ---- */
@@ -1226,11 +1227,30 @@
     }
   }
   @media (max-height: 700px) {
+    .deck {
+      gap: 3px;
+    }
     .row {
       min-height: 40px;
+      padding: 3px 8px 8px;
+    }
+  }
+  /* Short phones: every pixel goes back to the world; chips stay a thumb tall (44 px). */
+  @media (max-height: 640px) {
+    .row {
+      min-height: 36px;
+      padding: 2px 6px 7px;
+    }
+    .row .item-icon {
+      display: none;
     }
     .lane {
-      min-height: 50px;
+      min-height: 0;
+      padding-top: 8px;
+    }
+    .item.chip {
+      min-height: 44px;
+      padding: 3px 4px 8px;
     }
   }
 </style>

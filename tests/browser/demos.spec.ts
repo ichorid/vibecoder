@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { closeUpgrades, loadSave, openUpgrades } from './helpers';
+import { deckItem, goReady, loadSave } from './helpers';
 import { progressedRun, saveText, withBuilt } from './fixtures';
 import { catalog } from '../../src/content/catalog';
 import { demoPrice } from '../../src/game/demos';
@@ -30,10 +30,8 @@ test('code a demo: depacking, a drawn picture, the title card; History plays it 
 }) => {
   await loadSave(page, saveText(readyForDemo(41)));
   await expect(page.getByTestId('demo-design')).toHaveCount(0); // designing is on the demo screen
-  await openUpgrades(page);
-  const strip = page.getByTestId('demo-strip');
-  await expect(strip).toContainText('#1');
-  await page.getByTestId('demo-go').click();
+  await expect(deckItem(page, 'demo')).toContainText('#1');
+  await goReady(page, 'demo');
   const demo = page.getByTestId('demo-screen');
   await expect(demo).toBeVisible();
   await expect(demo).toHaveAttribute('data-phase', 'play', { timeout: 5000 });
@@ -41,9 +39,7 @@ test('code a demo: depacking, a drawn picture, the title card; History plays it 
   await expect.poll(() => litPixels(page)).toBeGreaterThan(300);
   await page.getByRole('button', { name: 'CLOSE' }).click();
   await expect(demo).toHaveCount(0);
-  await openUpgrades(page);
-  await expect(page.getByTestId('demo-strip')).toContainText('#2');
-  await closeUpgrades(page);
+  await expect(deckItem(page, 'demo')).toContainText('#2');
   await expect(page.getByRole('region', { name: 'Recent events' })).toContainText(
     'It does nothing.',
   );
@@ -61,8 +57,7 @@ test('code a demo: depacking, a drawn picture, the title card; History plays it 
 test('the demo fits a 390 px screen without horizontal scrolling', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 700 });
   await loadSave(page, saveText(readyForDemo(41)));
-  await openUpgrades(page);
-  await page.getByTestId('demo-go').click();
+  await goReady(page, 'demo');
   await expect(page.getByTestId('demo-screen')).toHaveAttribute('data-phase', 'play', {
     timeout: 5000,
   });
@@ -83,8 +78,7 @@ test('the demo screen offers the next demo: the picked preview is what gets code
   page,
 }) => {
   await loadSave(page, saveText(readyForDemo(41)));
-  await openUpgrades(page);
-  await page.getByTestId('demo-go').click();
+  await goReady(page, 'demo');
   const demo = page.getByTestId('demo-screen');
   await expect(demo).toHaveAttribute('data-phase', 'play', { timeout: 5000 });
   const variant = demo.getByTestId('demo-variant-2');
@@ -108,8 +102,7 @@ test('the demo screen offers the next demo: the picked preview is what gets code
     demoPrice(catalog.demos, 2),
   );
   await page.reload();
-  await openUpgrades(page);
-  await page.getByTestId('demo-go').click();
+  await goReady(page, 'demo');
   await expect(demo).toHaveAttribute('data-phase', 'play', { timeout: 5000 });
   await expect(demo).toHaveAttribute('data-fingerprint', wanted ?? '');
   await expect(demo.getByTestId('demo-designer')).toContainText('DESIGN DEMO #3');

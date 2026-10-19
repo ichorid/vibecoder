@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { loadSave, openUpgrades } from './helpers';
+import { decide, loadSave } from './helpers';
 import { saveWithProfile, untilChoice } from './fixtures';
 
 test('save a checkpoint, take an ending, load it back and take another', async ({ page }) => {
@@ -10,9 +10,7 @@ test('save a checkpoint, take an ending, load it back and take another', async (
   await expect(page.getByTestId('checkpoint-info')).toContainText('28 technologies');
   await page.getByRole('button', { name: 'Close settings' }).click();
 
-  await openUpgrades(page);
-  await page.locator('[data-choice="remove-oversight"]').click();
-  await page.getByRole('button', { name: 'YES' }).click();
+  await decide(page, 'remove-oversight');
   await expect(page.getByTestId('ending-panel')).toContainText('You Have Been Optimized');
 
   await page.getByTestId('settings-button').click();
@@ -21,9 +19,7 @@ test('save a checkpoint, take an ending, load it back and take another', async (
   await expect(page.getByTestId('ending-panel')).toHaveCount(0);
   await expect(page.getByTestId('primary-action')).toBeVisible();
 
-  await openUpgrades(page);
-  await page.locator('[data-choice="keep-approval"]').click();
-  await page.getByRole('button', { name: 'YES' }).click();
+  await decide(page, 'keep-approval');
   await expect(page.getByTestId('ending-panel')).toContainText('The Human Approval API');
   await page.getByRole('button', { name: 'HISTORY' }).click();
   await expect(page.locator('section.endings li')).toHaveCount(2);

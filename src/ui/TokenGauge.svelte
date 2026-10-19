@@ -178,6 +178,16 @@
       box-shadow: 0 0 0 3px color-mix(in srgb, #f6c945 50%, transparent);
     }
   }
+  @media (max-height: 640px) {
+    .gauge {
+      min-height: 30px;
+      padding-top: 1px;
+      padding-bottom: 1px;
+    }
+    .reload {
+      min-height: 26px;
+    }
+  }
   @media (prefers-reduced-motion: reduce) {
     .gauge[data-state] {
       animation: none;
