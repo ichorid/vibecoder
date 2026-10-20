@@ -480,6 +480,13 @@ export async function createPixiRenderer(
     area.on('pointertap', (event) => emitTap(target, event.global));
     hitLayer.addChild(area);
   }
+  // Anywhere no object answers is the scene itself: the app treats it as the primary action, so
+  // the whole world is a button within thumb reach (one-handed play).
+  app.stage.eventMode = 'static';
+  app.stage.hitArea = app.screen;
+  app.stage.on('pointertap', (event) => {
+    if (event.target === app.stage) emitTap('scene', event.global);
+  });
   /** Tapping the cat plays through these poses, one per tap, each for a moment. */
   const TAP_POSES = ['pet', 'play', 'attention', 'idle'] as const;
   let tapPose = -1;
@@ -658,7 +665,7 @@ export async function createPixiRenderer(
     root.position.set(width / 2 - cam.centerX * cam.zoom, height / 2 - cam.centerY * cam.zoom);
   }
 
-  // ---- Player camera: pinch / wheel zoom, drag to pan, double tap to fit again. ----
+  // ---- Player camera: pinch / wheel zoom, drag to pan (FIT in the UI fits again). ----
   let view: UserView = IDENTITY_VIEW;
   const viewListeners = new Set<(adjusted: boolean) => void>();
   /** What the player sees: the automatic framing with their zoom and pan on top. */
@@ -678,7 +685,6 @@ export async function createPixiRenderer(
   let downAt: { x: number; y: number } | null = null;
   /** True from the moment a press turns into a drag or pinch until the next press: no tap. */
   let dragged = false;
-  let lastTap = { at: -Infinity, x: 0, y: 0 };
   const local = (event: PointerEvent | WheelEvent) => {
     const r = app.canvas.getBoundingClientRect();
     return { x: event.clientX - r.left, y: event.clientY - r.top };
@@ -716,15 +722,7 @@ export async function createPixiRenderer(
     setView(panBy(view, camera, p.x - previous.x, p.y - previous.y));
   });
   const release = (event: PointerEvent) => {
-    if (!pointers.delete(event.pointerId) || pointers.size > 0) return;
-    const p = local(event);
-    // Double tap (two quick taps close together) fits the scene again.
-    if (!dragged) {
-      if (now - lastTap.at < 320 && Math.hypot(p.x - lastTap.x, p.y - lastTap.y) < 30) {
-        setView(IDENTITY_VIEW);
-        lastTap = { at: -Infinity, x: 0, y: 0 };
-      } else lastTap = { at: now, ...p };
-    }
+    pointers.delete(event.pointerId);
   };
   app.canvas.addEventListener('pointerup', release);
   app.canvas.addEventListener('pointercancel', release);

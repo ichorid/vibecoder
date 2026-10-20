@@ -96,8 +96,8 @@
   };
 
   /**
-   * Taps on world objects are ordinary commands: the poster is a primary press, the bowl is FEED,
-   * the cat is PET (its cooldown applies; a tap during it is only a meow).
+   * Taps on world objects are ordinary commands: the monitor and any empty spot are a primary
+   * press, the bowl is FEED, the cat is PET (its cooldown applies; a tap during it is only a meow).
    */
   /** Room jokes, said in turn (the first one is the classic). */
   const ROOM_JOKES = {
@@ -126,8 +126,10 @@
       case 'shelf':
       case 'window':
         return joke(tap.target);
-      case 'monitor': {
-        // The monitor is where the work happens: tapping it is the main action.
+      case 'monitor':
+      case 'scene': {
+        // The monitor is where the work happens, and an empty spot is a big button within thumb
+        // reach: tapping either is the main action.
         const { gain } = current().game.primaryAction;
         if (api.dispatch({ type: 'primaryAction' }) !== 'applied') return null;
         return gain ? gainText(gain, formatAmount) : null;

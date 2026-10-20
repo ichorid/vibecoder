@@ -20,7 +20,7 @@
     onStatus?: (status: WorldStatus) => void;
     /** Receives the retry action once the host exists. */
     onRetryReady?: (retry: () => void) => void;
-    /** A tap on the cat, the bowl or the poster; returns the text to float up (or null). */
+    /** A tap on a world object or an empty spot; returns the text to float up (or null). */
     onWorldTap?: (tap: WorldTap) => string | null;
   }
 

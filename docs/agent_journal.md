@@ -634,3 +634,10 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   warn. `selectProject` takes an optional focused slot. A tap on an AUTO · ½ row confirms it
   (P3 one-tap confirm kept). No save change. Browser tests moved from the sheet to the deck; the
   setup test of the sheet's stats line was removed with the sheet.
+- 2026-10-20: (user) one-handed play: CODE sits at the very bottom edge, an awkward thumb reach.
+  Any spot of the world no object answers (WorldTap target `scene`: a Pixi stage hit area, tap =
+  `event.target === stage`, never after a drag/pinch) is now a primary press like the monitor,
+  with the gain floating at the finger. The double tap that fitted the view is gone (it would
+  swallow every second fast tap); the FIT button remains. No rule or save change. Proposed, not
+  done: terminal under CODE so the controls rise ~70 px; swipe to dismiss discovery cards
+  (CONTINUE sits at the top, the hardest reach).

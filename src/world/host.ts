@@ -7,9 +7,12 @@ export interface WorldProjection extends WorldViewModel {
   readonly reducedMotion: boolean;
 }
 
-/** A tap on an interactive world object; x/y in CSS pixels relative to the world canvas. */
+/**
+ * A tap on an interactive world object, or on `scene` (anywhere no object answers); x/y in CSS
+ * pixels relative to the world canvas.
+ */
 export interface WorldTap {
-  readonly target: 'cat' | 'bowl' | 'poster' | 'shelf' | 'window' | 'monitor' | 'plant';
+  readonly target: 'cat' | 'bowl' | 'poster' | 'shelf' | 'window' | 'monitor' | 'plant' | 'scene';
   readonly x: number;
   readonly y: number;
 }
@@ -21,7 +24,7 @@ export interface RendererPort {
   destroy(): void;
   /** Graphics context lost/restored (WebGL); returns an unsubscribe function. */
   onContext?(listener: (event: 'lost' | 'restored') => void): () => void;
-  /** Taps on the world cat, the cat bowl and the poster; returns an unsubscribe function. */
+  /** Taps on world objects and on the empty scene; returns an unsubscribe function. */
   onTap?(listener: (tap: WorldTap) => void): () => void;
   /** The player zoomed or panned away from the automatic framing (true) or back (false). */
   onView?(listener: (adjusted: boolean) => void): () => void;

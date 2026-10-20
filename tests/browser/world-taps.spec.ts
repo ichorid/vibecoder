@@ -56,6 +56,20 @@ test('the room is tappable: monitor works, poster/shelf/window joke, bowl feeds,
   }).toPass({ timeout: 8000 });
 });
 
+test('an empty spot of the world presses the primary action, however fast', async ({ page }) => {
+  await freshGame(page);
+  await expect(page.getByTestId('world-canvas')).toHaveAttribute('data-ticker', 'running');
+  const box = await page.getByTestId('world-canvas').boundingBox();
+  if (!box) throw new Error('no canvas');
+  // The top-left corner holds nothing tappable in the opening room.
+  await page.mouse.click(box.x + 12, box.y + 12);
+  await expect.poll(() => builtCode(page)).toBe('1');
+  await expect(page.getByTestId('floating-gain').filter({ hasText: '+1' }).first()).toBeVisible();
+  // Two quick taps are two presses (no double-tap gesture swallows them).
+  await page.mouse.dblclick(box.x + 12, box.y + 12);
+  await expect.poll(() => builtCode(page)).toBe('3');
+});
+
 test('the cat button shows the in-game cat sprite', async ({ page }) => {
   await freshGame(page);
   await expect(page.getByTestId('cat-icon').locator('[data-sprite="cat-idle"]')).toBeVisible();

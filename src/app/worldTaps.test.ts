@@ -64,6 +64,15 @@ describe('tapping world objects', () => {
     expect(t.floats()).toContain('+1');
   });
 
+  it('an empty spot of the world works like a primary press too', async () => {
+    const t = await setup();
+    await t.tap('scene');
+    await t.tap('scene');
+    t.tick(100);
+    expect(t.run().stats.lifetimeOutput).toBe(2);
+    expect(t.floats()).toEqual(['+1', '+1']);
+  });
+
   it('the poster, the bookshelf and the window only joke (nothing changes)', async () => {
     const t = await setup();
     await t.tap('poster');
