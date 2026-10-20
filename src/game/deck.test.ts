@@ -26,12 +26,12 @@ const deck = (run: RunState) => selectGame(run, catalog).deck;
 const keys = (run: RunState) => deck(run).lane.map((i) => i.key);
 
 describe('the build deck: rows and lane', () => {
-  it('a build row per slot, in slot order; what a slot builds is not in the lane', () => {
+  it('a build row per slot, in slot order; what a slot builds stays in the lane, in place', () => {
     const run = { ...at('autocomplete'), slots: createRun(1, 'rows').slots };
     const view = deck(run);
     expect(view.builds.map((b) => [b.slot, b.item.key])).toEqual([[0, 'release']]);
     expect(view.builds[0]?.item.project?.badge).not.toBeNull();
-    expect(keys(run)).not.toContain('release');
+    expect(keys(run)).toContain('release');
     const card = deck(run).lane.find((i) => i.kind === 'upgrade');
     if (!card) throw new Error('no card on offer');
     const picked: RunState = {
@@ -39,8 +39,29 @@ describe('the build deck: rows and lane', () => {
       slots: [{ target: card.key as never, by: 'player', sinceMs: 0 }],
     };
     expect(deck(picked).builds[0]?.item).toMatchObject({ key: card.key, kind: 'upgrade' });
-    expect(keys(picked)).toContain('release');
-    expect(keys(picked)).not.toContain(card.key);
+    // A pick moves the highlight, not the items: the lane is the same list in the same order.
+    expect(keys(picked)).toEqual(keys(run));
+  });
+
+  it('keeps a build in the lane even when its card is past the three-card limit', () => {
+    const run = at('reviewer');
+    const shown = new Set(keys(run));
+    const hidden = catalog.upgrades.find(
+      (u) =>
+        u.currency === 'output' &&
+        !u.internal &&
+        !u.discovers &&
+        !u.priceRule &&
+        !shown.has(u.id) &&
+        isProjectAvailable(run, u.id, catalog),
+    );
+    if (!hidden) throw new Error('every offered card is already shown');
+    const picked: RunState = {
+      ...run,
+      slots: [{ target: hidden.id, by: 'system', sinceMs: 0 }],
+    };
+    expect(deck(picked).builds[0]?.item.key).toBe(hidden.id);
+    expect(keys(picked)).toContain(hidden.id);
   });
 
   it('holds the release, the demo, the gig or the search, the job offer, cards and decisions', () => {

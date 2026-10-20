@@ -19,7 +19,13 @@
   import Stats from './Stats.svelte';
   import PixelIcon from './PixelIcon.svelte';
   import { ACTION_ICONS } from './cardIcons';
-  import { buildSelector, gainText, MAX_FLOATING, type FloatingGain } from './floatingGains';
+  import {
+    buildSelector,
+    gainText,
+    MAX_FLOATING,
+    observeText,
+    type FloatingGain,
+  } from './floatingGains';
   import type { AttentionLevel } from '../game/types';
 
   interface Props {
@@ -61,6 +67,7 @@
     onDemo,
   }: Props = $props();
   let controls: HTMLElement | undefined = $state();
+  let press: HTMLButtonElement | undefined = $state();
 
   let gains = $state<FloatingGain[]>([]);
 
@@ -104,26 +111,18 @@
   }
   let nextGainId = 0;
 
-  /** OBSERVE changes nothing; the button still answers (cosmetic, for the lulz). */
-  const OBSERVE_GAINS = [
-    '+1 existential dread',
-    '+1 boredom',
-    '+1 existential dread',
-    '+1 staring',
-    '+1 boredom',
-    '+0 purpose',
-  ];
   let observed = 0;
+  /** The press label pulses until the first press here, so a new player sees what to tap. */
+  let pressed = $state(false);
 
   function primary(event: MouseEvent) {
     // The gain of *this* press is read before dispatching; nothing floats if it adds nothing.
     const gain = game.primaryAction.gain;
     const observing = game.primaryAction.id === 'observe';
     if (dispatch({ type: 'primaryAction' }) !== 'applied' || (!gain && !observing)) return;
+    pressed = true;
     const target = event.currentTarget as HTMLElement;
-    const text = gain
-      ? gainText(gain, formatAmount)
-      : (OBSERVE_GAINS[observed++ % OBSERVE_GAINS.length] ?? '+1 boredom');
+    const text = gain ? gainText(gain, formatAmount) : observeText(observed++);
     const rect = target.getBoundingClientRect();
     const fromPointer = event.detail > 0 && rect.width > 0;
     const x = Math.min(
@@ -327,7 +326,7 @@
     wheelWindow = null;
     if (shipped && !shipped.result.jackpot) celebrate('S', 'SHIPPED!');
     await tick();
-    controls?.querySelector<HTMLButtonElement>('.primary')?.focus();
+    press?.focus();
   }
 
   let confirmingRestart = $state(false);
@@ -383,6 +382,27 @@
       {/if}
     {/if}
   </div>
+  {#if !game.ending && !readyRelease && !readyDemo && !deciding}
+    <!-- No CODE bar at the bottom edge (a long thumb reach): a tap anywhere on the world that no
+         object answers is the press. This label names it at the world's foot; it is a press too,
+         and the keyboard's (next after the world in tab order). It sits outside the world, so a code
+         gain can fly into its build. -->
+    <div class="press-host">
+      <button
+        type="button"
+        class="press"
+        class:hint={!pressed}
+        data-testid="primary-action"
+        bind:this={press}
+        onclick={primary}
+      >
+        <span class="action-icon" aria-hidden="true"
+          ><PixelIcon map={ACTION_ICONS[game.primaryAction.id]} scale={2} /></span
+        >{game.primaryAction.label}
+      </button>
+      <FloatingGains {gains} onDone={(id) => (gains = gains.filter((g) => g.id !== id))} />
+    </div>
+  {/if}
   <div class="controls" bind:this={controls}>
     {#if attention?.level && onCatOverlay}
       {#key attention.key}
@@ -487,15 +507,6 @@
           NEW RUN…
         </button>
       {/if}
-    {:else}
-      <div class="primary-host">
-        <button type="button" class="primary" data-testid="primary-action" onclick={primary}>
-          <span class="action-icon" aria-hidden="true"
-            ><PixelIcon map={ACTION_ICONS[game.primaryAction.id]} scale={3} /></span
-          >{game.primaryAction.label}
-        </button>
-        <FloatingGains {gains} onDone={(id) => (gains = gains.filter((g) => g.id !== id))} />
-      </div>
     {/if}
   </div>
   <!-- The ta-da plays over the counters and the world, never over the deck or CODE (§8). -->
@@ -614,10 +625,49 @@
     gap: 6px;
     padding: 8px 10px max(10px, env(safe-area-inset-bottom));
   }
-  .primary-host {
+  .press-host {
+    grid-row: 2;
+    grid-column: 1;
+    align-self: end;
+    justify-self: center;
     position: relative;
+    z-index: 6;
     display: flex;
-    flex-direction: column;
+    margin-bottom: 12px;
+    pointer-events: none;
+  }
+  /* A caption, not a bar: the world around it is the button. */
+  .press {
+    min-height: 36px;
+    padding: 0 12px;
+    border: 2px solid var(--border);
+    background: color-mix(in srgb, var(--panel) 72%, transparent);
+    color: var(--ink);
+    font-size: 13px;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    user-select: none;
+    touch-action: manipulation;
+    pointer-events: auto;
+  }
+  .press:active {
+    transform: translateY(1px);
+  }
+  .press:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+  /* Until the first press: say it is a tap (CSS text, so the label stays the action's name). */
+  .press.hint::before {
+    content: 'TAP · ';
+    color: var(--accent-strong);
+    animation: hint 1.2s ease-in-out infinite;
+  }
+  @keyframes hint {
+    50% {
+      opacity: 0.35;
+    }
   }
   .primary {
     min-height: 56px;
@@ -660,7 +710,7 @@
   .action-icon {
     display: inline-grid;
     vertical-align: middle;
-    margin-right: 10px;
+    margin-right: 8px;
   }
   .confirm {
     display: flex;
@@ -695,6 +745,7 @@
   }
   @media (prefers-reduced-motion: reduce) {
     .log .fresh,
+    .press.hint::before,
     .world.shake {
       animation: none;
     }

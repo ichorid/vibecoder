@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { buildCard, closeDeck, freshGame, loadSave, pressUntilOffered } from './helpers';
+import { buildCard, closeDeck, freshGame, loadSave, pressUntilOffered, tapWorld } from './helpers';
 import { nearlyBuilt, progressedRun, saveText } from './fixtures';
 
 test('from the empty room to a working terminal agent with real presses', async ({ page }) => {
@@ -28,8 +28,9 @@ test('from the empty room to a working terminal agent with real presses', async 
         .textContent()) ?? '0',
     );
   const before = await tokens();
-  await primary.click();
-  await primary.click();
+  // The "what next?" cards cover the press label; the world above them still presses.
+  await tapWorld(page);
+  await tapWorld(page);
   await page.waitForTimeout(2500);
   expect(await tokens()).not.toBe(before);
 });

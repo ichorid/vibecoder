@@ -1,6 +1,6 @@
 /**
  * Read models for the build deck (docs/feature_build_deck.md §11): the build rows (what each
- * slot fills), the lane (every other target or card, one tap away), the token gauge, and how
+ * slot fills), the lane (every target or card, the builds among them, one tap away), the token gauge, and how
  * big the celebration of a completion is. Current state only, never the future catalog.
  */
 import type { Catalog } from './catalog';
@@ -222,24 +222,20 @@ export function assembleDeck(parts: DeckParts): DeckViewModel {
       project: card.project,
       offer: card,
     };
-    if (inSlot.has(card.id)) {
-      items.set(card.id, item);
-      continue;
-    }
+    // What a slot builds is always in; it still counts against the limit, so a pick alone
+    // never brings a card in or takes one out.
     const started = card.project !== null && card.project.code > 0;
     if (!started) {
-      if (unstarted >= LANE_CARDS) continue;
+      if (unstarted >= LANE_CARDS && !inSlot.has(card.id)) continue;
       unstarted += 1;
     }
     cards.push(item);
   }
+  const lane = [...items.values(), ...cards];
+  const byKey = new Map(lane.map((i) => [i.key, i]));
   const builds = parts.slots.flatMap((slot, index) => {
-    const item = items.get(slot.target);
+    const item = byKey.get(slot.target);
     return item ? [{ slot: index, item }] : [];
   });
-  const lane = [
-    ...[...items.values()].filter((i) => !inSlot.has(i.key) && i.kind !== 'upgrade'),
-    ...cards,
-  ];
   return { builds, lane, tokens: parts.tokens, managed: parts.managed };
 }

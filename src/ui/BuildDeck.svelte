@@ -70,8 +70,6 @@
   // ---- Order: the thumb's map of the lane (§6.3) ----
   let laneEl: HTMLElement | undefined = $state();
   let order = $state<string[] | null>(null);
-  /** A pick's displaced build comes back at the picked item's index. */
-  const place = new Map<string, number>();
   const present = $derived(deck.lane.map((i) => i.key));
   const byKey = $derived(new Map(deck.lane.map((i) => [i.key, i])));
   const items = $derived(
@@ -207,8 +205,7 @@
   $effect.pre(() => {
     const keys = present;
     untrack(() => {
-      const result = reconcileLane(order, keys, insertIndex(), place);
-      place.clear();
+      const result = reconcileLane(order, keys, insertIndex());
       if (
         order === null ||
         result.order.length !== order.length ||
@@ -338,6 +335,23 @@
     return !movedInert && now() >= inertUntil;
   }
 
+  // ---- Builds: picked items stay in the lane, highlighted (§6.3) ----
+  /** The slot each lane item builds in (absent: not building). */
+  const buildSlot = $derived(new Map(deck.builds.map((b) => [b.item.key, b.slot])));
+  /** The mark on a building item: ▶, with the slot's number when there are two. */
+  function slotMark(slot: number): string {
+    return deck.builds.length > 1 ? `▶${slot + 1}` : '▶';
+  }
+
+  // ---- Details: what a build row stands for, in full ----
+  let detailsSlot = $state<number | null>(null);
+  const details = $derived(
+    detailsSlot === null ? null : (deck.builds.find((b) => b.slot === detailsSlot) ?? null),
+  );
+  $effect(() => {
+    if (expanded) untrack(() => (detailsSlot = null));
+  });
+
   // ---- Focus: which slot a pick goes to (two worktrees) ----
   let chosenSlot = $state<number | null>(null);
   const focusSlot = $derived(
@@ -349,38 +363,41 @@
           0),
   );
 
-  function pick(key: string, index: number) {
-    const displaced = deck.builds.find((b) => b.slot === focusSlot)?.item.key;
-    if (displaced && displaced !== key) place.set(displaced, index);
-    const result = dispatch({
+  function pick(key: string) {
+    dispatch({
       type: 'selectProject',
       id: key as never,
       ...(deck.builds.length > 1 ? { slot: focusSlot } : {}),
     });
-    if (result !== 'applied') place.clear();
     chosenSlot = null;
+    detailsSlot = null;
     onExpanded(false, null);
   }
 
-  function activate(item: DeckItemViewModel, index: number, event: MouseEvent) {
+  function activate(item: DeckItemViewModel, event: MouseEvent) {
     if (!counts(event)) return;
     fresh.delete(item.key);
+    const row = deck.builds.find((b) => b.item.key === item.key);
+    if (row) {
+      tapBuild(row);
+      return;
+    }
     switch (item.kind) {
       case 'upgrade':
-        if (item.offer.project) pick(item.key, index);
+        if (item.offer.project) pick(item.key);
         else dispatch({ type: 'buyUpgrade', id: item.offer.id });
         return;
       case 'release':
         if (item.release.affordable) onReady('release');
-        else pick('release', index);
+        else pick('release');
         return;
       case 'demo':
         if (item.demo.affordable) onReady('demo');
-        else pick('demo', index);
+        else pick('demo');
         return;
       case 'gig':
       case 'job':
-        pick(item.key, index);
+        pick(item.key);
         return;
       case 'search':
         dispatch({ type: 'searchJob' });
@@ -392,6 +409,8 @@
   }
 
   function disabled(item: DeckItemViewModel): boolean {
+    // A build always answers a tap (details, or the one-tap confirm of a fallback).
+    if (buildSlot.has(item.key)) return false;
     if (item.kind === 'upgrade') {
       return item.offer.project
         ? item.offer.internal || !item.offer.project.selectable
@@ -406,24 +425,33 @@
     return null;
   }
 
+  /** A fallback drifting at half speed: one tap confirms it at full speed (projects P3). */
+  function confirmFull(row: BuildRowViewModel) {
+    dispatch({ type: 'selectProject', id: row.item.key as never });
+    detailsSlot = null;
+    onExpanded(false, null);
+  }
+
+  /** The build row: a READY build offers its popup; any other shows (or hides) its details. */
   function tapRow(row: BuildRowViewModel) {
     const ready = readyKey(row);
     if (ready) {
       onReady(ready);
       return;
     }
-    // A fallback drifting at half speed: one tap confirms it at full speed (projects P3).
-    if (row.item.project?.badge === 'auto-half') {
-      dispatch({ type: 'selectProject', id: row.item.key as never });
-      onExpanded(false, null);
+    if (deck.builds.length > 1) chosenSlot = row.slot;
+    if (expanded) onExpanded(false, null);
+    detailsSlot = detailsSlot === row.slot ? null : row.slot;
+  }
+
+  /** A building item in the lane: as its row, except a fallback is confirmed at once. */
+  function tapBuild(row: BuildRowViewModel) {
+    if (!readyKey(row) && row.item.project?.badge === 'auto-half') {
+      confirmFull(row);
       return;
     }
-    if (deck.builds.length > 1) {
-      chosenSlot = row.slot;
-      onExpanded(true, null);
-      return;
-    }
-    onExpanded(!expanded, null);
+    detailsSlot = null;
+    tapRow(row);
   }
 
   // ---- Expansion (§6.6) ----
@@ -475,6 +503,10 @@
   let swipeY: number | null = null;
   function closeExpanded() {
     onExpanded(false, null);
+  }
+  function openExpanded() {
+    detailsSlot = null;
+    onExpanded(!expanded, null);
   }
 
   // ---- Keyboard (§10): arrows walk the lane ----
@@ -640,7 +672,10 @@
     {/if}
   </span>
   {@render badge(item.project)}
-  {#if fresh.has(item.key) && !pending.has(item.key)}<span class="new" aria-hidden="true">NEW</span
+  {#if buildSlot.has(item.key)}<span class="mark" aria-hidden="true"
+      >{slotMark(buildSlot.get(item.key) ?? 0)}</span
+    >{:else if fresh.has(item.key) && !pending.has(item.key)}<span class="new" aria-hidden="true"
+      >NEW</span
     >{/if}
   {@render bar(item.project)}
 {/snippet}
@@ -665,11 +700,12 @@
       </button>
       <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
       <ul class="cards" class:inert aria-label="Build lane" onkeydown={onKey}>
-        {#each items as item, index (item.key)}
+        {#each items as item (item.key)}
           <li>
             <button
               type="button"
               class="item card"
+              class:building={buildSlot.has(item.key)}
               class:landing={landing.has(item.key)}
               class:ready={ready(item)}
               class:money={item.kind === 'upgrade' && !item.offer.project}
@@ -677,8 +713,9 @@
               data-testid="lane-card"
               data-lane-card={item.key}
               data-kind={item.kind}
+              data-building={buildSlot.get(item.key)}
               disabled={disabled(item)}
-              onclick={(e) => activate(item, index, e)}
+              onclick={(e) => activate(item, e)}
               onanimationend={(e) => {
                 if (e.animationName.includes('land')) landing.delete(item.key);
               }}
@@ -691,6 +728,39 @@
     </div>
   {/if}
 
+  {#if details && !expanded}
+    {@const shown = details}
+    {@const item = shown.item}
+    <!-- What the row stands for, in full, over the world. CODE below never moves. -->
+    <div class="expanded details" data-testid="build-details" role="dialog" aria-label="Building">
+      <button
+        type="button"
+        class="expanded-head"
+        data-testid="details-close"
+        onclick={() => (detailsSlot = null)}
+        onpointerdown={(e) => (swipeY = e.clientY)}
+        onpointerup={(e) => {
+          if (swipeY !== null && e.clientY - swipeY > 40) detailsSlot = null;
+          swipeY = null;
+        }}
+      >
+        <span>{slotMark(shown.slot)} NOW BUILDING</span>
+        <span aria-hidden="true">▼</span>
+      </button>
+      <div class="item card building" data-kind={item.kind}>
+        {@render face(item, true)}
+      </div>
+      {#if item.project?.badge === 'auto-half' && !readyKey(shown)}
+        <button
+          type="button"
+          class="confirm"
+          data-testid="details-confirm"
+          onclick={() => confirmFull(shown)}>▶ BUILD AT FULL SPEED</button
+        >
+      {/if}
+    </div>
+  {/if}
+
   {#each deck.builds as row (row.slot)}
     {@const item = row.item}
     <button
@@ -700,6 +770,7 @@
       class:half={item.project?.badge === 'auto-half'}
       class:ready={readyKey(row) !== null}
       class:noted={managerNote !== null && item.project?.badge === 'auto'}
+      aria-expanded={detailsSlot === row.slot}
       data-testid="build-row"
       data-build-slot={row.slot}
       data-key={item.key}
@@ -727,57 +798,71 @@
     </button>
   {/each}
 
-  <div class="lane-host">
-    {#if hiddenLeft > 0}
-      <span class="edge left" class:dot={freshLeft} aria-hidden="true">◂{hiddenLeft}</span>
-    {/if}
-    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-    <ul
-      class="lane"
-      class:inert={movedInert}
-      class:placeholder={expanded}
-      class:empty={items.length === 0}
-      aria-label="Build lane"
-      data-testid="build-lane"
-      bind:this={laneEl}
-      onscroll={onScroll}
-      onpointerdown={onPointerDown}
-      onpointermove={onPointerMove}
-      onpointerup={onPointerUp}
-      onpointercancel={onPointerUp}
-      onkeydown={onKey}
-    >
-      {#if !expanded}
-        {#each items as item, index (item.key)}
-          <li>
-            <button
-              type="button"
-              class="item chip"
-              class:pending={pending.has(item.key)}
-              class:landing={landing.has(item.key)}
-              class:shine={shining.has(item.key)}
-              class:ready={ready(item)}
-              class:money={item.kind === 'upgrade' && !item.offer.project}
-              class:choice={item.kind === 'choice'}
-              data-testid="lane-item"
-              data-lane-key={item.key}
-              data-kind={item.kind}
-              disabled={disabled(item)}
-              onclick={(e) => activate(item, index, e)}
-              onanimationend={(e) => {
-                if (e.animationName.includes('land')) landing.delete(item.key);
-                if (e.animationName.includes('shine')) shining.delete(item.key);
-              }}
-            >
-              {@render face(item, false)}
-            </button>
-          </li>
-        {/each}
+  <div class="lane-line">
+    <div class="lane-host">
+      {#if hiddenLeft > 0}
+        <span class="edge left" class:dot={freshLeft} aria-hidden="true">◂{hiddenLeft}</span>
       {/if}
-    </ul>
-    {#if hiddenRight > 0}
-      <span class="edge right" class:dot={freshRight} data-testid="lane-more" aria-hidden="true"
-        >▸{hiddenRight}</span
+      <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+      <ul
+        class="lane"
+        class:inert={movedInert}
+        class:placeholder={expanded}
+        class:empty={items.length === 0}
+        aria-label="Build lane"
+        data-testid="build-lane"
+        bind:this={laneEl}
+        onscroll={onScroll}
+        onpointerdown={onPointerDown}
+        onpointermove={onPointerMove}
+        onpointerup={onPointerUp}
+        onpointercancel={onPointerUp}
+        onkeydown={onKey}
+      >
+        {#if !expanded}
+          {#each items as item (item.key)}
+            <li>
+              <button
+                type="button"
+                class="item chip"
+                class:building={buildSlot.has(item.key)}
+                class:pending={pending.has(item.key)}
+                class:landing={landing.has(item.key)}
+                class:shine={shining.has(item.key)}
+                class:ready={ready(item)}
+                class:money={item.kind === 'upgrade' && !item.offer.project}
+                class:choice={item.kind === 'choice'}
+                data-testid="lane-item"
+                data-lane-key={item.key}
+                data-kind={item.kind}
+                data-building={buildSlot.get(item.key)}
+                disabled={disabled(item)}
+                onclick={(e) => activate(item, e)}
+                onanimationend={(e) => {
+                  if (e.animationName.includes('land')) landing.delete(item.key);
+                  if (e.animationName.includes('shine')) shining.delete(item.key);
+                }}
+              >
+                {@render face(item, false)}
+              </button>
+            </li>
+          {/each}
+        {/if}
+      </ul>
+      {#if hiddenRight > 0}
+        <span class="edge right" class:dot={freshRight} data-testid="lane-more" aria-hidden="true"
+          >▸{hiddenRight}</span
+        >
+      {/if}
+    </div>
+    {#if items.length > 0}
+      <button
+        type="button"
+        class="open"
+        data-testid="deck-open"
+        aria-label={expanded ? 'Hide the cards' : 'Show all cards'}
+        aria-expanded={expanded}
+        onclick={openExpanded}>{expanded ? '▾' : '▴'}</button
       >
     {/if}
   </div>
@@ -943,9 +1028,29 @@
   }
 
   /* ---- The lane ---- */
+  .lane-line {
+    display: flex;
+    gap: 4px;
+    min-width: 0;
+  }
   .lane-host {
     position: relative;
+    flex: 1;
     min-width: 0;
+  }
+  /* Opens the lane in full: its own control, never the build row. */
+  .open {
+    flex: none;
+    width: 32px;
+    margin-top: 9px;
+    margin-bottom: 2px;
+    padding: 0;
+    border: 3px solid var(--border);
+    background: var(--panel-strong);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 900;
+    cursor: pointer;
   }
   .lane {
     display: flex;
@@ -1005,6 +1110,24 @@
   }
   .item.choice {
     border-style: dashed;
+  }
+  /* What a slot builds: lit where it stands; a pick moves the light, never the items. */
+  .item.building {
+    border-color: var(--accent-strong);
+    background: color-mix(in srgb, var(--accent) 22%, var(--panel));
+    box-shadow: inset 0 0 0 2px var(--accent);
+  }
+  .mark {
+    position: absolute;
+    top: -9px;
+    left: 6px;
+    padding: 0 4px;
+    border: 2px solid var(--border);
+    background: var(--accent);
+    color: var(--accent-ink);
+    font-size: 9px;
+    font-weight: 900;
+    line-height: 13px;
   }
   .item.ready {
     border-color: #c99a1e;
@@ -1211,6 +1334,20 @@
   }
   .card.ready {
     animation: none;
+  }
+  .details .card {
+    cursor: default;
+  }
+  .confirm {
+    min-height: 44px;
+    border: 3px solid var(--border);
+    background: var(--accent);
+    color: var(--accent-ink);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    cursor: pointer;
   }
 
   @media (prefers-reduced-motion: reduce) {

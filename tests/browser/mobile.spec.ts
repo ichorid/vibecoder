@@ -18,37 +18,43 @@ for (const viewport of [
   { width: 390, height: 844 },
   { width: 430, height: 932 },
 ]) {
-  test(`${viewport.width}×${viewport.height}: a busy mid-game keeps the primary action, the world and the lane in reach`, async ({
+  test(`${viewport.width}×${viewport.height}: a busy mid-game keeps the press in thumb reach, the world and the lane`, async ({
     page,
   }) => {
     await page.setViewportSize(viewport);
     await loadSave(page, saveText(progressedRun(9)));
+    // No CODE bar at the bottom edge: the world is the button, its label sits at the world's foot.
+    const world = await page.getByTestId('world').boundingBox();
+    if (!world) throw new Error('no world');
+    expect(world.height).toBeGreaterThanOrEqual(viewport.height * 0.3);
     const primary = await page.getByTestId('primary-action').boundingBox();
     if (!primary) throw new Error('no primary action');
-    expect(primary.y + primary.height).toBeLessThanOrEqual(viewport.height);
-    expect(primary.height).toBeGreaterThanOrEqual(44);
-    // The build row and the lane sit right above CODE; the world keeps a real share.
+    expect(primary.y).toBeGreaterThanOrEqual(world.y + world.height / 2);
+    expect(primary.y + primary.height).toBeLessThanOrEqual(world.y + world.height);
+    expect(primary.width).toBeLessThan(viewport.width * 0.8);
+    // The build row and the lane fill the controls under the world.
     expect(await page.getByTestId('offers-toggle').count()).toBe(0);
     const row = await page.getByTestId('build-row').first().boundingBox();
     if (!row) throw new Error('no build row');
     expect(row.height).toBeGreaterThanOrEqual(40);
-    expect(row.y + row.height).toBeLessThanOrEqual(primary.y);
+    expect(row.y).toBeGreaterThanOrEqual(world.y + world.height);
     const chip = await page.getByTestId('lane-item').first().boundingBox();
     if (!chip) throw new Error('no lane item');
     expect(chip.height).toBeGreaterThanOrEqual(44);
-    expect(chip.y + chip.height).toBeLessThanOrEqual(primary.y);
-    const world = await page.getByTestId('world').boundingBox();
-    expect(world?.height ?? 0).toBeGreaterThanOrEqual(viewport.height * 0.3);
+    expect(chip.y).toBeGreaterThanOrEqual(row.y + row.height);
+    expect(chip.y + chip.height).toBeLessThanOrEqual(viewport.height);
     expect(await overflow(page)).toBeLessThanOrEqual(0);
-    // Opened, the cards grow over the world and CODE stays where it was.
-    await page.getByTestId('build-row').first().click();
+    // Opened, the cards grow over the world and leave its top to tap on a phone.
     const expanded = page.getByTestId('deck-expanded');
-    if (!(await expanded.isVisible())) await page.getByTestId('build-row').first().click();
+    await page.getByTestId('deck-open').click();
+    await expect(expanded).toBeVisible();
     const card = await page.getByTestId('lane-card').first().boundingBox();
     if (!card) throw new Error('no card');
-    expect(card.y + card.height).toBeLessThanOrEqual(primary.y);
-    const after = await page.getByTestId('primary-action').boundingBox();
-    expect(after?.y).toBe(primary.y);
+    expect(card.y).toBeGreaterThanOrEqual(world.y);
+    expect(card.y + card.height).toBeLessThanOrEqual(viewport.height);
+    // (A short screen gives the cards the whole world while they are open.)
+    const panel = await expanded.boundingBox();
+    if (viewport.height >= 800) expect(panel?.y ?? 0).toBeGreaterThan(world.y + 40);
   });
 }
 
@@ -176,11 +182,8 @@ for (const width of [320, 360]) {
       saveText({ ...run, economy: { ...run.economy, money: run.economy.money + 1e7 } }),
     );
     for (const open of [false, true]) {
-      if (open) {
-        await page.getByTestId('build-row').first().click();
-        if (!(await page.getByTestId('deck-expanded').isVisible())) {
-          await page.getByTestId('build-row').first().click();
-        }
+      if (open && !(await page.getByTestId('deck-expanded').isVisible())) {
+        await page.getByTestId('deck-open').click();
       }
       const sticking = await page.evaluate(() => {
         const vw = document.documentElement.clientWidth;

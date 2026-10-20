@@ -37,5 +37,18 @@ export function gainText(gain: PrimaryGainViewModel, format: (n: number) => stri
   }
 }
 
+/** OBSERVE changes nothing; a press still answers (cosmetic, for the lulz), one line per press. */
+const OBSERVE_GAINS = [
+  '+1 existential dread',
+  '+1 boredom',
+  '+1 existential dread',
+  '+1 staring',
+  '+1 boredom',
+  '+0 purpose',
+] as const;
+export function observeText(press: number): string {
+  return OBSERVE_GAINS[press % OBSERVE_GAINS.length] ?? '+1 boredom';
+}
+
 /** At most this many numbers float at once; the oldest makes room. */
 export const MAX_FLOATING = 8;

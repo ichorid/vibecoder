@@ -14,14 +14,6 @@ describe('lane order (docs/feature_build_deck.md §6.3)', () => {
     expect(reconcileLane(null, ['a', 'b', 'c'], 0)).toEqual({ order: ['a', 'b', 'c'], added: [] });
   });
 
-  it('a pick swaps in place: the old build takes the picked item’s position', () => {
-    // The player picks "c" (index 2) while "x" builds: "x" comes back where "c" was.
-    const place = new Map([['x', 2]]);
-    const next = reconcileLane(['a', 'b', 'c', 'd'], ['a', 'b', 'd', 'x'], 4, place);
-    expect(next.order).toEqual(['a', 'b', 'x', 'd']);
-    expect(next.added).toEqual(['x']);
-  });
-
   it('a new item goes in at the peek position; items left of it never move', () => {
     const next = reconcileLane(['a', 'b', 'c', 'd'], ['n', 'a', 'b', 'c', 'd'], 2);
     expect(next.order).toEqual(['a', 'b', 'n', 'c', 'd']);

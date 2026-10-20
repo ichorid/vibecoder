@@ -72,8 +72,8 @@ The UPGRADES button and the offers sheet are removed, on phones and on desktop.
 1. First seconds: the build row reads `▶ Release ▓░░░ 4% ~1:10`. The lane fills in from the
    right, one item at a time, each with a pop and a sparkle (§8.2): `[Tests ~12s] [Linter ~20s]
    [Gig…`.
-2. The player taps *Tests*. It flies up into the build row; *Release 4%* drops into the spot
-   *Tests* left. The bar now runs visibly faster.
+2. The player taps *Tests*. The light moves to it (▶) and the build row now reads *Tests*;
+   *Release 4%* stays where it was, unlit, paused. The bar now runs visibly faster.
 3. *Tests* completes: **ta-da** — confetti bursts from the build row, *"+20 % code"* floats over
    the world, purchase cue. The lane grows into cards (*✓ TESTS BUILT · WHAT NEXT?*) and the
    line under them says *release at ½ while you decide*. The player keeps tapping CODE; after a
@@ -126,7 +126,13 @@ button: no layout shift under the thumb, ever.
 - One row per build slot: target name, badge (BUILDING / AUTO / AUTO · ½ / PAUSED, as in
   feature_projects.md §7.1), fill bar, ETA at the current pace.
 - AUTO · ½ (fallback) adds the line *release at ½ while you decide* under the row.
-- Tapping the build row expands the lane (§6.6) to read the items; it never changes the target.
+- Tapping the build row shows its **details** (title, description, effects, progress, ETA)
+  over the world; a second tap, the head or a swipe down closes them. It never changes the
+  target and never opens the lane. A READY row opens the ready popup (§9). In AUTO · ½ the
+  details carry *▶ BUILD AT FULL SPEED*.
+- What a slot builds **stays in the lane, lit** (▶, ▶1 / ▶2 with two slots). Tapping the lit
+  item is the same as tapping its row, except in AUTO · ½: then it confirms the build at full
+  speed in one tap (feature_projects.md §5.3).
 - **Two slots (Worktrees):** two rows. Tapping a row **focuses** that slot (outline); lane picks
   go to the focused slot. Default focus: the slot that freed most recently, else slot 1. The
   manual-tap rule of feature_projects.md §5.2 is unchanged.
@@ -155,16 +161,16 @@ distinct from code items at 360 px. No item is ever marked as the recommended on
 
 ### 6.3 Order: never re-sorted
 
-The lane is a list the thumb learns. Its order changes in exactly three ways:
+The lane is a list the thumb learns. **A pick moves nothing:** it moves the light (▶) to the picked item; the old build stays where
+it was, paused. Switching back is a tap on the same spot. A pick never adds an item, never
+removes one and never marks one NEW. The order changes in exactly two ways:
 
-1. **Swap in place.** Picking an item swaps it with the current build: the old build takes the
-   picked item's position. Switching back is a tap on the same spot.
-2. **Insert.** A new item goes in at the **peek position** — the first position not fully
+1. **Insert.** A new item goes in at the **peek position** — the first position not fully
    visible at the current scroll — or at the end if everything is visible. The lane then
    **scrolls to it by itself** (B10): the smallest smooth scroll that shows it whole, and the
    spotlight of §8.2. Inserting at the peek keeps that scroll to about one item width, so the
    thumb's map of the lane barely shifts.
-3. **Remove.** A built, bought or withdrawn item collapses (200 ms) and the items to its right
+2. **Remove.** A built, bought or withdrawn item collapses (200 ms) and the items to its right
    close the gap.
 
 No sorting by price, ETA or anything else, ever. On load the order is the read-model order (§11).
@@ -207,7 +213,8 @@ No sorting by price, ETA or anything else, ever. On load the order is the read-m
 
 - The same lane, same order, items grown into cards with the effect text; dots show position.
 - **Opens** when a slot completes a build while it would fall back (no Manager Agent), when the
-  player taps *Later* on a ready popup (§9), and when the player taps a build row. Scroll resets
+  player taps *Later* on a ready popup (§9), and when the player taps the **▴** button at the
+  lane's end. Scroll resets
   to the start on a completion. Arrivals while it is open scroll to themselves as in §6.3.
 - **Closes** on a pick, a tap on its header, or a swipe down. On a completion it otherwise stays
   open while that slot is in fallback (the question is still open).
@@ -447,9 +454,13 @@ Same protocol as the 20 tests that found the problem.
 
 Deviations and details settled while building (journal 2026-10-20):
 
-- **§6.1:** a tap on a build row in **AUTO · ½** confirms that build at full speed (the one-tap
-  confirm of docs/feature_projects.md §5.3 had to survive); a tap on any other row opens the lane
-  in full (two slots: focuses that slot). A READY row opens the ready popup.
+- **§6.1 / §6.3 (2026-10-20, owner):** the swap in place is gone — it read as items jumping
+  between the row and the lane, and the old build came back tagged NEW. Builds stay in the lane,
+  lit; a pick moves the light. The build row opens its details, not the lane; the lane opens in
+  full from its own **▴** button at the lane's end (and on a completion, a *Later*, as before).
+  The one-tap confirm of a fallback (docs/feature_projects.md §5.3) lives on the lit lane item
+  (and *▶ BUILD AT FULL SPEED* in the details). A READY row opens the ready popup. Two slots: a
+  row tap also focuses that slot.
 - **§6.2:** the lane keeps the old surface limit of **three unstarted** cards and decisions; started
   (paused) builds, the release, the demo, the gig or the search and the job offer are always in.
   The token pack is never a lane item.

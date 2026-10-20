@@ -98,19 +98,27 @@ describe('Game controls', () => {
     );
   });
 
-  it('a tap on a lane card builds it: it moves to the build row, the old build takes its spot', async () => {
+  it('a tap on a lane card builds it: the highlight moves to it, every card stays in place', async () => {
     const t = setup();
     await t.write(6);
-    const card = screen.getByRole<HTMLButtonElement>('button', { name: /Autocomplete/ });
-    expect(card.disabled).toBe(false);
+    const card = needDeckItem('autocomplete');
+    expect((card as HTMLButtonElement).disabled).toBe(false);
     expect(buildRow().getAttribute('data-key')).toBe('release');
+    const order = () =>
+      [...document.querySelectorAll<HTMLElement>('[data-lane-key]')].map(
+        (el) => el.dataset.laneKey,
+      );
+    const before = order();
     await fireEvent.click(card);
     expect(t.latest()?.run.slots[0]).toMatchObject({ target: 'autocomplete', by: 'player' });
     expect(buildRow().getAttribute('data-key')).toBe('autocomplete');
     expect(within(buildRow()).getByTestId('project-badge').textContent).toBe('BUILDING');
-    expect(document.querySelector('[data-lane-key="autocomplete"]')).toBeNull();
-    // Swap in place: the release waits where Autocomplete was.
-    expect(document.querySelector('[data-lane-key="release"]')).not.toBeNull();
+    expect(order()).toEqual(before);
+    expect(needDeckItem('autocomplete').dataset.building).toBe('0');
+    // The release waits where it was, not building, and is not news.
+    const release = needDeckItem('release');
+    expect(release.dataset.building).toBeUndefined();
+    expect(release.textContent).not.toContain('NEW');
     await t.write(3);
     expect(t.latest()?.run.projects.autocomplete?.code).toBe(3);
     expect(t.latest()?.run.upgradeLevels).toEqual({});

@@ -105,3 +105,10 @@ export async function decide(page: Page, id: string): Promise<void> {
   const yes = popup.getByRole('button', { name: 'YES' });
   if ((await yes.count()) > 0) await yes.click();
 }
+
+/** Tap an empty spot of the world (its top-left corner holds nothing tappable): a press. */
+export async function tapWorld(page: Page): Promise<void> {
+  const box = await page.getByTestId('world-canvas').boundingBox();
+  if (!box) throw new Error('no world canvas');
+  await page.mouse.click(box.x + 12, box.y + 12);
+}

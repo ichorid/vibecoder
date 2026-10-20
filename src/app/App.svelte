@@ -18,7 +18,7 @@
   import SettingsMenu from '../ui/SettingsMenu.svelte';
   import type { RendererFactory, WorldStatus, WorldTap } from '../world/host';
   import type { UiSnapshot } from '../ui/contracts';
-  import { gainText } from '../ui/floatingGains';
+  import { gainText, observeText } from '../ui/floatingGains';
   import { formatAmount } from '../ui/format';
   import WorldCanvas from '../world/WorldCanvas.svelte';
   import { describeScene } from '../content/world';
@@ -120,6 +120,7 @@
     return line;
   }
 
+  let observed = 0;
   function onWorldTap(tap: WorldTap): string | null {
     switch (tap.target) {
       case 'poster':
@@ -130,9 +131,10 @@
       case 'scene': {
         // The monitor is where the work happens, and an empty spot is a big button within thumb
         // reach: tapping either is the main action.
-        const { gain } = current().game.primaryAction;
+        const { gain, id } = current().game.primaryAction;
         if (api.dispatch({ type: 'primaryAction' }) !== 'applied') return null;
-        return gain ? gainText(gain, formatAmount) : null;
+        if (gain) return gainText(gain, formatAmount);
+        return id === 'observe' ? observeText(observed++) : null;
       }
       case 'plant': {
         if (api.dispatch({ type: 'waterPlant' }) !== 'applied') return 'too late for that';

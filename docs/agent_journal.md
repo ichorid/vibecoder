@@ -641,3 +641,14 @@ of the next task. Keep entries short; newest progress at the bottom of each sect
   swallow every second fast tap); the FIT button remains. No rule or save change. Proposed, not
   done: terminal under CODE so the controls rise ~70 px; swipe to dismiss discovery cards
   (CONTINUE sits at the top, the hardest reach).
+- 2026-10-20: (user) the CODE/PROMPT bar is gone. The world is the button (any empty spot); a
+  small caption at the world's foot names the action (icon + label, "TAP ·" fading before the
+  first press). It is still a press itself (`primary-action`, keyboard next after the world, a
+  code gain flies into its build), sits outside the world's clip and hides under the ready /
+  decision popups. Controls under the world: log, gauge, build row, lane (the lane is now the
+  bottom edge — rare taps). The lonely cat sits over the caption (large) or its right end
+  (small `button` spot), `card` on the lane at the bottom. OBSERVE gags moved to
+  `floatingGains.observeText` (world taps say them too). Phone test restated: caption in the
+  lower half of the world, deck below it; on ≥ 800 px the open cards leave the world's top
+  tappable (320×568 gives them the whole world). Known: first-loop float tests fail under
+  `--workers 12` on v0.4.0 too (a 900 ms float vs a loaded machine) — not from this change.

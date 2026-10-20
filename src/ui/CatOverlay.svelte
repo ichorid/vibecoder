@@ -65,14 +65,16 @@
       opacity: 0;
     }
   }
-  /* Small: sits on the right end of the primary button (the bottom of the controls). */
+  /* The overlay lives in the controls; `100%` up from their bottom is the world's foot, where the
+     press label sits and the thumb taps. */
+  /* Small: sits on the right end of the press label (the foot of the world). */
   .small.button {
-    bottom: 40px;
-    right: 14px;
+    bottom: calc(100% + 20px);
+    left: calc(50% + 36px);
   }
-  /* Small: sits on the build lane, right above the primary button. */
+  /* Small: sits on the build lane (the bottom of the controls). */
   .small.card {
-    bottom: 76px;
+    bottom: max(16px, env(safe-area-inset-bottom));
     right: 18px;
   }
   /* Small: strolls across the event log (the top of the controls). */
@@ -89,9 +91,9 @@
       transform: translateX(260%);
     }
   }
-  /* Large: covers the primary action until tapped or the intrusion passes. */
+  /* Large: covers the press label and the world around it until tapped or the intrusion passes. */
   .large.block {
-    bottom: 0;
+    bottom: 100%;
     left: 50%;
     margin-left: -90px;
     width: 180px;

@@ -107,9 +107,29 @@ describe('a build completes (docs/feature_build_deck.md §6.6, §8.1)', () => {
     expect(buildRow().textContent).toContain('Manager picked');
   });
 
-  it('a tap on the build row opens the lane in full; its head closes it', async () => {
-    show(at('ralph-loop'));
+  it('a tap on the build row shows what it builds in detail, never the whole lane', async () => {
+    const t = show(at('ralph-loop'));
+    const key = buildRow().getAttribute('data-key') ?? '';
     await fireEvent.click(buildRow());
+    expect(screen.queryByTestId('deck-expanded')).toBeNull();
+    const details = screen.getByTestId('build-details');
+    expect(details.textContent).toContain(t.latest()?.game.deck.builds[0]?.item.title ?? '?');
+    expect(t.latest()?.run.slots[0]?.target).toBe(key);
+    // A second tap on the row, or the head, closes it.
+    await fireEvent.click(buildRow());
+    expect(screen.queryByTestId('build-details')).toBeNull();
+    await fireEvent.click(buildRow());
+    await fireEvent.click(screen.getByTestId('details-close'));
+    expect(screen.queryByTestId('build-details')).toBeNull();
+    // The highlighted chip is the same build: it shows the same details.
+    await fireEvent.click(needDeckItem(key));
+    expect(screen.getByTestId('build-details')).toBeTruthy();
+    expect(t.latest()?.run.slots[0]?.target).toBe(key);
+  });
+
+  it('the lane opens in full from its own button; its head closes it', async () => {
+    show(at('ralph-loop'));
+    await fireEvent.click(screen.getByTestId('deck-open'));
     expect(screen.getByTestId('deck-expanded').textContent).toContain('WHAT NEXT?');
     await fireEvent.click(screen.getByTestId('deck-close'));
     expect(screen.queryByTestId('deck-expanded')).toBeNull();
@@ -248,10 +268,39 @@ describe('the lane (§6)', () => {
         { target: 'release', by: 'player', sinceMs: 100 },
       ],
     });
+    expect(needDeckItem(first.key).dataset.building).toBe('0');
+    expect(needDeckItem('release').dataset.building).toBe('1');
     await fireEvent.click(buildRow(1));
-    const card = document.querySelector<HTMLElement>(`[data-lane-card="${second.key}"]`);
-    if (!card) throw new Error('no card');
-    await fireEvent.click(card);
+    await fireEvent.click(needDeckItem(second.key));
     expect(t.latest()?.run.slots.map((s) => s.target)).toEqual([first.key, second.key]);
+    // Each building chip carries its slot's mark; the release waits unmarked where it was.
+    expect(needDeckItem(second.key).dataset.building).toBe('1');
+    expect(needDeckItem('release').dataset.building).toBeUndefined();
+  });
+
+  it('a pick moves the highlight, not the items; nothing comes back as NEW', async () => {
+    const run = at('ralph-loop');
+    const card = selectGame(run, catalog).deck.lane.find(
+      (i) => i.kind === 'upgrade' && i.offer.project?.selectable && !i.offer.internal,
+    );
+    if (!card) throw new Error('no card to pick');
+    const t = show(run);
+    const old = buildRow().getAttribute('data-key') ?? '';
+    const order = () =>
+      [...document.querySelectorAll<HTMLElement>('[data-lane-key]')].map(
+        (el) => el.dataset.laneKey,
+      );
+    const before = order();
+    expect(before).toContain(old);
+    expect(needDeckItem(old).dataset.building).toBe('0');
+    await fireEvent.click(needDeckItem(card.key));
+    expect(t.latest()?.run.slots[0]?.target).toBe(card.key);
+    await tick();
+    expect(order()).toEqual(before);
+    expect(needDeckItem(card.key).dataset.building).toBe('0');
+    const back = needDeckItem(old);
+    expect(back.dataset.building).toBeUndefined();
+    expect(back.classList.contains('pending')).toBe(false);
+    expect(back.textContent).not.toContain('NEW');
   });
 });

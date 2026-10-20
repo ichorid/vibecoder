@@ -121,7 +121,12 @@ describe('money on screen', () => {
     expect(within(buildRow()).getByTestId('project-badge').textContent).toBe('AUTO · ½');
     // The cost of not choosing is said where the choice is.
     expect(screen.getByTestId('deck-tax').textContent).toContain('at ½ while you decide');
+    // The row tells more; one tap on the highlighted chip (or the details' button) confirms it.
     await fireEvent.click(buildRow());
+    expect(screen.getByTestId('build-details').textContent).toContain('FULL SPEED');
+    expect(t.latest()?.run.slots[0]?.by).toBe('fallback');
+    await fireEvent.click(needDeckItem('release'));
+    expect(screen.queryByTestId('build-details')).toBeNull();
     expect(t.latest()?.run.slots[0]).toMatchObject({ target: 'release', by: 'player' });
     expect(within(buildRow()).getByTestId('project-badge').textContent).toBe('BUILDING');
     expect(screen.queryByTestId('deck-tax')).toBeNull();
